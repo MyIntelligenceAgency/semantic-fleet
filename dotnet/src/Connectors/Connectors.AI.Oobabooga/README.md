@@ -35,7 +35,41 @@ The Oobabooga Connector is a powerful tool for interacting with the Oobabooga AP
 3. **Chat Blocking**: For chat-based completion, use the `OobaboogaChatCompletion` class with blocking API
 3. **Chat streaming**: For chat-based completion, with real-time streaming use the `OobaboogaChatCompletion` class with streaming API.
 
-### Text Blocking
+### Kernel extensions
+
+You can use the `Kernel.Builder` class to configure your semantic kernel. Below are examples of how to add a text and chat completion service using the Oobabooga connector.
+
+#### Using Oobabooga for Text Completion
+
+```csharp
+var kernelWithTextCompletion = Kernel.Builder
+    .WithLoggerFactory(loggerFactory)
+    .WithOobaboogaTextCompletionService(
+        new OobaboogaTextCompletionSettings(/* your settings here */),
+        "OobaboogaTextServiceId",  // Optional: Local identifier for the AI service
+        true                       // Optional: Set as default service
+    )
+    .Build();
+```
+
+#### Using Oobabooga for Chat Completion
+
+```csharp
+var kernelWithChatCompletion = Kernel.Builder
+    .WithLoggerFactory(loggerFactory)
+    .WithOobaboogaChatCompletionService(
+        new OobaboogaChatCompletionSettings(/* your settings here */),
+        "OobaboogaChatServiceId",  // Optional: Local identifier for the AI service
+        true                       // Optional: Set as default service
+    )
+    .Build();
+```
+
+### Low-level usage
+
+Normally , you would use the kernel extensions above to add the Oobabooga connector to your semantic kernel. However, you can also use the connector directly. Here's how:
+
+#### Text Blocking
 For blocking text completion, you can use the `OobaboogaTextCompletion` class. Here's a quick example:
 
 ```csharp
@@ -44,7 +78,7 @@ var textCompletion = new OobaboogaTextCompletion(settings);
 var result = await textCompletion.GetCompletionsAsync("Hello, world!", new CompleteRequestSettings());
 ```
 
-### Text Streaming
+#### Text Streaming
 For streaming text completion, you can use the `CompleteStreamAsync` method. Here's how:
 
 ```csharp
@@ -58,7 +92,7 @@ await foreach (var result in results)
 }
 ```
 
-## Chat Blocking
+#### Chat Blocking
 For blocking chat completion, you can use the `OobaboogaChatCompletion` class. Here's a quick example:
 
 ```csharp
@@ -67,7 +101,7 @@ var chatCompletion = new OobaboogaChatCompletion(settings);
 var result = await chatCompletion.GetCompletionsAsync(new List<Message> { new Message { Role = "user", Content = "Hello!" } }, new CompleteRequestSettings());
 ```
 
-## Chat Streaming
+#### Chat Streaming
 For streaming chat completion, you can use the `GetStreamingChatCompletionsAsync` method. Here's how:
 
 ```csharp
@@ -80,6 +114,8 @@ await foreach (var result in results)
     Console.WriteLine(result.Content);
 }
 ```
+
+
 
 ## Additional Settings
 

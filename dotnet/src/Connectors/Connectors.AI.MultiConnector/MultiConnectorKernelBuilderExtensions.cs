@@ -1,12 +1,12 @@
 ﻿// Copyright (c) MyIA. All rights reserved.
 
 using System.Threading;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.TextCompletion;
-using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 
 #pragma warning disable IDE0130
 // ReSharper disable once CheckNamespace - Using NS of KernelConfig
-namespace Microsoft.SemanticKernel;
+namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 #pragma warning restore IDE0130
 
 /// <summary>
