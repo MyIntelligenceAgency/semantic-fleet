@@ -1,0 +1,99 @@
+{
+  "state": [
+    {
+      "Key": "INPUT",
+      "Value": "Artificial intelligence (AI) is a branch of computer science that aims to create intelligent machines capable of performing tasks that would typically require human intelligence. AI has applications in various fields, including healthcare, finance, and transportation. It involves the development of algorithms and models that can learn from data and make predictions or decisions. AI has the potential to revolutionize industries and improve efficiency. However, it also raises ethical concerns and challenges related to privacy and job displacement.\nLLMs are a recent trend of neural networks architecture. These models have the ability to understand and generate human-like text, which has made them highly popular for applications ranging from chatbots to content creation. Their capacity to process vast amounts of data allows them to provide insights, generate ideas, or even write essays, often exceeding human capabilities in terms of speed and sometimes even accuracy.\n"
+    }
+  ],
+  "steps": [
+    {
+      "state": [
+        {
+          "Key": "INPUT",
+          "Value": ""
+        }
+      ],
+      "steps": [],
+      "parameters": [
+        {
+          "Key": "INPUT",
+          "Value": "$INPUT"
+        }
+      ],
+      "outputs": [
+        "RESULT__SUMMARY"
+      ],
+      "next_step_index": 0,
+      "name": "Summarize",
+      "skill_name": "SummarizeSkill",
+      "description": "Summarize given text or any text document"
+    },
+    {
+      "state": [
+        {
+          "Key": "INPUT",
+          "Value": ""
+        }
+      ],
+      "steps": [],
+      "parameters": [
+        {
+          "Key": "input",
+          "Value": "$INPUT"
+        }
+      ],
+      "outputs": [
+        "RESULT__TOPICS"
+      ],
+      "next_step_index": 0,
+      "name": "Topics",
+      "skill_name": "SummarizeSkill",
+      "description": "Analyze given text or document and extract key topics worth remembering"
+    },
+    {
+      "state": [
+        {
+          "Key": "INPUT",
+          "Value": ""
+        }
+      ],
+      "steps": [],
+      "parameters": [
+        {
+          "Key": "index",
+          "Value": "2"
+        },
+        {
+          "Key": "INPUT",
+          "Value": "$RESULT__TOPICS"
+        },
+        {
+          "Key": "count",
+          "Value": "1"
+        }
+      ],
+      "outputs": [
+        "RESULT__THIRD_TOPIC"
+      ],
+      "next_step_index": 0,
+      "name": "ElementAtIndex",
+      "skill_name": "MiscSkill",
+      "description": "Get an element from an array at a specified index"
+    }
+  ],
+  "parameters": [
+    {
+      "Key": "INPUT",
+      "Value": ""
+    }
+  ],
+  "outputs": [
+    "RESULT__SUMMARY",
+    "RESULT__TOPICS",
+    "RESULT__THIRD_TOPIC"
+  ],
+  "next_step_index": 0,
+  "name": "",
+  "skill_name": "Microsoft.SemanticKernel.Planning.Plan",
+  "description": "Evaluates the capabilities of a smaller LLM model. Starting with an input text on a given topic, several functions will be called on the text and/or the previous functions results."
+}
