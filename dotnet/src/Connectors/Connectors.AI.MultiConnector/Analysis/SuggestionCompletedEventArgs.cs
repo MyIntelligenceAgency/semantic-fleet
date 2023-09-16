@@ -9,7 +9,6 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 /// </summary>
 public class SuggestionCompletedEventArgs : EventArgs
 {
-
     /// <summary>
     /// Gets the suggested <see cref="MultiCompletionAnalysis"/> data for this analysis run.
     /// </summary>

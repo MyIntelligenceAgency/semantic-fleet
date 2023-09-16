@@ -66,6 +66,9 @@ public class NamedTextCompletion
     /// </summary>
     public decimal? CostPer1000Token { get; set; }
 
+    /// <summary>
+    /// Gets or sets the function to count the number of tokens in a string.
+    /// </summary>
     [JsonIgnore]
     public Func<string, int>? TokenCountFunc { get; set; }
 
@@ -85,6 +88,12 @@ public class NamedTextCompletion
         this.TextCompletion = textCompletion;
     }
 
+    /// <summary>
+    /// Calculates the cost of a text completion request.
+    /// </summary>
+    /// <param name="text">The input text.</param>
+    /// <param name="result">The result text.</param>
+    /// <returns>The calculated cost.</returns>
     public decimal GetCost(string text, string result)
     {
         var tokenCount = (this.TokenCountFunc ?? (s => 0))(text + result);

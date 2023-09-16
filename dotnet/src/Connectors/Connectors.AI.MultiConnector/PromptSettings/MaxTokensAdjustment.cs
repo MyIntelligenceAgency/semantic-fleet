@@ -2,6 +2,9 @@
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
+/// <summary>
+/// Represents an enumeration of how max tokens are adjusted from the request settings to account for the connector's max tokens.
+/// </summary>
 public enum MaxTokensAdjustment
 {
     /// <summary>
@@ -10,12 +13,12 @@ public enum MaxTokensAdjustment
     None,
 
     /// <summary>
-    /// Adjust the max tokens to the minimum of the connector max tokens and the remaining tokens
+    /// Adjust the max tokens to a percentage of the connector's max tokens
     /// </summary>
     Percentage,
 
     /// <summary>
-    /// Adjust the max tokens to the maximum of the connector max tokens and the remaining tokens
+    /// Count the input prompt tokens using given tokenizer and subtract to the connector's max tokens
     /// </summary>
     CountInputTokens
 }

@@ -19,6 +19,18 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 [DebuggerDisplay("{DebuggerDisplay}")]
 public class MultiCompletionSession
 {
+    /// <summary>
+    /// Constructor for MultiCompletionSession class.
+    /// </summary>
+    /// <param name="completionJob">Completion job.</param>
+    /// <param name="promptSettings">Prompt multi connector settings.</param>
+    /// <param name="isNewPrompt">Flag indicating if it is a new prompt.</param>
+    /// <param name="namedTextCompletion">Named text completion.</param>
+    /// <param name="availableCompletions">List of available completions.</param>
+    /// <param name="promptConnectorSettings">Prompt connector settings.</param>
+    /// <param name="multiConnectorSettings">Multi text completion settings.</param>
+    /// <param name="logger">Logger.</param>
+    /// <returns>A new instance of MultiCompletionSession.</returns>
     public MultiCompletionSession(CompletionJob completionJob,
         PromptMultiConnectorSettings promptSettings,
         bool isNewPrompt,

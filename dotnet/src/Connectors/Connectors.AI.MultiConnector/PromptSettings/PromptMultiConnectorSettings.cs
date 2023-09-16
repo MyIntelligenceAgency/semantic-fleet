@@ -82,6 +82,10 @@ public class PromptMultiConnectorSettings
         return filteredConnectors[0];
     }
 
+    /// <summary>
+    /// Adds a prompt to the current session.
+    /// </summary>
+    /// <param name="prompt">The prompt to add.</param>
     public void AddSessionPrompt(string prompt)
     {
         this._currentSessionPrompts[prompt] = true;
@@ -89,6 +93,11 @@ public class PromptMultiConnectorSettings
 
     private readonly ConcurrentDictionary<string, bool> _currentSessionPrompts = new();
 
+    /// <summary>
+    /// Determines if a sample is needed based on the current session.
+    /// </summary>
+    /// <param name="session">The current multi-completion session.</param>
+    /// <returns>True if a sample is needed, otherwise false.</returns>
     public bool IsSampleNeeded(MultiCompletionSession session)
     {
         var toReturn = (session.IsNewPrompt
@@ -101,6 +110,13 @@ public class PromptMultiConnectorSettings
         return toReturn;
     }
 
+    /// <summary>
+    /// Retrieves the completions to test based on the original test and available completions.
+    /// </summary>
+    /// <param name="originalTest">The original connector test.</param>
+    /// <param name="namedTextCompletions">The list of available text completions.</param>
+    /// <param name="enablePrimaryCompletionTests">Flag to enable primary completion tests.</param>
+    /// <returns>An enumerable of <see cref="NamedTextCompletion"/> to test.</returns>
     public IEnumerable<NamedTextCompletion> GetCompletionsToTest(ConnectorTest originalTest, IReadOnlyList<NamedTextCompletion> namedTextCompletions, bool enablePrimaryCompletionTests)
     {
         return namedTextCompletions.Where(

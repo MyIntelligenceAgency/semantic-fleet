@@ -269,6 +269,12 @@ public class MultiTextCompletionSettings
         return toReturn;
     }
 
+    /// <summary>
+    /// Finds the first PromptMultiConnectorSettings that matches the given CompletionJob.
+    /// </summary>
+    /// <param name="completionJob">The CompletionJob to match.</param>
+    /// <param name="promptMultiConnectorSettings">The collection of PromptMultiConnectorSettings to search.</param>
+    /// <returns>The first PromptMultiConnectorSettings that matches the given CompletionJob, or null if none is found.</returns>
     public static PromptMultiConnectorSettings? SimpleMatchPromptSettings(CompletionJob completionJob, IEnumerable<PromptMultiConnectorSettings> promptMultiConnectorSettings)
     {
         var toReturn = promptMultiConnectorSettings.FirstOrDefault(s => s.PromptType.Signature.Matches(completionJob));

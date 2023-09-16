@@ -21,9 +21,24 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 /// </summary>
 public enum PromptInterpolationType
 {
+    /// <summary>
+    /// No interpolation
+    /// </summary>
     None,
+
+    /// <summary>
+    /// Tokens with simple format {keyName} are replaced with their values from an input dictionary
+    /// </summary>
     InterpolateKeys,
+
+    /// <summary>
+    /// Tokens with advanced format {keyName:format} like {DateOfBirth:dddd} are transformed into {0:format} and processed with the help of values from an input dictionary and usual string formatting capabilities
+    /// </summary>
     InterpolateFormattable,
+
+    /// <summary>
+    /// Tokens are turned into a dynamic linq expression, compiled and cached all the usual compile time ${xxx} is available with hierarchical objects from the input directory, e.g. {name.Length > 5 ? name.ToUpper() : name.ToLower()}
+    /// </summary>
     InterpolateDynamicLinqExpression
 }
 
