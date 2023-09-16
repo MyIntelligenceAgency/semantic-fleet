@@ -170,3 +170,11 @@ Those parameters supplied by semantic kernel with completion calls are either pa
 - **ChatGenerationAttempts**: The number of chat generation attempts.
 - **ChatInstructCommand**: The chat-instruct command for the chat completion when corresponding mode is used.
 - **ContextInstruct**: The instruction context for the chat-instruct / instruct completion.
+
+## Additional References
+
+For more in-depth understanding and testing, you can refer to the following:
+
+- **Unit Tests**: Check out the actual test file [here](../../Connectors.UnitTests/Oobabooga/Completion/OobaboogaCompletionTests.cs).
+- **Integration Tests**: Dive into the integration tests [here](../../IntegrationTests/Connectors/Oobabooga/OobaboogaCompletionTests.cs).
+- **Future Notebooks**: Keep an eye out for Jupyter Notebooks that will provide interactive examples and use-cases. These will be added to the [notebooks directory](../../notebooks/) in the future.
