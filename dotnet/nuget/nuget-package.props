@@ -10,15 +10,15 @@
     <Authors>My Intelligence Agency</Authors>
     <Company>My Intelligence Agency</Company>
     <Product>Semantic Fleet</Product>
-    <Description>Empowers app owners to integrate cutting-edge LLM technology quickly and easily into their apps.</Description>
+    <Description>Extend your Semantic Kernel-powered apps with a fleet of specialized connectors, managed by a superior LLM as your fleet captain.</Description>
     <PackageTags>AI, Artificial Intelligence, SDK</PackageTags>
     <PackageId>$(AssemblyName)</PackageId>
 
     <!-- Required license, copyright, and repo information. Packages can override. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
-    <PackageProjectUrl>https://aka.ms/semantic-kernel</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/microsoft/semantic-kernel</RepositoryUrl>
+    <Copyright>© My Intelligence Agency. All rights reserved.</Copyright>
+    <PackageProjectUrl>https://github.com/MyIntelligenceAgency/semantic-fleet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MyIntelligenceAgency/semantic-fleet</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
 
     <!-- Use icon and NUGET readme from dotnet/nuget folder -->
