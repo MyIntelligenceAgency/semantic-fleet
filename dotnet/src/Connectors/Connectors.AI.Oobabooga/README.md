@@ -1,23 +1,5 @@
 # Oobabooga Connector
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Four Main Cases](#four-main-cases)
-  - [Text Blocking](#text-blocking)
-  - [Text Streaming](#text-streaming)
-  - [Chat Blocking](#chat-blocking)
-  - [Chat Streaming](#chat-streaming)
-- [Additional Settings](#additional-settings)
-  - [General Settings](#general-settings)
-  - [Advanced Settings](#advanced-settings)
-- [Custom Completion Parameters](#custom-completion-parameters)
-  - [Overlapping Fields with SK](#overlapping-fields-with-sk)
-  - [Unique Oobabooga Parameters for Text and Chat Completion](#unique-oobabooga-parameters-for-text-and-chat-completion)
-  - [Unique Oobabooga Parameters for Chat Completion Only](#unique-oobabooga-parameters-for-chat-completion-only)
-
-
 ## Introduction
 The Oobabooga Connector is a powerful tool for interacting with the Oobabooga API. It provides a .NET interface for both blocking and streaming completion and chat APIs. This document will guide you through the various settings and usage patterns.
 
