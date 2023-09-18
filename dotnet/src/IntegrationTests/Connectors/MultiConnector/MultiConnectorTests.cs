@@ -25,6 +25,7 @@ using Microsoft.SemanticKernel.Planning.Sequential;
 using Microsoft.SemanticKernel.Text;
 using SemanticKernel.IntegrationTests.TestSettings;
 using SemanticKernel.UnitTests;
+using SharpToken;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -46,7 +47,8 @@ public sealed class MultiConnectorTests : IDisposable
     private readonly List<ClientWebSocket> _webSockets = new();
     private readonly Func<ClientWebSocket> _webSocketFactory;
     private readonly RedirectOutput _testOutputHelper;
-    private readonly Func<string, int> _gp3TokenCounter = s => GPT3Tokenizer.Encode(s).Count;
+    private static readonly GptEncoding s_gptEncoding = GptEncoding.GetEncoding("cl100k_base");
+    private readonly Func<string, int> _gp3TokenCounter = s => s_gptEncoding.Encode(s).Count;
     private readonly Func<string, int> _wordCounter = s => s.Split(' ').Length;
     private readonly string _planDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, PlansDirectory);
     private readonly string _textDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, TextsDirectory);

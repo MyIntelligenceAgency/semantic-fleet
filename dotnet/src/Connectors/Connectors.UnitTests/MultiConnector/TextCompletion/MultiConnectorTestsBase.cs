@@ -8,9 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.Tokenizers;
 using SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.ArithmeticMocks;
 using SemanticKernel.UnitTests;
+using SharpToken;
 using Xunit.Abstractions;
 
 namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion;
@@ -18,7 +18,11 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion;
 public class MultiConnectorTestsBase : IDisposable
 {
     private readonly RedirectOutput _testOutputHelper;
-    protected Func<string, int> DefaultTokenCounter { get; } = s => GPT3Tokenizer.Encode(s).Count;
+    private bool _disposedValue;
+    private static readonly GptEncoding s_gptEncoding = GptEncoding.GetEncoding("cl100k_base");
+
+    protected Func<string, int> DefaultTokenCounter { get; } = s => s_gptEncoding.Encode(s).Count;
+
     protected CancellationTokenSource CleanupToken { get; } = new();
 
     protected RedirectOutput TestOutputHelper => this._testOutputHelper;
@@ -103,8 +107,6 @@ public class MultiConnectorTestsBase : IDisposable
         this.Dispose(true);
         GC.SuppressFinalize(this);
     }
-
-    private bool _disposedValue;
 
     protected virtual void Dispose(bool disposing)
     {
