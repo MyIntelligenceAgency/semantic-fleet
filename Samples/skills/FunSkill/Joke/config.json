@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "description": "Generate a funny joke",
+  "type": "completion",
+  "completion": {
+    "max_tokens": 200,
+    "temperature": 1,
+    "top_p": 0.0,
+    "presence_penalty": 0.2,
+    "frequency_penalty": 0.2
+  },
+  "input": {
+    "parameters": [
+      {
+        "name": "input",
+        "description": "Joke subject",
+        "defaultValue": ""
+      },
+      {
+        "name": "style",
+        "description": "Give a hint about the desired joke style",
+        "defaultValue": ""
+      }
+    ]
+  }
+}
