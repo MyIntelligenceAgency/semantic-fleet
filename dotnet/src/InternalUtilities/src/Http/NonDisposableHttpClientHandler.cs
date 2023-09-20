@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+﻿#pragma warning disable IDE0073
+// Copyright (c) Microsoft. All rights reserved.
+#pragma warning restore IDE0073
 using System.Net.Http;
 
 /// <summary>

@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+﻿#pragma warning disable IDE0073
+// Copyright (c) Microsoft. All rights reserved.
+#pragma warning restore IDE0073
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.

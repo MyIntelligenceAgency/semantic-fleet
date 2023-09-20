@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+﻿#pragma warning disable IDE0073
+// Copyright (c) Microsoft. All rights reserved.
+#pragma warning restore IDE0073
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 // ReSharper disable once CheckNamespace

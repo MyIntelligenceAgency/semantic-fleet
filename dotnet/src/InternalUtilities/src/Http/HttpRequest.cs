@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+﻿#pragma warning disable IDE0073
+// Copyright (c) Microsoft. All rights reserved.
+#pragma warning restore IDE0073
 
 using System;
 using System.Net.Http;
@@ -42,9 +44,7 @@ internal static class HttpRequest
         HttpContent? content = null;
         if (payload is not null)
         {
-            byte[] utf8Bytes = payload is string s ?
-                Encoding.UTF8.GetBytes(s) :
-                JsonSerializer.SerializeToUtf8Bytes(payload, s_jsonSerializerOptions);
+            byte[] utf8Bytes = payload is string s ? Encoding.UTF8.GetBytes(s) : JsonSerializer.SerializeToUtf8Bytes(payload, s_jsonSerializerOptions);
 
             content = new ByteArrayContent(utf8Bytes);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
