@@ -4,6 +4,7 @@
     <AssemblyName>MyIA.SemanticKernel.Connectors.AI.MultiConnector</AssemblyName>
     <RootNamespace>$(AssemblyName)</RootNamespace>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <!-- IMPORT NUGET PACKAGE SHARED PROPERTIES -->
