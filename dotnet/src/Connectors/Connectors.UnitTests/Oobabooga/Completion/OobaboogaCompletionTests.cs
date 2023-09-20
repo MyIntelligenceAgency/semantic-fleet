@@ -12,12 +12,14 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.Diagnostics;
+using MyIA.SemanticKernel.Connectors.AI.Oobabooga;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
-using Microsoft.SemanticKernel.Diagnostics;
 using SemanticKernel.UnitTests;
 using Xunit;
 using Xunit.Abstractions;
@@ -462,6 +464,112 @@ public sealed class OobaboogaCompletionTests : IDisposable
         {
             enforcedConcurrentCallSemaphore.Dispose();
         }
+    }
+
+    [Fact]
+    public void WithOobaboogaTextCompletionServiceRegistersService()
+    {
+        // Arrange
+
+        ClientWebSocket ExternalWebSocketFactory()
+        {
+            this._testOutputHelper?.LogInformation(message: "Creating new client web socket");
+            var toReturn = new ClientWebSocket();
+            return toReturn;
+        }
+
+        using var cleanupToken = new CancellationTokenSource();
+        var settings = new OobaboogaTextCompletionSettings(endpoint: new Uri("http://localhost/"),
+            streamingPort: StreamingPort,
+            httpClient: this._httpClient,
+            webSocketsCleanUpCancellationToken: cleanupToken.Token,
+            webSocketFactory: ExternalWebSocketFactory,
+            keepAliveWebSocketsDuration: 100,
+            loggerFactory: this._testOutputHelper);
+
+        var builder = new KernelBuilder();
+
+        // Act
+
+        builder.WithOobaboogaTextCompletionService(settings);
+        var kernel = builder.Build();
+        var service = kernel.GetService<ITextCompletion>();
+
+        // Assert
+
+        Assert.IsType<OobaboogaTextCompletion>(service);
+    }
+
+    [Fact]
+    public void WithOobaboogaChatCompletionServiceRegistersSingleService()
+    {
+        // Arrange
+
+        ClientWebSocket ExternalWebSocketFactory()
+        {
+            this._testOutputHelper?.LogInformation(message: "Creating new client web socket");
+            var toReturn = new ClientWebSocket();
+            return toReturn;
+        }
+
+        using var cleanupToken = new CancellationTokenSource();
+        var settings = new OobaboogaChatCompletionSettings(endpoint: new Uri("http://localhost/"),
+            streamingPort: StreamingPort,
+            httpClient: this._httpClient,
+            webSocketsCleanUpCancellationToken: cleanupToken.Token,
+            webSocketFactory: ExternalWebSocketFactory,
+            keepAliveWebSocketsDuration: 100,
+            loggerFactory: this._testOutputHelper);
+
+        var builder = new KernelBuilder();
+
+        // Act
+
+        builder.WithOobaboogaChatCompletionService(settings, alsoAsTextCompletion: false);
+        var kernel = builder.Build();
+        var service = kernel.GetService<IChatCompletion>();
+
+        // Assert
+        Assert.IsType<OobaboogaChatCompletion>(service);
+        Assert.Throws<SKException>(() =>
+        {
+            var service2 = kernel.GetService<ITextCompletion>();
+        });
+    }
+
+    [Fact]
+    public void WithOobaboogaChatCompletionServiceRegistersBothServices()
+    {
+        // Arrange
+
+        ClientWebSocket ExternalWebSocketFactory()
+        {
+            this._testOutputHelper?.LogInformation(message: "Creating new client web socket");
+            var toReturn = new ClientWebSocket();
+            return toReturn;
+        }
+
+        using var cleanupToken = new CancellationTokenSource();
+        var settings = new OobaboogaChatCompletionSettings(endpoint: new Uri("http://localhost/"),
+            streamingPort: StreamingPort,
+            httpClient: this._httpClient,
+            webSocketsCleanUpCancellationToken: cleanupToken.Token,
+            webSocketFactory: ExternalWebSocketFactory,
+            keepAliveWebSocketsDuration: 100,
+            loggerFactory: this._testOutputHelper);
+
+        var builder = new KernelBuilder();
+
+        // Act
+
+        builder.WithOobaboogaChatCompletionService(settings, alsoAsTextCompletion: true);
+        var kernel = builder.Build();
+        var service = kernel.GetService<IChatCompletion>();
+        var service2 = kernel.GetService<ITextCompletion>();
+
+        // Assert
+        Assert.IsType<OobaboogaChatCompletion>(service);
+        Assert.IsType<OobaboogaChatCompletion>(service2);
     }
 
     private async IAsyncEnumerable<string> GetStreamingMessagesAsync(OobaboogaChatCompletion sut, ChatHistory history, CancellationTokenSource cleanupToken)
