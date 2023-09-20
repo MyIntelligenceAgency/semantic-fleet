@@ -3,6 +3,7 @@
 using System;
 using System.Net.Http;
 using System.Net.WebSockets;
+using System.Text.Json.Serialization;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +14,11 @@ namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 /// </summary>
 public class OobaboogaTextCompletionSettings : OobaboogaCompletionSettings<OobaboogaCompletionParameters>
 {
+    [JsonConstructor]
+    public OobaboogaTextCompletionSettings() : base()
+    {
+    }
+
     /// <summary>
     ///  Initializes a new instance of the <see cref="OobaboogaTextCompletionSettings"/> class, which controls how oobabooga completion requests are made.
     /// </summary>

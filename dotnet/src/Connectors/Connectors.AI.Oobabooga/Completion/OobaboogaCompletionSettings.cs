@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Net.WebSockets;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -46,27 +47,47 @@ public class OobaboogaCompletionSettings
     /// <summary>
     /// This is the API endpoint to which non streaming requests are sent, computed from base endpoint, port and relative path.
     /// </summary>
-    public Uri BlockingUri { get; }
+    public Uri? BlockingUri { get; set; }
 
     /// <summary>
     /// This is the API endpoint to which streaming requests are sent, computed from base endpoint, port and relative path.
     /// </summary>
-    public Uri StreamingUri { get; }
+    public Uri? StreamingUri { get; set; }
 
     /// <summary>
     /// The HttpClient used for making blocking API requests.
     /// </summary>
-    public HttpClient HttpClient { get; }
+    [JsonIgnore]
+    public HttpClient HttpClient { get; set; }
 
     /// <summary>
     /// The factory used to create websockets for making streaming API requests.
     /// </summary>
-    public Func<ClientWebSocket> WebSocketFactory { get; }
+    [JsonIgnore]
+    public Func<ClientWebSocket> WebSocketFactory { get; set; }
 
     /// <summary>
     /// Determines whether the connector should use websockets pooling to reuse websockets in order to prevent resource exhaustion in case of high load.
     /// </summary>
-    public bool UseWebSocketsPooling { get; }
+    public bool UseWebSocketsPooling { get; set; }
+
+    /// <summary>
+    /// Default constructor for deserialization
+    /// </summary>
+    [JsonConstructor]
+    public OobaboogaCompletionSettings()
+    {
+        this.HttpClient = new HttpClient(NonDisposableHttpClientHandler.Instance, disposeHandler: false);
+        this.WebSocketFactory = () =>
+        {
+            ClientWebSocket webSocket = new();
+            this.SetWebSocketOptions(webSocket);
+            return webSocket;
+        };
+        this._activeConnections = new();
+        this._maxNbConcurrentWebSockets = 0;
+        this.StartCleanupTask(CancellationToken.None);
+    }
 
     /// <summary>
     ///  Initializes a new instance of the <see cref="OobaboogaCompletionSettings"/> class, which controls how oobabooga completion requests are made.
@@ -295,6 +316,11 @@ public class OobaboogaCompletionSettings
 /// <typeparam name="TParameters"></typeparam>
 public class OobaboogaCompletionSettings<TParameters> : OobaboogaCompletionSettings where TParameters : OobaboogaCompletionParameters, new()
 {
+    [JsonConstructor]
+    public OobaboogaCompletionSettings() : base()
+    {
+    }
+
     /// <summary>
     ///  Initializes a new instance of the <see cref="OobaboogaCompletionSettings"/> class, which controls how oobabooga completion requests are made.
     /// </summary>

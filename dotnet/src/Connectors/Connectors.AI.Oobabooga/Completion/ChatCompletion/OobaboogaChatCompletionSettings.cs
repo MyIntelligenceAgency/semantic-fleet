@@ -3,6 +3,7 @@
 using System;
 using System.Net.Http;
 using System.Net.WebSockets;
+using System.Text.Json.Serialization;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
@@ -15,6 +16,11 @@ public class OobaboogaChatCompletionSettings : OobaboogaCompletionSettings<Oobab
 {
     private const string ChatBlockingUriPath = "/api/v1/chat";
     private const string ChatStreamingUriPath = "/api/v1/chat-stream";
+
+    [JsonConstructor]
+    public OobaboogaChatCompletionSettings() : base()
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OobaboogaChatCompletionSettings"/> class, which controls how oobabooga chat completion requests are made and concurrent access usage.

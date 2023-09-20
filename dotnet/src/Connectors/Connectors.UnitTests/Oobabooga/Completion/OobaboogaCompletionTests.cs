@@ -16,6 +16,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
+using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
@@ -58,6 +59,55 @@ public sealed class OobaboogaCompletionTests : IDisposable
 
         this._httpClient = new HttpClient(this._messageHandlerStub, false);
         this._endPointUri = new Uri(EndPoint);
+    }
+
+    [Fact]
+    public void ShouldSerializeSettingsToJson()
+    {
+        // Arrange
+        var settings = new OobaboogaTextCompletionSettings(
+            endpoint: new Uri("http://localhost"),
+            blockingPort: 5000,
+            useWebSocketsPooling: true
+        );
+
+        // Act
+        string json = Json.Serialize(settings);
+
+        var deserializedSettings = Json.Deserialize<OobaboogaTextCompletionSettings>(json);
+
+        // Assert Deserialization
+        Assert.NotNull(deserializedSettings);
+        Assert.Equal(settings.WebSocketBufferSize, deserializedSettings.WebSocketBufferSize);
+        Assert.Equal(settings.UseWebSocketsPooling, deserializedSettings.UseWebSocketsPooling);
+
+        // Assert Inner Properties
+        Assert.Equal(settings.OobaboogaParameters.TopK, deserializedSettings.OobaboogaParameters.TopK);
+        Assert.Equal(settings.OobaboogaParameters.Preset, deserializedSettings.OobaboogaParameters.Preset);
+    }
+
+    [Fact]
+    public void ChatCompletionSettingsShouldBeSerializable()
+    {
+        // Arrange
+        var settings = new OobaboogaChatCompletionSettings(
+            new Uri("http://localhost"),
+            8080,
+            8081,
+            useWebSocketsPooling: true
+        );
+
+        // Act
+        string jsonString = Json.Serialize(settings);
+        var deserializedSettings = Json.Deserialize<OobaboogaChatCompletionSettings>(jsonString);
+
+        // Assert
+        Assert.NotNull(deserializedSettings);
+        Assert.Equal(settings.WebSocketBufferSize, deserializedSettings.WebSocketBufferSize);
+        Assert.Equal(settings.BlockingUri, deserializedSettings.BlockingUri);
+        // Assert Inner Properties
+        Assert.Equal(settings.OobaboogaParameters.Mode, deserializedSettings.OobaboogaParameters.Mode);
+        Assert.Equal(settings.OobaboogaParameters.Character, deserializedSettings.OobaboogaParameters.Character);
     }
 
     [Fact]
