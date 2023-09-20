@@ -5,6 +5,7 @@
     <AssemblyName>MyIA.SemanticKernel.Connectors.AI.Oobabooga</AssemblyName>
     <RootNamespace>$(AssemblyName)</RootNamespace>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <!-- IMPORT NUGET PACKAGE SHARED PROPERTIES -->
@@ -16,6 +17,7 @@
     <Title>Semantic Kernel - Oobabooga Connector</Title>
     <Description>Semantic Kernel connector for the oobabooga text-generation-webui open source project. Contains a client for text completion and a client for chat completion.</Description>
   </PropertyGroup>
+  
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SemanticKernel" />
