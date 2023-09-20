@@ -1,9 +1,9 @@
 ﻿// Copyright (c) MyIA. All rights reserved.
 
-using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 using Xunit;
 
 namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion;

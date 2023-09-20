@@ -3,8 +3,8 @@
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
-using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using Microsoft.SemanticKernel.Orchestration;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 
 namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.ArithmeticMocks;
 
