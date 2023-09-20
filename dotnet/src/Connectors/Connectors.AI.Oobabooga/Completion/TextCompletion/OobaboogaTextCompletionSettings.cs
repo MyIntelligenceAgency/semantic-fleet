@@ -14,6 +14,9 @@ namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 /// </summary>
 public class OobaboogaTextCompletionSettings : OobaboogaCompletionSettings<OobaboogaCompletionParameters>
 {
+    /// <summary>
+    /// This is the default constructor for deserialization purposes. It is not meant to be used directly.
+    /// </summary>
     [JsonConstructor]
     public OobaboogaTextCompletionSettings() : base()
     {

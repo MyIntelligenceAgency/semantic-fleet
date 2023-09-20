@@ -316,6 +316,9 @@ public class OobaboogaCompletionSettings
 /// <typeparam name="TParameters"></typeparam>
 public class OobaboogaCompletionSettings<TParameters> : OobaboogaCompletionSettings where TParameters : OobaboogaCompletionParameters, new()
 {
+    /// <summary>
+    /// This is the default constructor for deserialization purposes. It is not meant to be used directly.
+    /// </summary>
     [JsonConstructor]
     public OobaboogaCompletionSettings() : base()
     {

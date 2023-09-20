@@ -17,6 +17,9 @@ public class OobaboogaChatCompletionSettings : OobaboogaCompletionSettings<Oobab
     private const string ChatBlockingUriPath = "/api/v1/chat";
     private const string ChatStreamingUriPath = "/api/v1/chat-stream";
 
+    /// <summary>
+    /// This is the default constructor for deserialization purposes. It is not meant to be used directly.
+    /// </summary>
     [JsonConstructor]
     public OobaboogaChatCompletionSettings() : base()
     {

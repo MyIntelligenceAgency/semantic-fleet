@@ -47,7 +47,7 @@ public abstract class OobaboogaCompletionBase<TCompletionInput, TRequestSettings
 
             var completionRequest = this.CreateCompletionRequest(input, requestSettings);
 
-            using var httpRequestMessage = HttpRequest.CreatePostRequest(this.OobaboogaSettings.BlockingUri, completionRequest);
+            using var httpRequestMessage = HttpRequest.CreatePostRequest(this.OobaboogaSettings.BlockingUri!, completionRequest);
             httpRequestMessage.Headers.Add("User-Agent", Telemetry.HttpUserAgent);
 
             using var response = await this.OobaboogaSettings.HttpClient.SendAsync(httpRequestMessage, cancellationToken).ConfigureAwait(false);
