@@ -8,9 +8,9 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
-using Microsoft.SemanticKernel.Text;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) MyIA. All rights reserved.
 
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 using System;

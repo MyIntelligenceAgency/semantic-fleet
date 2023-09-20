@@ -10,8 +10,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SemanticKernel.AI.TextCompletion;
-using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using Microsoft.SemanticKernel.Diagnostics;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 

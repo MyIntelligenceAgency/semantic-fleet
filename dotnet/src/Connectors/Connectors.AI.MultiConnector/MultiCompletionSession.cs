@@ -8,8 +8,8 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.AI.TextCompletion;
-using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 using Microsoft.SemanticKernel.Text;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 
