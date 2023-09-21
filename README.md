@@ -12,9 +12,10 @@ Semantic-Fleet is a repository designed to extend the capabilities of [Semantic 
 
 A robust connector that currently covers the main Oobabooga's specific blocking and streaming completion and chat APIs. 
 
-📖 **Learn More**: [Oobabooga Connector Guide](./dotnet/src/Connectors/Connectors.AI.Oobabooga/README.md)
-
-Don't forget to check-out [notebooks](./dotnet/notebooks/README.md). They provide a great overview of what's possible with our published connectors.
+📖 **Learn More**: 
+- [Installing Oobabooga and Configuring Multi-Start Scripts](./docs/OOBABOOGA.md)
+- [Oobabooga Connector Guide](./dotnet/src/Connectors/Connectors.AI.Oobabooga/README.md)
+- Don't forget to check-out [notebooks](./dotnet/notebooks/README.md). They provide a great overview of what's possible with our published connectors.
 
 #### Installation
 

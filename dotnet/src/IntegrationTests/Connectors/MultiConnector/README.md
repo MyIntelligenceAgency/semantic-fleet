@@ -16,7 +16,6 @@ For the purposes of the test, ChatGPT acts as the primary connector for generati
 
 ### Directory Structure
 
-- **MultistartScripts**: Contains scripts to initialize multiple connectors concurrently.
 - **Plans**: Contains JSON plans for the connectors.
 - **Texts**: Contains text files which can be used during testing.
 
@@ -25,42 +24,13 @@ For the purposes of the test, ChatGPT acts as the primary connector for generati
 - `MultiConnectorTests.cs` - Contains the integration test cases for the MultiConnector.
 
 
-## Setting Up Oobabooga & Downloading Models:
+### Setting Up Oobabooga & Configuring Multi-start scripts:
 
-1. **Determine Your GPU VRAM**:
-   - First, identify your GPU's VRAM, as the models you choose should align with your GPU's capacity. You can utilize GPU-Z for this task. [Download here](https://www.techpowerup.com/gpuz/).
+For setting up Oobabooga and downloading models, please refer to the [Installing Oobabooga and Configuring Multi-Start Scripts](../../docs/OOBABOOGA.md) guide.
 
-2. **Install Oobabooga**: 
+Once configured, launch your multi-model environment.
 
-   Oobabooga's Gradio Web UI is a notable solution for hosting Large Language Models. Set it up by:
-   - Fetching the zip file tailored for your OS from [Oobabooga GitHub](https://github.com/oobabooga/text-generation-webui).
-     - Options include: [Windows](https://github.com/oobabooga/one-click-installers/oobabooga-windows.zip), [Linux](https://github.com/oobabooga/one-click-installers/oobabooga-linux.zip), [macOS](https://github.com/oobabooga/one-click-installers/oobabooga-macos.zip), and [WSL](https://github.com/oobabooga/one-click-installers/oobabooga-wsl.zip).
-   - Decompress the zip file and run "start". This action installs and commences the Web UI on your local system. Access it using the given endpoint (typically, http://localhost:7860/).
-
-
-3. **Copy and Refine the `.bat` Multiscript**:
-   - Relocate the relevant multi_start script from /MultistartScripts to the Oobabooga directory.
-   - Customize the multistart script to select models based on your GPU's VRAM. Remember to keep a VRAM margin for optimal operation.
-
-4. **Downloading Models**:
-   Most models can be sourced from [HuggingFace](https://huggingface.co/). For a curated selection, consider the [open_llm_leaderboard](https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard).
-   
-   [Tom Jobbins](https://huggingface.co/TheBloke) provides quantized models, harmonizing memory usage and performance. To download:
-   
-   - Navigate to the **Models** tab in Oobabooga's UI.
-   - Employ the "Download custom model or LoRA" function.
-   - For each desired model:
-     - Access its Hugging Face page, such as [TheBloke's StableBeluga-13B-GGML](https://huggingface.co/TheBloke/StableBeluga-13B-GGML).
-     - Copy its name.
-     - Insert it into the Oobabooga model section, appending `:main`. For instance, "TheBloke/StableBeluga-13B-GGML:main".
-     - Click **Download**.
-   
-   🚨 **Special Guidance for GGML Models**: 
-   - These repositories contain versions with varying quantizations.
-   - Typically, Oobabooga selects the initial `.bin` model alphabetically, often a 2bit quantized version.
-   - **Advice**: Initiate the download in Oobabooga to create the required subfolder. Then, interrupt the download. Now, directly fetch the desired `.bin` model file (like `stablebeluga-13b.ggmlv3.q4_K_M.bin`) from Hugging Face and place it in the new subfolder.
-
-5. **Sync Your Settings**:
+### **Sync Your Settings**:
    The settings file appears as shown below. For these tests, the primary connector will be OpenAI. Ensure you've configured the respective settings or user secrets accurately.
 
    To toggle secondary connectors on or off, adjust the IncludedConnectors section by commenting or uncommenting lines.
@@ -107,14 +77,11 @@ For the purposes of the test, ChatGPT acts as the primary connector for generati
 ```
 
 
-
-6. **Launch Using `.bat` or `.sh` Script**:
-   For WSL users, administrator access is required for port forwarding. The terminal displays the model's initialization progress and, once done, indicates the model's port number.
-
-7. **Initiate Your Tests**:
+### **Initiate Your Tests**:
+   
    Integration tests are off by default. To activate, switch [Theory(Skip = "This test is for manual verification.")] to [Theory].
 
-8. **Pick a Test**:
+   **Pick a Test**:
    The length of tests can vary based on parameter intricacy. Running tests separately through your IDE is preferable over the complete suite.
 
 Each test follows this workflow:
