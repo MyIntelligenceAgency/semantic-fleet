@@ -4,20 +4,21 @@
 
 ## Overview
 
-Semantic-Fleet is a dedicated repository designed to extend the capabilities of Semantic Kernel. It focuses on providing open Low-Level Model (LLM) connectors, with ChatGPT serving as the captain of the fleet. This repository is more than just a collection of existing connectors; it's a platform for future innovations in the .NET ecosystem for AI.
+Semantic-Fleet is a repository designed to extend the capabilities of [Semantic Kernel](https://github.com/microsoft/semantic-kernel). It focuses on providing connectors to small large language models (e.g. Llamas), and to provide tools for distributing work to a fleet of models, with ChatGPT serving as the captain of the fleet. This repository is more than just a collection of existing connectors; it's a platform for future innovations in the .NET ecosystem for AI.
 
 ## What's On Deck?
 
 ### 🤖 Oobabooga Connector
 
-A robust connector that currently covers the main non-OpenAI specific blocking and streaming completion and chat APIs. 
+A robust connector that currently covers the main Oobabooga's specific blocking and streaming completion and chat APIs. 
 
 📖 **Learn More**: [Oobabooga Connector Guide](./dotnet/src/Connectors/Connectors.AI.Oobabooga/README.md)
 
+Don't forget to check-out [notebooks](./dotnet/notebooks/README.md). They provide a great overview of what's possible with our published connectors.
 
 #### Installation
 
-Install the package via NuGet (Coming Soon):
+Install the package via NuGet:
 
 ```bash
 dotnet add package MyIA.SemanticKernel.Connectors.AI.Oobabooga --version 0.33.2
@@ -35,14 +36,12 @@ In .Net interactive :
 Different settings are used for text and chat completion, both in blocking and streaming modes. Here's a quick example for text completion:
 
 ```csharp
-var settings = new OobaboogaTextCompletionSettings(endpoint: new Uri("http://localhost/"), streamingPort: 8080);
+var settings = new OobaboogaTextCompletionSettings(endpoint: new Uri("http://localhost/"),  blockingPort: 5000, streamingPort: 5005);
 var oobabooga = new OobaboogaTextCompletion(settings);
 
 // Get text completions
 var completions = await oobabooga.GetCompletionsAsync("Hello, world!", new CompleteRequestSettings());
 ```
-
-
 
 ### 🌐 MultiConnector
  
@@ -60,15 +59,18 @@ Our .Net interactive notebooks are a great place to start.
 
 ## Future Directions
 
-- **Probabilistic MultiConnector**: We will be adding some Infer.Net magic to make MultiConnector even smarter.
+- **Open AI API**: Oobabooga offers a dedicated extension mimicking Open AI API. It extends support to embeddings and image generation models. This will be available as a separate package.
+- **Probabilistic MultiConnector**: We will be adding some Infer.Net magic to make MultiConnector even smarter. More specifically, the following examples will be merged and integrated into the model vetting process. 
 - **Spark.Net Integration**: Get ready to host a cluster of mini local LLMs.
 
-## NuGet Packages (Coming Soon)
+## NuGet Packages 
 
 Here is the [Nuget Package for Oobabooga connector](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Oobabooga/)
 
 We'll be providing NuGet packages for both the Oobabooga Connector and MultiConnector for easier integration into your projects.
 
-## Contributing
+## 🤝 Contributing
 
-We welcome contributions that align with the project's vision. Please refer to the contributing guidelines for more details.
+Got something to add? We'd love to see it. Check out our [contributing guidelines](./CONTRIBUTING.md).
+
+Got something you'd like to get added? Do you want those future features already? We'd love you to [get in touch](https://github.com/MyIntelligenceAgency) !
