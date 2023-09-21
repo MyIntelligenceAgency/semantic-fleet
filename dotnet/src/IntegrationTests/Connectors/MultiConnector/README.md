@@ -26,7 +26,7 @@ For the purposes of the test, ChatGPT acts as the primary connector for generati
 
 ### Setting Up Oobabooga & Configuring Multi-start scripts:
 
-For setting up Oobabooga and downloading models, please refer to the [Installing Oobabooga and Configuring Multi-Start Scripts](../../docs/OOBABOOGA.md) guide.
+For setting up Oobabooga and downloading models, please refer to the [Installing Oobabooga and Configuring Multi-Start Scripts](../../../../../docs/OOBABOOGA.md) guide.
 
 Once configured, launch your multi-model environment.
 

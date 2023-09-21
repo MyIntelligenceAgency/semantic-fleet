@@ -55,4 +55,4 @@ This guide covers how to install Oobabooga, download models, and configure multi
 
 - For examples of how to use Oobabooga models with semantic-kernel, check out the [oobabooga notebooks](../dotnet/notebooks/README.md).
 - For concurrent multi-model access, see the [oobabooga chat notebook](../dotnet/notebooks/02-oobabooga-chat-capabilities.ipynb).
-- To learn about model routing capabilities, refer to the [MultiConnector Integration Test Guide](../dotnet/IntegrationTests/Connectors/MultiConnector/README.md).
+- To learn about model routing capabilities, refer to the [MultiConnector Integration Test Guide](../dotnet/src/IntegrationTests/Connectors/MultiConnector/README.md).
