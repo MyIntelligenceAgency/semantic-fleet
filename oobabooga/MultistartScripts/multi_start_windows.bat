@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
+:: Common flags for all instances. Edit these flags to apply them to all instances.
+set "COMMON_FLAGS=--listen --api --verbose"
+
 
 :: Choosing the Models to run simultanously in distinct processes: uncomment and edit the lines below to set up instances with array indices incrementing from 0 and distinct ports. 
 :: Approximate size in VRAM is given in the comments. Try not to max out your GPU VRAM. 
@@ -17,7 +20,7 @@ setlocal enabledelayedexpansion
 :: Stable Beluga 7B q4 GGML : 6.2 GB
 :: set "INSTANCE_DATA[0]=7862,5002,5012,--model TheBloke_StableBeluga-7B-GGML --loader llama.cpp --monkey-patch --xformers --n-gpu-layers 200000"
 :: Stable Beluga 13B q4 GGML : 10.3 GB
-set "INSTANCE_DATA[0]=7863,5003,5013,--model TheBloke_StableBeluga-13B-GGML --loader llama.cpp --monkey-patch --xformers --n-gpu-layers 200000"
+set "INSTANCE_DATA[0]=7863,5003,5013,--model TheBloke_Synthia-13B-v1.2-GGUF --loader llama.cpp --monkey-patch --xformers --n-gpu-layers 200000"
 :: Upstage Llama instruct 30B q4 GGML : 22 GB
 :: set "INSTANCE_DATA[1]=7864,5004,5014,--model TheBloke_upstage-llama-30b-instruct-2048-GGML --loader llama.cpp --monkey-patch --xformers --n-gpu-layers 200000"
 
@@ -38,13 +41,13 @@ for /L %%j in (0,1,9) do (
         )
 
         :: Set the environment variable for flags
-        set OOBABOOGA_FLAGS=--listen --api --verbose !STATIC_FLAGS! --listen-host "0.0.0.0" --listen-port "!LISTEN_PORT!" --api-blocking-port "!API_BLOCKING_PORT!" --api-streaming-port   "!API_STREAMING_PORT!"
+        set OOBABOOGA_FLAGS=!COMMON_FLAGS! !STATIC_FLAGS! --listen-host "0.0.0.0" --listen-port "!LISTEN_PORT!" --api-blocking-port "!API_BLOCKING_PORT!" --api-streaming-port "!API_STREAMING_PORT!"
     
         echo About to launch with:
         echo OOBABOOGA_FLAGS: !OOBABOOGA_FLAGS!
 
         :: Start the main script in a new process
-        start call start_windows.bat
+        start call start_wsl.bat !OOBABOOGA_FLAGS!
     
         set "OOBABOOGA_FLAGS="
 
