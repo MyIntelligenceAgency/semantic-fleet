@@ -52,6 +52,7 @@ public sealed class MultiConnectorTests : IDisposable
     private readonly string _planDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, PlansDirectory);
     private readonly string _textDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, TextsDirectory);
     private readonly CancellationTokenSource _cleanupToken = new();
+    private Dictionary<TokenCountFunction, Func<string, int>> _tokenCountFuncMap;
 
     public MultiConnectorTests(ITestOutputHelper output)
     {
@@ -71,6 +72,12 @@ public sealed class MultiConnectorTests : IDisposable
             this._webSockets.Add(toReturn);
             return toReturn;
         };
+
+        this._tokenCountFuncMap = new Dictionary<TokenCountFunction, Func<string, int>>
+        {
+            { TokenCountFunction.Gpt3Tokenizer, this._gp3TokenCounter },
+            { TokenCountFunction.WordCount, this._wordCounter }
+        };
     }
 
     /// <summary>
@@ -89,18 +96,21 @@ public sealed class MultiConnectorTests : IDisposable
     /// </summary>
     //[Theory(Skip = "This test is for manual verification.")]
     [Theory]
+    [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(false, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_orca_mini_3B-GGML", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_orca_mini_3B-GGML", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(false, "TheBloke_orca_mini_3B-GGML", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-7B-GGML", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-7B-GGML", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(false, "TheBloke_StableBeluga-7B-GGML", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize_Topics_ElementAt.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(false, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize_Topics_ElementAt.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Mistral-7B-Instruct-v0.1-GGUF", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Mistral-7B-Instruct-v0.1-GGUF", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Mistral-7B-Instruct-v0.1-GGUF", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToSingleOobaboogaUsingFileAsync(bool succeedsOffloading, string completion, int nbTests, string planFile, string inputFile, string validationFile, params string[] skills)
     {
         // Load the plan from the provided file path
@@ -138,8 +148,8 @@ public sealed class MultiConnectorTests : IDisposable
     [Theory]
     //[InlineData("",  1, "medium", "SummarizeSkill", "MiscSkill")]
     //[InlineData("TheBloke_StableBeluga-13B-GGML", 1, "medium", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "medium", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "medium", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToOobaboogaUsingPlannerAsync(bool succeedsOffloading, string completionName, int nbPromptTests, string difficulty, string inputFile, string validationFile, params string[] skillNames)
     {
         // Create a plan using SequentialPlanner based on difficulty
@@ -201,6 +211,48 @@ public sealed class MultiConnectorTests : IDisposable
 
         this._testOutputHelper.LogTrace("\n# Creating MultiTextCompletionSettings\n");
 
+        var settings = this.SetupMultiTextCompletionSettings(multiConnectorConfiguration, creditor, nbPromptTests);
+
+        // Cleanup in case the previous test failed to delete the analysis file
+        if (File.Exists(settings.AnalysisSettings.AnalysisFilePath))
+        {
+            this._testOutputHelper.LogTrace("Deleting preexisting analysis file: {0}\n", settings.AnalysisSettings.AnalysisFilePath);
+            File.Delete(settings.AnalysisSettings.AnalysisFilePath);
+        }
+
+        var kernel = this.InitializeKernel(settings, modelNames, multiConnectorConfiguration, cancellationToken: this._cleanupToken.Token);
+
+        if (kernel == null)
+        {
+            return;
+        }
+
+        var prepareKernelTimeElapsed = sw.Elapsed;
+
+        this._testOutputHelper.LogTrace("\n# Loading Skills\n");
+
+        var skills = TestHelpers.GetSkills(kernel, skillNames);
+
+        // Act
+
+        var (firstPassEffectiveCost, secondPassEffectiveCost, evaluations) = await this.ExecutePlansAndOptimizeAsync(kernel, planFactory, settings, sw).ConfigureAwait(false);
+
+        // Assert
+
+        this._testOutputHelper.LogTrace("\n# Assertions \n");
+
+        if (succeedsOffloading)
+        {
+            this.DoOffloadingAsserts(firstPassEffectiveCost, secondPassEffectiveCost, evaluations);
+        }
+        else
+        {
+            Assert.Throws<TrueException>((Action)(() => this.DoOffloadingAsserts(firstPassEffectiveCost, secondPassEffectiveCost, evaluations)));
+        }
+    }
+
+    private MultiTextCompletionSettings SetupMultiTextCompletionSettings(MultiConnectorConfiguration multiConnectorConfiguration, CallRequestCostCreditor creditor, int nbPromptTests)
+    {
         // The most common settings for a MultiTextCompletion are illustrated below, most of them have default values and are optional
         var settings = new MultiTextCompletionSettings()
         {
@@ -274,29 +326,11 @@ public sealed class MultiConnectorTests : IDisposable
         {
             settings.GlobalParameters[userGlobalParams.Key] = userGlobalParams.Value;
         }
+        return settings;
+    }
 
-        // Cleanup in case the previous test failed to delete the analysis file
-        if (File.Exists(settings.AnalysisSettings.AnalysisFilePath))
-        {
-            this._testOutputHelper.LogTrace("Deleting preexisting analysis file: {0}\n", settings.AnalysisSettings.AnalysisFilePath);
-            File.Delete(settings.AnalysisSettings.AnalysisFilePath);
-        }
-
-        var kernel = this.InitializeKernel(settings, modelNames, multiConnectorConfiguration, cancellationToken: this._cleanupToken.Token);
-
-        if (kernel == null)
-        {
-            return;
-        }
-
-        var prepareKernelTimeElapsed = sw.Elapsed;
-
-        this._testOutputHelper.LogTrace("\n# Loading Skills\n");
-
-        var skills = TestHelpers.GetSkills(kernel, skillNames);
-
-        // Act
-
+    private async Task<(decimal firstPassEffectiveCost, decimal secondPassEffectiveCost, List<(ConnectorPromptEvaluation, AnalysisJob)> evaluations)> ExecutePlansAndOptimizeAsync(IKernel kernel, Func<IKernel, CancellationToken, bool, Task<Plan>> planFactory, MultiTextCompletionSettings settings, Stopwatch sw)
+    {
         // Create a plan
         this._testOutputHelper.LogTrace("\n# Loading Test plan\n");
         var plan1 = await planFactory(kernel, this._cleanupToken.Token, false);
@@ -458,19 +492,7 @@ public sealed class MultiConnectorTests : IDisposable
         }
 
         this._testOutputHelper.LogTrace("\n# End validation, starting Asserts\n");
-
-        // Assert
-
-        this._testOutputHelper.LogTrace("\n# Assertions \n");
-
-        if (succeedsOffloading)
-        {
-            this.DoOffloadingAsserts(firstPassEffectiveCost, secondPassEffectiveCost, evaluations);
-        }
-        else
-        {
-            Assert.Throws<TrueException>((Action)(() => this.DoOffloadingAsserts(firstPassEffectiveCost, secondPassEffectiveCost, evaluations)));
-        }
+        return (firstPassEffectiveCost, secondPassEffectiveCost, evaluations);
     }
 
     private void DoOffloadingAsserts(decimal firstPassEffectiveCost, decimal secondPassEffectiveCost, List<(ConnectorPromptEvaluation, AnalysisJob)> evaluations)
@@ -481,21 +503,12 @@ public sealed class MultiConnectorTests : IDisposable
 
         this._testOutputHelper.LogTrace("Asserting secondary connectors plan capabilities are vetted on a distinct validation input");
 
-        var atLeastOneSecondaryCompletionValidated = false;
-        foreach (var evaluation in evaluations)
-        {
-            if (evaluation.Item1.Test.ConnectorName != evaluation.Item2.TextCompletions[0].Name)
-            {
-                Assert.True(evaluation.Item1.IsVetted);
-                atLeastOneSecondaryCompletionValidated = true;
-            }
-        }
-
+        var atLeastOneSecondaryCompletionValidated = evaluations.Any(e => e.Item1.Test.ConnectorName != e.Item2.TextCompletions[0].Name && e.Item1.IsVetted);
         Assert.True(atLeastOneSecondaryCompletionValidated);
     }
 
     /// <summary>
-    /// Configures a kernel with MultiTextCompletion comprising a primary OpenAI connector with parameters defined in main settings for OpenAI integration tests, and Oobabooga secondary connectors with parameters defined in the MultiConnector part of the settings file.
+    /// Configures a kernel with MultiTextCompletion comprising a primary OpenAI connector with parameters defined in main settings for OpenAI integration tests, and Oobabooga secondary connectors with parameters defined in the MultiConnector part of the settings file. Returns null if no matching secondary connector is found in configuration
     /// </summary>
     private IKernel? InitializeKernel(MultiTextCompletionSettings multiTextCompletionSettings, List<string>? modelNames, MultiConnectorConfiguration multiConnectorConfiguration, CancellationToken? cancellationToken = null)
     {
@@ -550,24 +563,13 @@ public sealed class MultiConnectorTests : IDisposable
 
             var oobaboogaCompletion = new OobaboogaTextCompletion(oobaboogaSettings);
 
-            Func<string, int> tokeCountFunction;
-            switch (oobaboogaConnector.TokenCountFunction)
-            {
-                case TokenCountFunction.Gpt3Tokenizer:
-                    tokeCountFunction = this._gp3TokenCounter;
-                    break;
-                case TokenCountFunction.WordCount:
-                    tokeCountFunction = this._wordCounter;
-                    break;
-                default:
-                    throw new InvalidOperationException("token count function not supported");
-            }
+            Func<string, int> tokenCountFunc = this._tokenCountFuncMap[oobaboogaConnector.TokenCountFunction];
 
             var oobaboogaNamedCompletion = new NamedTextCompletion(oobaboogaConnector.Name, oobaboogaCompletion)
             {
                 CostPerRequest = oobaboogaConnector.CostPerRequest,
                 CostPer1000Token = oobaboogaConnector.CostPer1000Token,
-                TokenCountFunc = tokeCountFunction,
+                TokenCountFunc = tokenCountFunc,
                 TemperatureTransform = d => d == 0 ? 0.01 : d,
                 PromptTransform = oobaboogaConnector.PromptTransform
                 //RequestSettingsTransform = requestSettings =>
@@ -615,14 +617,18 @@ public sealed class MultiConnectorTests : IDisposable
 
     public void Dispose()
     {
-        foreach (ClientWebSocket clientWebSocket in this._webSockets)
+        try
         {
-            clientWebSocket.Dispose();
+            foreach (ClientWebSocket clientWebSocket in this._webSockets)
+            {
+                clientWebSocket.Dispose();
+            }
         }
-
-        this._cleanupToken.Cancel();
-        this._cleanupToken.Dispose();
-
-        this._testOutputHelper.Dispose();
+        finally
+        {
+            this._cleanupToken.Cancel();
+            this._cleanupToken.Dispose();
+            this._testOutputHelper.Dispose();
+        }
     }
 }
