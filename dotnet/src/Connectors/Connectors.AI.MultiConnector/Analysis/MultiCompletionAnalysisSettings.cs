@@ -577,7 +577,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
                     var stopWatch = Stopwatch.StartNew();
                     var promptConnectorSettings = promptMultiConnectorSettings.GetConnectorSettings(namedTextCompletion.Name);
 
-                    var session = analysisJob.Settings.GetMultiCompletionSession(testJob, analysisJob.TextCompletions, analysisJob.Logger);
+                    var session = analysisJob.Settings.GetMultiCompletionSession(testJob, new[] { namedTextCompletion }, analysisJob.Logger);
 
                     if (this.TestsTemperatureTransform != null)
                     {
