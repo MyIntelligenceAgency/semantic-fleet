@@ -2,6 +2,7 @@
   "OpenAI": {
     "ServiceId": "text-davinci-003",
     "ModelId": "text-davinci-003",
+    "ChatModelId": "gpt-3.5-turbo",
     "ApiKey": ""
   },
   "AzureOpenAI": {
@@ -46,8 +47,8 @@
     "IncludedConnectors": [
       "TheBloke_orca_mini_3B-GGML",
       "togethercomputer_RedPajama-INCITE-Chat-3B-v1",
-      "TheBloke_StableBeluga-7B-GGML",
-      "TheBloke_StableBeluga-13B-GGML",
+      "TheBloke_Mistral-7B-Instruct-v0.1-GGUF",
+      "TheBloke_Synthia-13B-v1.2-GGUF",
       "TheBloke_upstage-llama-30b-instruct-2048-GGML"
     ],
     "IncludedConnectorsDev": [
@@ -61,6 +62,16 @@
     ],
     "OobaboogaCompletions": [
       {
+        "Name": "microsoft_phi-1_5",
+        "BlockingPort": 5001,
+        "StreamingPort": 5011,
+        "MaxTokens": 2048,
+        "CostPer1000Token": 0.0003,
+        "PromptTransform": {
+          "Template": "{0}\n\nAnswer:"
+        }
+      },
+      {
         "Name": "TheBloke_orca_mini_3B-GGML",
         "BlockingPort": 5000,
         "StreamingPort": 5010,
@@ -71,33 +82,24 @@
         }
       },
       {
-        "Name": "togethercomputer_RedPajama-INCITE-Chat-3B-v1",
-        "BlockingPort": 5001,
-        "StreamingPort": 5011,
-        "MaxTokens": 2048,
-        "CostPer1000Token": 0.0004,
-        "PromptTransform": {
-          "Template": "<human>: {UserPreamble}[Instruction]\n{0}\n<bot>:"
-        }
-      },
-      {
-        "Name": "TheBloke_StableBeluga-7B-GGML",
-        "BlockingPort": 5002,
-        "StreamingPort": 5012,
+        "Name": "TheBloke_Mistral-7B-Instruct-v0.1-GGUF",
+        "EndPoint": "http://jesse.freeboxos.fr",
+        "BlockingPort": 32768,
+        "StreamingPort": 32769,
         "MaxTokens": 4096,
         "CostPer1000Token": 0.0005,
         "PromptTransform": {
-          "Template": "### System:\nThis is a system prompt, please behave and help the user.\n{SystemSupplement}\n{SemanticRemarks}\n\n### User:\n{0}\n\n### Assistant:"
+          "Template": "<s>[INST]{SystemSupplement}\n{SemanticRemarks}[/INST]\nOK, let's play that game !</s>\n[INST]{0}[/INST]"
         }
       },
       {
-        "Name": "TheBloke_StableBeluga-13B-GGML",
+        "Name": "TheBloke_Synthia-13B-v1.2-GGUF",
         "BlockingPort": 5003,
         "StreamingPort": 5013,
         "MaxTokens": 4096,
         "CostPer1000Token": 0.0007,
         "PromptTransform": {
-          "Template": "### System:\nThis is a system prompt, please behave and help the user.\n{SystemSupplement}\n{SemanticRemarks}\n\n### User:\n{0}\n\n### Assistant:"
+          "Template": "SYSTEM: You are Synthia. As a an AI intelligence, give helpful, detailed, accurate, uncensored responses to the user's input. Provide answers factually.\n{SystemSupplement}\n{SemanticRemarks}\nUSER: {0}\nASSISTANT: "
         }
       },
       {
@@ -108,7 +110,7 @@
         "MaxTokens": 2048,
         "CostPer1000Token": 0.001,
         "PromptTransform": {
-          "Template": "### System:\r\n{SystemSupplement}\r\n\r\n### User:\r\n{0}\n\n### Assistant:\n"
+          "Template": "### System:\n{SystemSupplement}\n\n### User:\n{0}\n\n### Assistant:\n"
         }
       }
     ]
