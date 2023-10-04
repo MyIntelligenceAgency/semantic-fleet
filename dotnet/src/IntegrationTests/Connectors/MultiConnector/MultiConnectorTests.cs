@@ -20,9 +20,9 @@ using Microsoft.SemanticKernel.Planning.Sequential;
 using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
-using SemanticKernel.IntegrationTests.TestSettings;
 using SemanticKernel.UnitTests;
 using SharpToken;
 using Xunit;
@@ -202,7 +202,7 @@ public sealed class MultiConnectorTests : IDisposable
 
         var sw = Stopwatch.StartNew();
 
-        var multiConnectorConfiguration = this._configuration.GetSection("MultiConnector").Get<MultiConnectorConfiguration>();
+        var multiConnectorConfiguration = this._configuration.GetSection("MultiConnector").Get<MultiOobaboogaConnectorConfiguration>();
         Assert.NotNull(multiConnectorConfiguration);
 
         var creditor = new CallRequestCostCreditor();
@@ -251,7 +251,7 @@ public sealed class MultiConnectorTests : IDisposable
         }
     }
 
-    private MultiTextCompletionSettings SetupMultiTextCompletionSettings(MultiConnectorConfiguration multiConnectorConfiguration, CallRequestCostCreditor creditor, int nbPromptTests)
+    private MultiTextCompletionSettings SetupMultiTextCompletionSettings(MultiOobaboogaConnectorConfiguration multiOobaboogaConnectorConfiguration, CallRequestCostCreditor creditor, int nbPromptTests)
     {
         // The most common settings for a MultiTextCompletion are illustrated below, most of them have default values and are optional
         var settings = new MultiTextCompletionSettings()
@@ -322,7 +322,7 @@ public sealed class MultiConnectorTests : IDisposable
 
         // We add or override the global parameters from the settings file
 
-        foreach (var userGlobalParams in multiConnectorConfiguration.GlobalParameters)
+        foreach (var userGlobalParams in multiOobaboogaConnectorConfiguration.GlobalParameters)
         {
             settings.GlobalParameters[userGlobalParams.Key] = userGlobalParams.Value;
         }
@@ -510,7 +510,7 @@ public sealed class MultiConnectorTests : IDisposable
     /// <summary>
     /// Configures a kernel with MultiTextCompletion comprising a primary OpenAI connector with parameters defined in main settings for OpenAI integration tests, and Oobabooga secondary connectors with parameters defined in the MultiConnector part of the settings file. Returns null if no matching secondary connector is found in configuration
     /// </summary>
-    private IKernel? InitializeKernel(MultiTextCompletionSettings multiTextCompletionSettings, List<string>? modelNames, MultiConnectorConfiguration multiConnectorConfiguration, CancellationToken? cancellationToken = null)
+    private IKernel? InitializeKernel(MultiTextCompletionSettings multiTextCompletionSettings, List<string>? modelNames, MultiOobaboogaConnectorConfiguration multiOobaboogaConnectorConfiguration, CancellationToken? cancellationToken = null)
     {
         cancellationToken ??= CancellationToken.None;
 
@@ -542,10 +542,10 @@ public sealed class MultiConnectorTests : IDisposable
 
         var oobaboogaCompletions = new List<NamedTextCompletion>();
 
-        var includedCompletions = multiConnectorConfiguration.OobaboogaCompletions.Where(configuration =>
-            multiConnectorConfiguration.IncludedConnectorsDev.Count > 0
-                ? multiConnectorConfiguration.IncludedConnectorsDev.Contains(configuration.Name)
-                : multiConnectorConfiguration.IncludedConnectors.Contains(configuration.Name));
+        var includedCompletions = multiOobaboogaConnectorConfiguration.OobaboogaCompletions.Where(configuration =>
+            multiOobaboogaConnectorConfiguration.IncludedConnectorsDev.Count > 0
+                ? multiOobaboogaConnectorConfiguration.IncludedConnectorsDev.Contains(configuration.Name)
+                : multiOobaboogaConnectorConfiguration.IncludedConnectors.Contains(configuration.Name));
 
         foreach (var oobaboogaConnector in includedCompletions)
         {
@@ -555,7 +555,7 @@ public sealed class MultiConnectorTests : IDisposable
             }
 
             var oobaboogaSettings = new OobaboogaTextCompletionSettings(
-                endpoint: new Uri(oobaboogaConnector.EndPoint ?? multiConnectorConfiguration.OobaboogaEndPoint),
+                endpoint: new Uri(oobaboogaConnector.EndPoint ?? multiOobaboogaConnectorConfiguration.OobaboogaEndPoint),
                 blockingPort: oobaboogaConnector.BlockingPort,
                 streamingPort: oobaboogaConnector.StreamingPort,
                 webSocketFactory: this._webSocketFactory,
