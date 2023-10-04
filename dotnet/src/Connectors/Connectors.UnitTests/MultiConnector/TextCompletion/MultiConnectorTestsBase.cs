@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
-using SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.ArithmeticMocks;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector.ArithmeticMocks;
 using SemanticKernel.UnitTests;
 using SharpToken;
 using Xunit.Abstractions;

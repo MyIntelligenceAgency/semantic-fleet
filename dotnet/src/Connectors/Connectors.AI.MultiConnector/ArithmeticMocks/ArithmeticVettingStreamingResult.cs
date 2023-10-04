@@ -4,16 +4,21 @@ using System;
 using System.Globalization;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel.Orchestration;
-using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 
-namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.ArithmeticMocks;
+namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.ArithmeticMocks;
 
+/// <summary>
+/// Class representing the result of a vetting operation.
+/// </summary>
 public class ArithmeticVettingStreamingResult : ArithmeticStreamingResultBase
 {
     private readonly string _prompt;
     private ArithmeticEngine _engine;
     private readonly MultiTextCompletionSettings _settings;
 
+    /// <summary>
+    /// Constructor for the ArithmeticVettingStreamingResult class.
+    /// </summary>
     public ArithmeticVettingStreamingResult(MultiTextCompletionSettings settings, string prompt, ArithmeticEngine engine, TimeSpan callTime) : base()
     {
         this._settings = settings;
@@ -21,6 +26,9 @@ public class ArithmeticVettingStreamingResult : ArithmeticStreamingResultBase
         this._engine = engine;
     }
 
+    /// <summary>
+    /// Generates the model result of the vetting operation. Performs the real operation and compares the result with the connector result.
+    /// </summary>
     protected override Task<ModelResult> GenerateModelResult()
     {
         try
