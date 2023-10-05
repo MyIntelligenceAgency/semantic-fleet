@@ -16,5 +16,8 @@
     <PackageReference Include="System.Linq.Dynamic.Core" />
     <PackageReference Include="System.Threading.Channels" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Connectors.AI.Oobabooga\Connectors.AI.Oobabooga.csproj" />
+  </ItemGroup>
 
 </Project>
