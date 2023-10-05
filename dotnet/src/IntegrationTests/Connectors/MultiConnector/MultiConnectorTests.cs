@@ -15,14 +15,16 @@ using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
+using Microsoft.SemanticKernel.Orchestration;
 using Microsoft.SemanticKernel.Planning;
 using Microsoft.SemanticKernel.Planning.Sequential;
 using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
+using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
-using SemanticKernel.IntegrationTests.TestSettings;
 using SemanticKernel.UnitTests;
 using SharpToken;
 using Xunit;
@@ -52,6 +54,7 @@ public sealed class MultiConnectorTests : IDisposable
     private readonly string _planDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, PlansDirectory);
     private readonly string _textDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, TextsDirectory);
     private readonly CancellationTokenSource _cleanupToken = new();
+    private Dictionary<TokenCountFunction, Func<string, int>> _tokenCountFuncMap;
 
     public MultiConnectorTests(ITestOutputHelper output)
     {
@@ -71,6 +74,12 @@ public sealed class MultiConnectorTests : IDisposable
             this._webSockets.Add(toReturn);
             return toReturn;
         };
+
+        this._tokenCountFuncMap = new Dictionary<TokenCountFunction, Func<string, int>>
+        {
+            { TokenCountFunction.Gpt3Tokenizer, this._gp3TokenCounter },
+            { TokenCountFunction.WordCount, this._wordCounter }
+        };
     }
 
     /// <summary>
@@ -89,18 +98,21 @@ public sealed class MultiConnectorTests : IDisposable
     /// </summary>
     //[Theory(Skip = "This test is for manual verification.")]
     [Theory]
+    [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(false, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_orca_mini_3B-GGML", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_orca_mini_3B-GGML", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(false, "TheBloke_orca_mini_3B-GGML", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-7B-GGML", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-7B-GGML", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(false, "TheBloke_StableBeluga-7B-GGML", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize_Topics_ElementAt.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(false, "TheBloke_StableBeluga-13B-GGML", 1, "Summarize_Topics_ElementAt.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Mistral-7B-OpenOrca-GGUF", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Mistral-7B-OpenOrca-GGUF", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Mistral-7B-OpenOrca-GGUF", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToSingleOobaboogaUsingFileAsync(bool succeedsOffloading, string completion, int nbTests, string planFile, string inputFile, string validationFile, params string[] skills)
     {
         // Load the plan from the provided file path
@@ -138,8 +150,8 @@ public sealed class MultiConnectorTests : IDisposable
     [Theory]
     //[InlineData("",  1, "medium", "SummarizeSkill", "MiscSkill")]
     //[InlineData("TheBloke_StableBeluga-13B-GGML", 1, "medium", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_StableBeluga-13B-GGML", 1, "medium", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "medium", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToOobaboogaUsingPlannerAsync(bool succeedsOffloading, string completionName, int nbPromptTests, string difficulty, string inputFile, string validationFile, params string[] skillNames)
     {
         // Create a plan using SequentialPlanner based on difficulty
@@ -192,7 +204,7 @@ public sealed class MultiConnectorTests : IDisposable
 
         var sw = Stopwatch.StartNew();
 
-        var multiConnectorConfiguration = this._configuration.GetSection("MultiConnector").Get<MultiConnectorConfiguration>();
+        var multiConnectorConfiguration = this._configuration.GetSection("MultiConnector").Get<MultiOobaboogaConnectorConfiguration>();
         Assert.NotNull(multiConnectorConfiguration);
 
         var creditor = new CallRequestCostCreditor();
@@ -201,6 +213,48 @@ public sealed class MultiConnectorTests : IDisposable
 
         this._testOutputHelper.LogTrace("\n# Creating MultiTextCompletionSettings\n");
 
+        var settings = this.SetupMultiTextCompletionSettings(multiConnectorConfiguration, creditor, nbPromptTests);
+
+        // Cleanup in case the previous test failed to delete the analysis file
+        if (File.Exists(settings.AnalysisSettings.AnalysisFilePath))
+        {
+            this._testOutputHelper.LogTrace("Deleting preexisting analysis file: {0}\n", settings.AnalysisSettings.AnalysisFilePath);
+            File.Delete(settings.AnalysisSettings.AnalysisFilePath);
+        }
+
+        var kernel = this.InitializeKernel(settings, modelNames, multiConnectorConfiguration, cancellationToken: this._cleanupToken.Token);
+
+        if (kernel == null)
+        {
+            return;
+        }
+
+        var prepareKernelTimeElapsed = sw.Elapsed;
+
+        this._testOutputHelper.LogTrace("\n# Loading Skills\n");
+
+        var skills = TestHelpers.GetSkills(kernel, skillNames);
+
+        // Act
+
+        var (firstPassEffectiveCost, secondPassEffectiveCost, evaluations) = await this.ExecutePlansAndOptimizeAsync(kernel, planFactory, settings, sw).ConfigureAwait(false);
+
+        // Assert
+
+        this._testOutputHelper.LogTrace("\n# Assertions \n");
+
+        if (succeedsOffloading)
+        {
+            this.DoOffloadingAsserts(firstPassEffectiveCost, secondPassEffectiveCost, evaluations);
+        }
+        else
+        {
+            Assert.Throws<TrueException>((Action)(() => this.DoOffloadingAsserts(firstPassEffectiveCost, secondPassEffectiveCost, evaluations)));
+        }
+    }
+
+    private MultiTextCompletionSettings SetupMultiTextCompletionSettings(MultiOobaboogaConnectorConfiguration multiOobaboogaConnectorConfiguration, CallRequestCostCreditor creditor, int nbPromptTests)
+    {
         // The most common settings for a MultiTextCompletion are illustrated below, most of them have default values and are optional
         var settings = new MultiTextCompletionSettings()
         {
@@ -270,68 +324,89 @@ public sealed class MultiConnectorTests : IDisposable
 
         // We add or override the global parameters from the settings file
 
-        foreach (var userGlobalParams in multiConnectorConfiguration.GlobalParameters)
+        foreach (var userGlobalParams in multiOobaboogaConnectorConfiguration.GlobalParameters)
         {
             settings.GlobalParameters[userGlobalParams.Key] = userGlobalParams.Value;
         }
 
-        // Cleanup in case the previous test failed to delete the analysis file
-        if (File.Exists(settings.AnalysisSettings.AnalysisFilePath))
-        {
-            this._testOutputHelper.LogTrace("Deleting preexisting analysis file: {0}\n", settings.AnalysisSettings.AnalysisFilePath);
-            File.Delete(settings.AnalysisSettings.AnalysisFilePath);
-        }
+        return settings;
+    }
 
-        var kernel = this.InitializeKernel(settings, modelNames, multiConnectorConfiguration, cancellationToken: this._cleanupToken.Token);
-
-        if (kernel == null)
-        {
-            return;
-        }
-
-        var prepareKernelTimeElapsed = sw.Elapsed;
-
-        this._testOutputHelper.LogTrace("\n# Loading Skills\n");
-
-        var skills = TestHelpers.GetSkills(kernel, skillNames);
-
-        // Act
+    private async Task<(decimal, decimal, List<(ConnectorPromptEvaluation, AnalysisJob)>)> ExecutePlansAndOptimizeAsync(IKernel kernel, Func<IKernel, CancellationToken, bool, Task<Plan>> planFactory, MultiTextCompletionSettings settings, Stopwatch sw)
+    {
+        var initialElapsed = sw.Elapsed;
 
         // Create a plan
         this._testOutputHelper.LogTrace("\n# Loading Test plan\n");
         var plan1 = await planFactory(kernel, this._cleanupToken.Token, false);
         var plan1Json = plan1.ToJson();
-
         this._testOutputHelper.LogDebug("Plan used for multi-connector first pass: {0}", plan1Json);
-
-        settings.Creditor!.Reset();
-
         var planBuildingTimeElapsed = sw.Elapsed;
 
         // Execute the plan once with primary connector
-
-        var ctx = kernel.CreateNewContext();
-
         this._testOutputHelper.LogTrace("\n# 1st Run of plan with primary connector\n");
-
-        //We enable sampling and analysis trigger. There is a lock to prevent automatic analysis starting while the test is running, but we'll manually trigger analysis after the test is done
-
-        settings.EnablePromptSampling = true;
-
-        settings.AnalysisSettings.EnableAnalysis = true;
-
-        var firstResult = await kernel.RunAsync(ctx.Variables, this._cleanupToken.Token, plan1).ConfigureAwait(false);
-
+        var (firstPassEffectiveCost, firstResult) = await this.ExecuteFirstPassAsync(plan1, settings, kernel).ConfigureAwait(false);
         var planRunOnceTimeElapsed = sw.Elapsed;
-
-        this._testOutputHelper.LogTrace("\n# 1st run finished\n");
-
-        var firstPassEffectiveCost = settings.Creditor.OngoingCost;
-
         var firstPassDuration = planRunOnceTimeElapsed - planBuildingTimeElapsed;
-
+        this._testOutputHelper.LogTrace("\n# 1st run finished in {0}\n", firstPassDuration);
         this._testOutputHelper.LogDebug("Result from primary connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", firstPassDuration, firstPassEffectiveCost, firstResult);
 
+        // Perform tests, evaluation, and optimization
+        var optimizationResults = await this.OptimizeAsync(settings).ConfigureAwait(false);
+        var optimizationDoneElapsed = sw.Elapsed;
+        var optimizationDuration = optimizationDoneElapsed - planRunOnceTimeElapsed;
+        settings.AnalysisSettings.EnableAnalysis = false;
+        this._testOutputHelper.LogTrace("\n# Optimization task finished in {0}\n", optimizationDuration);
+        this._testOutputHelper.LogDebug("Optimized with suggested settings: {0}\n", Json.Encode(Json.Serialize(optimizationResults.SuggestedSettings), true));
+
+        //Re execute plan with suggested settings
+        this._testOutputHelper.LogTrace("\n# 2nd run of plan with updated settings and variable completions\n");
+        var (secondPassEffectiveCost, secondResult) = await this.ExecuteSecondPassAsync(plan1Json, settings, kernel).ConfigureAwait(false);
+        var planRunTwiceElapsed = sw.Elapsed;
+        var secondPassDuration = planRunTwiceElapsed - optimizationDoneElapsed;
+        this._testOutputHelper.LogTrace("\n# 2nd run finished in {0}\n", secondPassDuration);
+        this._testOutputHelper.LogDebug("Result from vetted connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", secondPassDuration, secondPassEffectiveCost, secondResult);
+
+        // We validate the new connector with a new plan with distinct data
+        this._testOutputHelper.LogTrace("\n# Loading validation plan from factory\n");
+        var plan3 = await planFactory(kernel, this._cleanupToken.Token, true);
+        this._testOutputHelper.LogDebug("Plan used for multi-connector validation: {0}", plan3.ToJson(true));
+
+        // Execute third pass with validation plan
+        this._testOutputHelper.LogTrace("\n# 3rd run of plan with final settings\n");
+        var (thirdPassEffectiveCost, thirdResult, validationTestBatches) = await this.ExecuteThirdPassAsync(plan3, settings, kernel).ConfigureAwait(false);
+        var planRunThriceElapsed = sw.Elapsed;
+        var thirdPassDuration = planRunThriceElapsed - planRunTwiceElapsed;
+        this._testOutputHelper.LogTrace("\n# 3rd run finished in {0}\n", thirdPassDuration);
+
+        this._testOutputHelper.LogTrace("\n# Start final validation with {0} samples received from 3rd run validating manually with primary connector\n", validationTestBatches.Count);
+        var evaluations = await this.ValidateAsync(validationTestBatches, settings).ConfigureAwait(false);
+        this._testOutputHelper.LogTrace("\n# End validation, starting Asserts\n");
+
+        return (firstPassEffectiveCost, secondPassEffectiveCost, evaluations);
+    }
+
+    private async Task<(decimal effectiveCost, SKContext result)> ExecuteFirstPassAsync(Plan plan, MultiTextCompletionSettings settings, IKernel kernel)
+    {
+        // Initialize
+        settings.Creditor!.Reset();
+        //We enable sampling and analysis trigger. There is a lock to prevent automatic analysis starting while the test is running, but we'll manually trigger analysis after the test is done
+        settings.EnablePromptSampling = true;
+        settings.AnalysisSettings.EnableAnalysis = true;
+
+        // Execute
+        var ctx = kernel.CreateNewContext();
+        var firstResult = await kernel.RunAsync(ctx.Variables, this._cleanupToken.Token, plan).ConfigureAwait(false);
+
+        // Calculate
+        var firstPassEffectiveCost = settings.Creditor.OngoingCost;
+
+        // Return
+        return (firstPassEffectiveCost, firstResult);
+    }
+
+    private async Task<SuggestionCompletedEventArgs> OptimizeAsync(MultiTextCompletionSettings settings)
+    {
         // We disable prompt sampling to ensure no other tests are generated
         settings.EnablePromptSampling = false;
 
@@ -363,49 +438,30 @@ public sealed class MultiConnectorTests : IDisposable
 
         // Get the optimization results
         var optimizationResults = await suggestionCompletedTaskSource.Task.ConfigureAwait(false);
+        return optimizationResults;
+    }
 
-        var optimizationDoneElapsed = sw.Elapsed;
-
-        settings.AnalysisSettings.EnableAnalysis = false;
-
-        this._testOutputHelper.LogTrace("\n# Optimization task finished\n");
-
-        this._testOutputHelper.LogDebug("Optimized with suggested settings: {0}\n", Json.Encode(Json.Serialize(optimizationResults.SuggestedSettings), true));
-
-        //Re execute plan with suggested settings
-
-        this._testOutputHelper.LogTrace("\n# 2nd run of plan with updated settings and variable completions\n");
-
+    private async Task<(decimal effectiveCost, SKContext result)> ExecuteSecondPassAsync(string planJson, MultiTextCompletionSettings settings, IKernel kernel)
+    {
         settings.Creditor!.Reset();
 
-        ctx = kernel.CreateNewContext();
+        var ctx = kernel.CreateNewContext();
 
-        var plan2 = Plan.FromJson(plan1Json, ctx, true);
+        var plan2 = Plan.FromJson(planJson, ctx, true);
 
         var secondResult = await kernel.RunAsync(ctx.Variables, this._cleanupToken.Token, plan2).ConfigureAwait(false);
 
-        var planRunTwiceElapsed = sw.Elapsed;
-        this._testOutputHelper.LogTrace("\n# 2nd run finished\n");
-
         var secondPassEffectiveCost = settings.Creditor.OngoingCost;
 
-        var secondPassDuration = planRunTwiceElapsed - optimizationDoneElapsed;
+        return (secondPassEffectiveCost, secondResult);
+    }
 
-        this._testOutputHelper.LogDebug("Result from vetted connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", secondPassDuration, secondPassEffectiveCost, secondResult);
-
-        // We validate the new connector with a new plan with distinct data
-
+    private async Task<(decimal effectiveCost, SKContext result, List<SamplesReceivedEventArgs> validationTestBatches)> ExecuteThirdPassAsync(Plan plan, MultiTextCompletionSettings settings, IKernel kernel)
+    {
         settings.Creditor!.Reset();
 
-        ctx = kernel.CreateNewContext();
+        var ctx = kernel.CreateNewContext();
 
-        this._testOutputHelper.LogTrace("\n# Loading validation plan from factory\n");
-
-        var plan3 = await planFactory(kernel, this._cleanupToken.Token, true);
-
-        this._testOutputHelper.LogDebug("Plan used for multi-connector validation: {0}", plan3.ToJson(true));
-
-        // 
         settings.EnablePromptSampling = true;
         settings.MaxInstanceNb = 2;
 
@@ -422,13 +478,7 @@ public sealed class MultiConnectorTests : IDisposable
             receivedTaskSources.Add(samplesReceivedTaskSource);
         };
 
-        this._testOutputHelper.LogTrace("\n# 3rd run: New validation plan with updated settings and variable completions\n");
-
-        var validationResult = await kernel.RunAsync(ctx.Variables, this._cleanupToken.Token, plan3).ConfigureAwait(false);
-
-        var planRunThriceElapsed = sw.Elapsed;
-        this._testOutputHelper.LogTrace("\n# 3rd run finished\n");
-
+        var thirdResult = await kernel.RunAsync(ctx.Variables, this._cleanupToken.Token, plan).ConfigureAwait(false);
         var thirdPassEffectiveCost = settings.Creditor.OngoingCost;
 
         var validationTestBatches = new List<SamplesReceivedEventArgs>();
@@ -439,10 +489,12 @@ public sealed class MultiConnectorTests : IDisposable
             validationTestBatches.Add(sampleReceived);
         }
 
-        this._testOutputHelper.LogTrace("\n# Start final validation with {0} samples received from 3rd run validating manually with primary connector\n", validationTestBatches.Count);
+        return (thirdPassEffectiveCost, thirdResult, validationTestBatches);
+    }
 
+    private async Task<List<(ConnectorPromptEvaluation, AnalysisJob)>> ValidateAsync(List<SamplesReceivedEventArgs> validationTestBatches, MultiTextCompletionSettings settings)
+    {
         var evaluations = new List<(ConnectorPromptEvaluation, AnalysisJob)>();
-
         foreach (SamplesReceivedEventArgs validationTestBatch in validationTestBatches)
         {
             foreach (var sample in validationTestBatch.NewSamples)
@@ -457,20 +509,7 @@ public sealed class MultiConnectorTests : IDisposable
             }
         }
 
-        this._testOutputHelper.LogTrace("\n# End validation, starting Asserts\n");
-
-        // Assert
-
-        this._testOutputHelper.LogTrace("\n# Assertions \n");
-
-        if (succeedsOffloading)
-        {
-            this.DoOffloadingAsserts(firstPassEffectiveCost, secondPassEffectiveCost, evaluations);
-        }
-        else
-        {
-            Assert.Throws<TrueException>((Action)(() => this.DoOffloadingAsserts(firstPassEffectiveCost, secondPassEffectiveCost, evaluations)));
-        }
+        return evaluations;
     }
 
     private void DoOffloadingAsserts(decimal firstPassEffectiveCost, decimal secondPassEffectiveCost, List<(ConnectorPromptEvaluation, AnalysisJob)> evaluations)
@@ -481,23 +520,14 @@ public sealed class MultiConnectorTests : IDisposable
 
         this._testOutputHelper.LogTrace("Asserting secondary connectors plan capabilities are vetted on a distinct validation input");
 
-        var atLeastOneSecondaryCompletionValidated = false;
-        foreach (var evaluation in evaluations)
-        {
-            if (evaluation.Item1.Test.ConnectorName != evaluation.Item2.TextCompletions[0].Name)
-            {
-                Assert.True(evaluation.Item1.IsVetted);
-                atLeastOneSecondaryCompletionValidated = true;
-            }
-        }
-
+        var atLeastOneSecondaryCompletionValidated = evaluations.Any(e => e.Item1.Test.ConnectorName != e.Item2.TextCompletions[0].Name && e.Item1.IsVetted);
         Assert.True(atLeastOneSecondaryCompletionValidated);
     }
 
     /// <summary>
-    /// Configures a kernel with MultiTextCompletion comprising a primary OpenAI connector with parameters defined in main settings for OpenAI integration tests, and Oobabooga secondary connectors with parameters defined in the MultiConnector part of the settings file.
+    /// Configures a kernel with MultiTextCompletion comprising a primary OpenAI connector with parameters defined in main settings for OpenAI integration tests, and Oobabooga secondary connectors with parameters defined in the MultiConnector part of the settings file. Returns null if no matching secondary connector is found in configuration
     /// </summary>
-    private IKernel? InitializeKernel(MultiTextCompletionSettings multiTextCompletionSettings, List<string>? modelNames, MultiConnectorConfiguration multiConnectorConfiguration, CancellationToken? cancellationToken = null)
+    private IKernel? InitializeKernel(MultiTextCompletionSettings multiTextCompletionSettings, List<string>? modelNames, MultiOobaboogaConnectorConfiguration multiOobaboogaConnectorConfiguration, CancellationToken? cancellationToken = null)
     {
         cancellationToken ??= CancellationToken.None;
 
@@ -529,10 +559,10 @@ public sealed class MultiConnectorTests : IDisposable
 
         var oobaboogaCompletions = new List<NamedTextCompletion>();
 
-        var includedCompletions = multiConnectorConfiguration.OobaboogaCompletions.Where(configuration =>
-            multiConnectorConfiguration.IncludedConnectorsDev.Count > 0
-                ? multiConnectorConfiguration.IncludedConnectorsDev.Contains(configuration.Name)
-                : multiConnectorConfiguration.IncludedConnectors.Contains(configuration.Name));
+        var includedCompletions = multiOobaboogaConnectorConfiguration.OobaboogaCompletions.Where(configuration =>
+            multiOobaboogaConnectorConfiguration.IncludedConnectorsDev.Count > 0
+                ? multiOobaboogaConnectorConfiguration.IncludedConnectorsDev.Contains(configuration.Name)
+                : multiOobaboogaConnectorConfiguration.IncludedConnectors.Contains(configuration.Name));
 
         foreach (var oobaboogaConnector in includedCompletions)
         {
@@ -541,33 +571,16 @@ public sealed class MultiConnectorTests : IDisposable
                 continue;
             }
 
-            var oobaboogaSettings = new OobaboogaTextCompletionSettings(
-                endpoint: new Uri(oobaboogaConnector.EndPoint ?? multiConnectorConfiguration.OobaboogaEndPoint),
-                blockingPort: oobaboogaConnector.BlockingPort,
-                streamingPort: oobaboogaConnector.StreamingPort,
-                webSocketFactory: this._webSocketFactory,
-                loggerFactory: this._testOutputHelper);
+            var settings = oobaboogaConnector.CreateSettings(multiOobaboogaConnectorConfiguration.OobaboogaEndPoint);
+            ITextCompletion oobaboogaCompletion = oobaboogaConnector.UseChatCompletion ? new OobaboogaChatCompletion((OobaboogaChatCompletionSettings)settings) : new OobaboogaTextCompletion((OobaboogaTextCompletionSettings)settings);
 
-            var oobaboogaCompletion = new OobaboogaTextCompletion(oobaboogaSettings);
-
-            Func<string, int> tokeCountFunction;
-            switch (oobaboogaConnector.TokenCountFunction)
-            {
-                case TokenCountFunction.Gpt3Tokenizer:
-                    tokeCountFunction = this._gp3TokenCounter;
-                    break;
-                case TokenCountFunction.WordCount:
-                    tokeCountFunction = this._wordCounter;
-                    break;
-                default:
-                    throw new InvalidOperationException("token count function not supported");
-            }
+            Func<string, int> tokenCountFunc = this._tokenCountFuncMap[oobaboogaConnector.TokenCountFunction];
 
             var oobaboogaNamedCompletion = new NamedTextCompletion(oobaboogaConnector.Name, oobaboogaCompletion)
             {
                 CostPerRequest = oobaboogaConnector.CostPerRequest,
                 CostPer1000Token = oobaboogaConnector.CostPer1000Token,
-                TokenCountFunc = tokeCountFunction,
+                TokenCountFunc = tokenCountFunc,
                 TemperatureTransform = d => d == 0 ? 0.01 : d,
                 PromptTransform = oobaboogaConnector.PromptTransform
                 //RequestSettingsTransform = requestSettings =>
@@ -615,14 +628,18 @@ public sealed class MultiConnectorTests : IDisposable
 
     public void Dispose()
     {
-        foreach (ClientWebSocket clientWebSocket in this._webSockets)
+        try
         {
-            clientWebSocket.Dispose();
+            foreach (ClientWebSocket clientWebSocket in this._webSockets)
+            {
+                clientWebSocket.Dispose();
+            }
         }
-
-        this._cleanupToken.Cancel();
-        this._cleanupToken.Dispose();
-
-        this._testOutputHelper.Dispose();
+        finally
+        {
+            this._cleanupToken.Cancel();
+            this._cleanupToken.Dispose();
+            this._testOutputHelper.Dispose();
+        }
     }
 }

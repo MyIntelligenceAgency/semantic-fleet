@@ -494,11 +494,6 @@ public sealed class OobaboogaCompletionTests : IDisposable
         {
             Assert.Equal(expectedResponse.Count, result.Count);
             var testResponse = expectedResponse;
-            if (isChat)
-            {
-                testResponse = expectedResponse.Select((s, i) => expectedResponse.Take(i + 1).Aggregate((a, b) => a + b)).ToList();
-            }
-
             for (int i = 0; i < testResponse.Count; i++)
             {
                 Assert.Equal(testResponse[i], result[i]);

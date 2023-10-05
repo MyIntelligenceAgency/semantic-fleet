@@ -314,7 +314,7 @@ public class OobaboogaCompletionSettings
 /// This class inherits from the base settings controlling the general behavior of Oobabooga completion connectors and introduces a generic type parameter to allow for the use of a custom <see cref="OobaboogaCompletionParameters"/> type controlling the specific completion parameters, which differ between standard text completion and chat completion.
 /// </summary>
 /// <typeparam name="TParameters"></typeparam>
-public class OobaboogaCompletionSettings<TParameters> : OobaboogaCompletionSettings where TParameters : OobaboogaCompletionParameters, new()
+public class OobaboogaCompletionSettings<TParameters> : OobaboogaCompletionSettings, ICovariantOobaboogaCompletionSettings<TParameters>, IContravariantOobaboogaCompletionSettings<TParameters> where TParameters : OobaboogaCompletionParameters, new()
 {
     /// <summary>
     /// This is the default constructor for deserialization purposes. It is not meant to be used directly.
@@ -363,4 +363,5 @@ public class OobaboogaCompletionSettings<TParameters> : OobaboogaCompletionSetti
     /// Gets or sets the parameters controlling the specific completion request parameters, which differ between standard text completion and chat completion.
     /// </summary>
     public TParameters OobaboogaParameters { get; set; } = new();
+
 }

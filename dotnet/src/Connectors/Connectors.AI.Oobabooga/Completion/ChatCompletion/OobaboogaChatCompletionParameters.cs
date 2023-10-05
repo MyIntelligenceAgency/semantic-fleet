@@ -25,7 +25,7 @@ public class OobaboogaChatCompletionParameters : OobaboogaCompletionParameters
     /// The instruction template for instruct mode chat completion. Instruction following models usually require a specific format that they were specifically trained or fine-tuned to follow. You can find default templates in the <see href="https://github.com/oobabooga/text-generation-webui/tree/main/instruction-templates">corresponding directory</see> and default mappings between models and templates in the <see href="https://github.com/oobabooga/text-generation-webui/blob/main/models/config.yaml">config.yaml file</see>.
     /// </summary>
     [JsonPropertyName("instruction_template")]
-    public string InstructionTemplate { get; set; } = "Vicuna-v1.1";
+    public string? InstructionTemplate { get; set; }
 
     /// <summary>
     /// The name to use for the user in the chat completion.

@@ -23,12 +23,22 @@ public sealed class ChatCompletionStreamingResult : CompletionStreamingResultBas
         AllowSynchronousContinuations = false
     });
 
+    private string _lastSentMessage = "";
+
     private void AppendResponse(ChatCompletionStreamingResponse response)
     {
         this.ModelResponses.Add(response);
         if (response.History.Visible.Count > 0)
         {
-            this._chatMessageChannel.Writer.TryWrite(new SKChatMessage(response.History.Visible.Last()));
+            var newMessage = response.History.Visible.Last().Last(); // Get the last string in the list
+
+            // Only take the part of the message that hasn't been sent yet
+            var newChunk = newMessage.Substring(this._lastSentMessage.Length);
+
+            // Update the last sent message
+            this._lastSentMessage = newMessage;
+
+            this._chatMessageChannel.Writer.TryWrite(new SKChatMessage(new List<string> { newChunk }));
         }
     }
 

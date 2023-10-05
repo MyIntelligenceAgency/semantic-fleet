@@ -4,7 +4,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
-using SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.ArithmeticMocks;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector.ArithmeticMocks;
 using Xunit;
 using Xunit.Abstractions;
 
