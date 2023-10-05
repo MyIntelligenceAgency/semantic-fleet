@@ -30,6 +30,17 @@ public class OpenAIConfiguration
     /// <summary>
     /// Initializes a new instance of <see cref="OpenAIConfiguration"/>.
     /// </summary>
+    public OpenAIConfiguration()
+    {
+        this.ServiceId = "";
+        this.ModelId = "";
+        this.ChatModelId = "";
+        this.ApiKey = "";
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="OpenAIConfiguration"/> with field values.
+    /// </summary>
     public OpenAIConfiguration(string serviceId, string modelId, string apiKey, string? chatModelId = null)
     {
         this.ServiceId = serviceId;
