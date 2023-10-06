@@ -14,8 +14,6 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextCompletion;
-using Microsoft.SemanticKernel.Diagnostics;
-using Microsoft.SemanticKernel.Orchestration;
 using Microsoft.SemanticKernel.Planning;
 using Microsoft.SemanticKernel.Planning.Sequential;
 using Microsoft.SemanticKernel.Text;
@@ -48,13 +46,9 @@ public sealed class MultiConnectorTests : IDisposable
     private readonly List<ClientWebSocket> _webSockets = new();
     private readonly Func<ClientWebSocket> _webSocketFactory;
     private readonly RedirectOutput _testOutputHelper;
-    private static readonly GptEncoding s_gptEncoding = GptEncoding.GetEncoding("cl100k_base");
-    private readonly Func<string, int> _gp3TokenCounter = s => s_gptEncoding.Encode(s).Count;
-    private readonly Func<string, int> _wordCounter = s => s.Split(' ').Length;
     private readonly string _planDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, PlansDirectory);
     private readonly string _textDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, TextsDirectory);
     private readonly CancellationTokenSource _cleanupToken = new();
-    private Dictionary<TokenCountFunction, Func<string, int>> _tokenCountFuncMap;
 
     public MultiConnectorTests(ITestOutputHelper output)
     {
@@ -73,12 +67,6 @@ public sealed class MultiConnectorTests : IDisposable
             var toReturn = new ClientWebSocket();
             this._webSockets.Add(toReturn);
             return toReturn;
-        };
-
-        this._tokenCountFuncMap = new Dictionary<TokenCountFunction, Func<string, int>>
-        {
-            { TokenCountFunction.Gpt3Tokenizer, this._gp3TokenCounter },
-            { TokenCountFunction.WordCount, this._wordCounter }
         };
     }
 
@@ -426,56 +414,12 @@ public sealed class MultiConnectorTests : IDisposable
         {
             MaxTokens = 4096,
             CostPer1000Token = 0.0015m,
-            TokenCountFunc = this._gp3TokenCounter,
+            TokenCountFunc = MultiOobaboogaConnectorConfiguration.TokenCountFunctionMap[TokenCountFunction.Gpt3Tokenizer],
             //We did not observe any limit on Open AI concurrent calls
             MaxDegreeOfParallelism = 5,
         };
 
-        var oobaboogaCompletions = new List<NamedTextCompletion>();
-
-        var includedCompletions = multiOobaboogaConnectorConfiguration.OobaboogaCompletions.Where(configuration =>
-            multiOobaboogaConnectorConfiguration.IncludedConnectorsDev.Count > 0
-                ? multiOobaboogaConnectorConfiguration.IncludedConnectorsDev.Contains(configuration.Name)
-                : multiOobaboogaConnectorConfiguration.IncludedConnectors.Contains(configuration.Name));
-
-        foreach (var oobaboogaConnector in includedCompletions)
-        {
-            if (modelNames != null && !modelNames.Contains(oobaboogaConnector.Name))
-            {
-                continue;
-            }
-
-            var settings = oobaboogaConnector.CreateSettings(multiOobaboogaConnectorConfiguration.OobaboogaEndPoint);
-            ITextCompletion oobaboogaCompletion = oobaboogaConnector.UseChatCompletion ? new OobaboogaChatCompletion((OobaboogaChatCompletionSettings)settings) : new OobaboogaTextCompletion((OobaboogaTextCompletionSettings)settings);
-
-            Func<string, int> tokenCountFunc = this._tokenCountFuncMap[oobaboogaConnector.TokenCountFunction];
-
-            var oobaboogaNamedCompletion = new NamedTextCompletion(oobaboogaConnector.Name, oobaboogaCompletion)
-            {
-                CostPerRequest = oobaboogaConnector.CostPerRequest,
-                CostPer1000Token = oobaboogaConnector.CostPer1000Token,
-                TokenCountFunc = tokenCountFunc,
-                TemperatureTransform = d => d == 0 ? 0.01 : d,
-                PromptTransform = oobaboogaConnector.PromptTransform
-                //RequestSettingsTransform = requestSettings =>
-                //{
-                //    var newRequestSettings = new CompleteRequestSettings()
-                //    {
-                //        MaxTokens = requestSettings.MaxTokens,
-                //        ResultsPerPrompt = requestSettings.ResultsPerPrompt,
-                //        ChatSystemPrompt = requestSettings.ChatSystemPrompt,
-                //        FrequencyPenalty = requestSettings.FrequencyPenalty,
-                //        PresencePenalty = 0.3,
-                //        StopSequences = requestSettings.StopSequences,
-                //        Temperature = 0.7,
-                //        TokenSelectionBiases = requestSettings.TokenSelectionBiases,
-                //        TopP = 0.9,
-                //    };
-                //    return newRequestSettings;
-                //}
-            };
-            oobaboogaCompletions.Add(oobaboogaNamedCompletion);
-        }
+        List<NamedTextCompletion> oobaboogaCompletions = multiOobaboogaConnectorConfiguration.CreateNamedCompletions(modelNames);
 
         if (oobaboogaCompletions.Count == 0)
         {
@@ -485,7 +429,6 @@ public sealed class MultiConnectorTests : IDisposable
 
         var builder = Kernel.Builder
             .WithLoggerFactory(this._testOutputHelper);
-        //.WithMemoryStorage(new VolatileMemoryStore());
 
         builder.WithMultiConnectorCompletionService(
             serviceId: null,

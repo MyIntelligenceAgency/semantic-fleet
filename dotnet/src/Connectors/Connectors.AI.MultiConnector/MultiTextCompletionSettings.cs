@@ -401,9 +401,8 @@ public class MultiTextCompletionSettings
         var sw = Stopwatch.StartNew();
         var result = await kernel.RunAsync(planOrFunction, ctx.Variables, cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
         var duration = sw.Elapsed;
-        var toReturn = new MultiTextCompletionResult()
+        var toReturn = new MultiTextCompletionResult(result)
         {
-            Result = result,
             Duration = duration,
         };
         if (computeCost)
@@ -496,5 +495,4 @@ public class MultiTextCompletionSettings
 
         return evaluations;
     }
-
 }

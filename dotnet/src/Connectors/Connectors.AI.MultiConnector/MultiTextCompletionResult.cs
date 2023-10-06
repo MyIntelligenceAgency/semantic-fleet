@@ -13,6 +13,14 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 public class MultiTextCompletionResult
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="MultiTextCompletionResult"/> class.
+    /// </summary>
+    public MultiTextCompletionResult(SKContext result)
+    {
+        this.Result = result;
+    }
+
+    /// <summary>
     /// The result of running a function or a plan
     /// </summary>
     public SKContext Result { get; set; }
