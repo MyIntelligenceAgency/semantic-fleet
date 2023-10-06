@@ -3,11 +3,17 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.Diagnostics;
+using Microsoft.SemanticKernel.SkillDefinition;
 using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
@@ -24,7 +30,7 @@ public class MultiTextCompletionSettings
 {
     private ConcurrentBag<PromptMultiConnectorSettings> _promptMultiConnectorSettingsInternal = new();
 
-    private object _promptTypelock = new();
+    private readonly object _promptTypeLock = new();
 
     /// <summary>
     /// Loads suggested settings from an analysis.
@@ -188,7 +194,7 @@ public class MultiTextCompletionSettings
             }
             else
             {
-                lock (this._promptTypelock)
+                lock (this._promptTypeLock)
                 {
                     toReturn = this.MatchPromptSettings(completionJob);
                     if (toReturn == null)
@@ -345,4 +351,150 @@ public class MultiTextCompletionSettings
             TopP = requestSettings.TopP,
         };
     }
+
+    /// <summary>
+    /// Helper method to run a function or plan and return the result and optionally the cost and samples.
+    /// </summary>
+    public async Task<MultiTextCompletionResult> ExecuteAsync(
+        ISKFunction planOrFunction,
+        IKernel kernel,
+        CancellationToken? cancellationToken = default,
+        bool computeCost = false,
+        bool collectSamples = false)
+    {
+        var initialCost = 0m;
+        CallRequestCostCreditor? localCreditor = null;
+        if (computeCost)
+        {
+            if (this.Creditor == null)
+            {
+                localCreditor = new CallRequestCostCreditor();
+                this.Creditor = localCreditor;
+            }
+            else
+            {
+                initialCost = this.Creditor.OngoingCost;
+            }
+        }
+
+        var originalPromptSampling = this.EnablePromptSampling;
+
+        var receivedTaskSources = new List<TaskCompletionSource<SamplesReceivedEventArgs>>();
+        if (collectSamples)
+        {
+            this.EnablePromptSampling = true;
+            TaskCompletionSource<SamplesReceivedEventArgs> samplesReceivedTaskSource = new();
+
+            receivedTaskSources.Add(samplesReceivedTaskSource);
+            // Subscribe to the OptimizationCompleted event
+            this.AnalysisSettings.SamplesReceived += (sender, args) =>
+            {
+                // Signal the completion of the optimization
+                samplesReceivedTaskSource.SetResult(args);
+
+                samplesReceivedTaskSource = new();
+                receivedTaskSources.Add(samplesReceivedTaskSource);
+            };
+        }
+
+        var ctx = kernel.CreateNewContext();
+        var sw = Stopwatch.StartNew();
+        var result = await kernel.RunAsync(planOrFunction, ctx.Variables, cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
+        var duration = sw.Elapsed;
+        var toReturn = new MultiTextCompletionResult()
+        {
+            Result = result,
+            Duration = duration,
+        };
+        if (computeCost)
+        {
+            var ongoingCost = this.Creditor!.OngoingCost;
+            toReturn.Cost = ongoingCost - initialCost;
+            if (localCreditor != null)
+            {
+                this.Creditor = null;
+            }
+        }
+
+        if (collectSamples)
+        {
+            var validationTestBatches = new List<SamplesReceivedEventArgs>();
+            foreach (var receivedTaskSource in receivedTaskSources)
+            {
+                var sampleReceived = await receivedTaskSource.Task.ConfigureAwait(false);
+                validationTestBatches.Add(sampleReceived);
+            }
+
+            toReturn.SampleBatches = validationTestBatches;
+            if (this.EnablePromptSampling != originalPromptSampling)
+            {
+                this.EnablePromptSampling = originalPromptSampling;
+            }
+        }
+
+        return toReturn;
+    }
+
+    /// <summary>
+    /// Runs a series of tests, evaluations on the connectors, optimize settings and returns the results. Assumes a series of samples were collected and the optimization task is locked, waiting for release.
+    /// </summary>
+    public async Task<SuggestionCompletedEventArgs> OptimizeAsync(ILogger? logger = null)
+    {
+        // We disable prompt sampling to ensure no other tests are generated
+        this.EnablePromptSampling = false;
+
+        // Create a task completion source to signal the completion of the optimization
+
+        TaskCompletionSource<SuggestionCompletedEventArgs> suggestionCompletedTaskSource = new();
+
+        // Subscribe to the OptimizationCompleted event
+
+        this.AnalysisSettings.SuggestionCompleted += (sender, args) =>
+        {
+            // Signal the completion of the optimization
+            suggestionCompletedTaskSource.SetResult(args);
+
+            suggestionCompletedTaskSource = new();
+        };
+
+        // Subscribe to the OptimizationCompleted event
+        this.AnalysisSettings.AnalysisTaskCrashed += (sender, args) =>
+        {
+            // Signal the completion of the optimization
+            suggestionCompletedTaskSource.SetException(args.CrashEvent.Exception);
+        };
+
+        logger?.LogTrace("\n# Releasing analysis task, waiting for suggestion completed event\n");
+
+        this.AnalysisSettings.AnalysisAwaitsManualTrigger = false;
+        this.AnalysisSettings.ReleaseAnalysisTasks();
+
+        // Get the optimization results
+        var optimizationResults = await suggestionCompletedTaskSource.Task.ConfigureAwait(false);
+        return optimizationResults;
+    }
+
+    /// <summary>
+    /// Validates a set of collected samples using the primary connector and return the evaluation results.
+    /// </summary>
+    public async Task<List<(ConnectorPromptEvaluation, AnalysisJob)>> ValidateAsync(List<SamplesReceivedEventArgs> validationTestBatches)
+    {
+        var evaluations = new List<(ConnectorPromptEvaluation, AnalysisJob)>();
+        foreach (SamplesReceivedEventArgs validationTestBatch in validationTestBatches)
+        {
+            foreach (var sample in validationTestBatch.NewSamples)
+            {
+                var evaluation = await this.AnalysisSettings.EvaluateConnectorTestAsync(sample, validationTestBatch.AnalysisJob).ConfigureAwait(false);
+                if (evaluation == null)
+                {
+                    throw new SKException("Validation of MultiCompletion failed to complete");
+                }
+
+                evaluations.Add((evaluation, validationTestBatch.AnalysisJob));
+            }
+        }
+
+        return evaluations;
+    }
+
 }

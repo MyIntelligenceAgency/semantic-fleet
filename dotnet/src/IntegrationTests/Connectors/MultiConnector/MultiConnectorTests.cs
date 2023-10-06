@@ -345,27 +345,28 @@ public sealed class MultiConnectorTests : IDisposable
 
         // Execute the plan once with primary connector
         this._testOutputHelper.LogTrace("\n# 1st Run of plan with primary connector\n");
-        var (firstPassEffectiveCost, firstResult) = await this.ExecuteFirstPassAsync(plan1, settings, kernel).ConfigureAwait(false);
-        var planRunOnceTimeElapsed = sw.Elapsed;
-        var firstPassDuration = planRunOnceTimeElapsed - planBuildingTimeElapsed;
-        this._testOutputHelper.LogTrace("\n# 1st run finished in {0}\n", firstPassDuration);
-        this._testOutputHelper.LogDebug("Result from primary connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", firstPassDuration, firstPassEffectiveCost, firstResult);
+        //We enable sampling and analysis trigger. There is a lock to prevent automatic analysis starting while the test is running, but we'll manually trigger analysis after the test is done
+        settings.EnablePromptSampling = true;
+        settings.AnalysisSettings.EnableAnalysis = true;
+        var firstPassResult = await settings.ExecuteAsync(plan1, kernel, this._cleanupToken.Token, computeCost: true).ConfigureAwait(false);
+        this._testOutputHelper.LogTrace("\n# 1st run finished in {0}\n", firstPassResult.Duration);
+        this._testOutputHelper.LogDebug("Result from primary connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", firstPassResult.Duration, firstPassResult.Cost, firstPassResult.Result);
 
         // Perform tests, evaluation, and optimization
-        var optimizationResults = await this.OptimizeAsync(settings).ConfigureAwait(false);
+        var optimizationResults = await settings.OptimizeAsync(this._testOutputHelper).ConfigureAwait(false);
         var optimizationDoneElapsed = sw.Elapsed;
-        var optimizationDuration = optimizationDoneElapsed - planRunOnceTimeElapsed;
+        var optimizationDuration = optimizationDoneElapsed - planBuildingTimeElapsed;
         settings.AnalysisSettings.EnableAnalysis = false;
         this._testOutputHelper.LogTrace("\n# Optimization task finished in {0}\n", optimizationDuration);
         this._testOutputHelper.LogDebug("Optimized with suggested settings: {0}\n", Json.Encode(Json.Serialize(optimizationResults.SuggestedSettings), true));
 
         //Re execute plan with suggested settings
+        var ctx = kernel.CreateNewContext();
+        var plan2 = Plan.FromJson(plan1Json, ctx, true);
         this._testOutputHelper.LogTrace("\n# 2nd run of plan with updated settings and variable completions\n");
-        var (secondPassEffectiveCost, secondResult) = await this.ExecuteSecondPassAsync(plan1Json, settings, kernel).ConfigureAwait(false);
-        var planRunTwiceElapsed = sw.Elapsed;
-        var secondPassDuration = planRunTwiceElapsed - optimizationDoneElapsed;
-        this._testOutputHelper.LogTrace("\n# 2nd run finished in {0}\n", secondPassDuration);
-        this._testOutputHelper.LogDebug("Result from vetted connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", secondPassDuration, secondPassEffectiveCost, secondResult);
+        var secondPassResult = await settings.ExecuteAsync(plan2, kernel, this._cleanupToken.Token, computeCost: true).ConfigureAwait(false);
+        this._testOutputHelper.LogTrace("\n# 2nd run finished in {0}\n", secondPassResult.Duration);
+        this._testOutputHelper.LogDebug("Result from vetted connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", secondPassResult.Duration, secondPassResult.Cost, secondPassResult.Result);
 
         // We validate the new connector with a new plan with distinct data
         this._testOutputHelper.LogTrace("\n# Loading validation plan from factory\n");
@@ -374,142 +375,15 @@ public sealed class MultiConnectorTests : IDisposable
 
         // Execute third pass with validation plan
         this._testOutputHelper.LogTrace("\n# 3rd run of plan with final settings\n");
-        var (thirdPassEffectiveCost, thirdResult, validationTestBatches) = await this.ExecuteThirdPassAsync(plan3, settings, kernel).ConfigureAwait(false);
-        var planRunThriceElapsed = sw.Elapsed;
-        var thirdPassDuration = planRunThriceElapsed - planRunTwiceElapsed;
-        this._testOutputHelper.LogTrace("\n# 3rd run finished in {0}\n", thirdPassDuration);
-
-        this._testOutputHelper.LogTrace("\n# Start final validation with {0} samples received from 3rd run validating manually with primary connector\n", validationTestBatches.Count);
-        var evaluations = await this.ValidateAsync(validationTestBatches, settings).ConfigureAwait(false);
+        // Since we already collected samples for the optimization, we don't want to max out the number of samples collected for validation, so we'll just add one
+        settings.MaxInstanceNb += 1;
+        var thirdPassResult = await settings.ExecuteAsync(plan3, kernel, this._cleanupToken.Token, computeCost: true, collectSamples: true).ConfigureAwait(false);
+        this._testOutputHelper.LogTrace("\n# 3rd run finished in {0}\n", thirdPassResult.Duration);
+        this._testOutputHelper.LogTrace("\n# Start final validation with {0} sample batches received from 3rd run validating manually with primary connector\n", thirdPassResult.SampleBatches!.Count);
+        var evaluations = await settings.ValidateAsync(thirdPassResult.SampleBatches).ConfigureAwait(false);
         this._testOutputHelper.LogTrace("\n# End validation, starting Asserts\n");
 
-        return (firstPassEffectiveCost, secondPassEffectiveCost, evaluations);
-    }
-
-    private async Task<(decimal effectiveCost, SKContext result)> ExecuteFirstPassAsync(Plan plan, MultiTextCompletionSettings settings, IKernel kernel)
-    {
-        // Initialize
-        settings.Creditor!.Reset();
-        //We enable sampling and analysis trigger. There is a lock to prevent automatic analysis starting while the test is running, but we'll manually trigger analysis after the test is done
-        settings.EnablePromptSampling = true;
-        settings.AnalysisSettings.EnableAnalysis = true;
-
-        // Execute
-        var ctx = kernel.CreateNewContext();
-        var firstResult = await kernel.RunAsync(ctx.Variables, this._cleanupToken.Token, plan).ConfigureAwait(false);
-
-        // Calculate
-        var firstPassEffectiveCost = settings.Creditor.OngoingCost;
-
-        // Return
-        return (firstPassEffectiveCost, firstResult);
-    }
-
-    private async Task<SuggestionCompletedEventArgs> OptimizeAsync(MultiTextCompletionSettings settings)
-    {
-        // We disable prompt sampling to ensure no other tests are generated
-        settings.EnablePromptSampling = false;
-
-        // Create a task completion source to signal the completion of the optimization
-
-        TaskCompletionSource<SuggestionCompletedEventArgs> suggestionCompletedTaskSource = new();
-
-        // Subscribe to the OptimizationCompleted event
-
-        settings.AnalysisSettings.SuggestionCompleted += (sender, args) =>
-        {
-            // Signal the completion of the optimization
-            suggestionCompletedTaskSource.SetResult(args);
-
-            suggestionCompletedTaskSource = new();
-        };
-
-        // Subscribe to the OptimizationCompleted event
-        settings.AnalysisSettings.AnalysisTaskCrashed += (sender, args) =>
-        {
-            // Signal the completion of the optimization
-            suggestionCompletedTaskSource.SetException(args.CrashEvent.Exception);
-        };
-
-        this._testOutputHelper.LogTrace("\n# Releasing analysis task, waiting for suggestion completed event\n");
-
-        settings.AnalysisSettings.AnalysisAwaitsManualTrigger = false;
-        settings.AnalysisSettings.ReleaseAnalysisTasks();
-
-        // Get the optimization results
-        var optimizationResults = await suggestionCompletedTaskSource.Task.ConfigureAwait(false);
-        return optimizationResults;
-    }
-
-    private async Task<(decimal effectiveCost, SKContext result)> ExecuteSecondPassAsync(string planJson, MultiTextCompletionSettings settings, IKernel kernel)
-    {
-        settings.Creditor!.Reset();
-
-        var ctx = kernel.CreateNewContext();
-
-        var plan2 = Plan.FromJson(planJson, ctx, true);
-
-        var secondResult = await kernel.RunAsync(ctx.Variables, this._cleanupToken.Token, plan2).ConfigureAwait(false);
-
-        var secondPassEffectiveCost = settings.Creditor.OngoingCost;
-
-        return (secondPassEffectiveCost, secondResult);
-    }
-
-    private async Task<(decimal effectiveCost, SKContext result, List<SamplesReceivedEventArgs> validationTestBatches)> ExecuteThirdPassAsync(Plan plan, MultiTextCompletionSettings settings, IKernel kernel)
-    {
-        settings.Creditor!.Reset();
-
-        var ctx = kernel.CreateNewContext();
-
-        settings.EnablePromptSampling = true;
-        settings.MaxInstanceNb = 2;
-
-        TaskCompletionSource<SamplesReceivedEventArgs> samplesReceivedTaskSource = new();
-        var receivedTaskSources = new List<TaskCompletionSource<SamplesReceivedEventArgs>>();
-        receivedTaskSources.Add(samplesReceivedTaskSource);
-        // Subscribe to the OptimizationCompleted event
-        settings.AnalysisSettings.SamplesReceived += (sender, args) =>
-        {
-            // Signal the completion of the optimization
-            samplesReceivedTaskSource.SetResult(args);
-
-            samplesReceivedTaskSource = new();
-            receivedTaskSources.Add(samplesReceivedTaskSource);
-        };
-
-        var thirdResult = await kernel.RunAsync(ctx.Variables, this._cleanupToken.Token, plan).ConfigureAwait(false);
-        var thirdPassEffectiveCost = settings.Creditor.OngoingCost;
-
-        var validationTestBatches = new List<SamplesReceivedEventArgs>();
-
-        foreach (var receivedTaskSource in receivedTaskSources)
-        {
-            var sampleReceived = await receivedTaskSource.Task.ConfigureAwait(false);
-            validationTestBatches.Add(sampleReceived);
-        }
-
-        return (thirdPassEffectiveCost, thirdResult, validationTestBatches);
-    }
-
-    private async Task<List<(ConnectorPromptEvaluation, AnalysisJob)>> ValidateAsync(List<SamplesReceivedEventArgs> validationTestBatches, MultiTextCompletionSettings settings)
-    {
-        var evaluations = new List<(ConnectorPromptEvaluation, AnalysisJob)>();
-        foreach (SamplesReceivedEventArgs validationTestBatch in validationTestBatches)
-        {
-            foreach (var sample in validationTestBatch.NewSamples)
-            {
-                var evaluation = await settings.AnalysisSettings.EvaluateConnectorTestAsync(sample, validationTestBatch.AnalysisJob).ConfigureAwait(false);
-                if (evaluation == null)
-                {
-                    throw new SKException("Validation of MultiCompletion failed to complete");
-                }
-
-                evaluations.Add((evaluation, validationTestBatch.AnalysisJob));
-            }
-        }
-
-        return evaluations;
+        return (firstPassResult.Cost, secondPassResult.Cost, evaluations);
     }
 
     private void DoOffloadingAsserts(decimal firstPassEffectiveCost, decimal secondPassEffectiveCost, List<(ConnectorPromptEvaluation, AnalysisJob)> evaluations)
