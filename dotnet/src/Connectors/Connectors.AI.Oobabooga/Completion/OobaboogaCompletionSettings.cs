@@ -363,5 +363,4 @@ public class OobaboogaCompletionSettings<TParameters> : OobaboogaCompletionSetti
     /// Gets or sets the parameters controlling the specific completion request parameters, which differ between standard text completion and chat completion.
     /// </summary>
     public TParameters OobaboogaParameters { get; set; } = new();
-
 }

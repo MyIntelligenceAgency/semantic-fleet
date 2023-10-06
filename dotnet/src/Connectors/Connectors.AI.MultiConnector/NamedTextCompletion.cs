@@ -59,7 +59,7 @@ public class NamedTextCompletion
     /// <summary>
     /// Cost per completion request.
     /// </summary>
-    public decimal CostPerRequest { get; set; }
+    public decimal? CostPerRequest { get; set; }
 
     /// <summary>
     /// Cost for 1000 completion token from request + result text.
@@ -98,7 +98,7 @@ public class NamedTextCompletion
     {
         var tokenCount = (this.TokenCountFunc ?? (s => 0))(text + result);
         decimal tokenCost = (this.CostPer1000Token ?? 0) * tokenCount / 1000;
-        var toReturn = this.CostPerRequest + tokenCost;
+        var toReturn = this.CostPerRequest ?? 0 + tokenCost;
         return toReturn;
     }
 }

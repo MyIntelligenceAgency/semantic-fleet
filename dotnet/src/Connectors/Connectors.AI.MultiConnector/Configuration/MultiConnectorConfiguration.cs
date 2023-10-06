@@ -2,10 +2,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
-using System.Linq;
 using SharpToken;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
@@ -108,6 +108,4 @@ public class MultiOobaboogaConnectorConfiguration
 
         return oobaboogaCompletions;
     }
-
-
 }

@@ -5,7 +5,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
 /// <summary>
 /// Class used to configure OpenAI completions.
 /// </summary>
-public class OpenAIConfiguration
+public class OpenAIConfiguration : ConnectorConfigurationBase
 {
     /// <summary>
     /// Optional key to identify your connector among others.
