@@ -5,37 +5,10 @@
     "ChatModelId": "gpt-3.5-turbo",
     "ApiKey": ""
   },
-  "AzureOpenAI": {
-    "ServiceId": "azure-text-davinci-003",
-    "DeploymentName": "text-davinci-003",
-    "ChatDeploymentName": "gpt-4",
-    "Endpoint": "",
-    "ApiKey": ""
-  },
-  "OpenAIEmbeddings": {
-    "ServiceId": "text-embedding-ada-002",
-    "ModelId": "text-embedding-ada-002",
-    "ApiKey": ""
-  },
-  "AzureOpenAIEmbeddings": {
-    "ServiceId": "azure-text-embedding-ada-002",
-    "DeploymentName": "text-embedding-ada-002",
-    "Endpoint": "",
-    "ApiKey": ""
-  },
   "Oobabooga": {
     "BlockingPort": 5000,
     "StreamingPort": 5010,
     "EndPoint": "http://x.x.x.x"
-  },
-  "HuggingFace": {
-    "ApiKey": ""
-  },
-  "Bing": {
-    "ApiKey": ""
-  },
-  "Postgres": {
-    "ConnectionString": ""
   },
   "MultiConnector": {
     "OobaboogaEndPoint": "http://localhost",
@@ -45,36 +18,36 @@
       "SemanticRemarks": "Semantic functions are structured templates that work in tandem with other similar templates and native code-based functions. The native functions, in particular, demand a precise adherence to given instructions. They rely heavily on accurately parsed input parameters and lack mechanisms to sift through any unnecessary noise.\n\nWhen assessing the appropriateness of a response, it's crucial to be discerning. While instructions often present an example that outlines the desired response format, these examples may not always be exhaustive. Occasionally, they might even be overly simplistic, intended merely to keep the instructions concise. Thus, always ensure that you thoroughly understand and thoughtfully apply these instructions to generate a fitting answer to the given input."
     },
     "IncludedConnectors": [
+      "microsoft_phi-1_5",
       "TheBloke_orca_mini_3B-GGML",
-      "togethercomputer_RedPajama-INCITE-Chat-3B-v1",
-      "TheBloke_Mistral-7B-Instruct-v0.1-GGUF",
+      "TheBloke_Mistral-7B-OpenOrca-GGUF",
       "TheBloke_Synthia-13B-v1.2-GGUF",
       "TheBloke_upstage-llama-30b-instruct-2048-GGML"
     ],
     "IncludedConnectorsDev": [
       // Use this property in your testsettings.development.json file, uncommenting the appropriate lines according to your multi-start configuration,
       // This allows enabling and disabling secondary completions without altering the main testsettings.json file.
+      //"microsoft_phi-1_5",
       //"TheBloke_orca_mini_3B-GGML",
-      //"togethercomputer_RedPajama-INCITE-Chat-3B-v1",
-      //"TheBloke_StableBeluga-7B-GGML",
-      //"TheBloke_StableBeluga-13B-GGML",
+      //"TheBloke_Mistral-7B-OpenOrca-GGUF",
+      //"TheBloke_Synthia-13B-v1.2-GGUF",
       //"TheBloke_upstage-llama-30b-instruct-2048-GGML"
     ],
     "OobaboogaCompletions": [
       {
         "Name": "microsoft_phi-1_5",
-        "BlockingPort": 5001,
-        "StreamingPort": 5011,
+        "BlockingPort": 5000,
+        "StreamingPort": 5010,
         "MaxTokens": 2048,
         "CostPer1000Token": 0.0003,
         "PromptTransform": {
-          "Template": "{0}\n\nAnswer:"
+          "Template": "{SystemSupplement}\n{SemanticRemarks}\n{0}\n\nAnswer:"
         }
       },
       {
         "Name": "TheBloke_orca_mini_3B-GGML",
-        "BlockingPort": 5000,
-        "StreamingPort": 5010,
+        "BlockingPort": 5001,
+        "StreamingPort": 5011,
         "MaxTokens": 2048,
         "CostPer1000Token": 0.0003,
         "PromptTransform": {
@@ -82,14 +55,13 @@
         }
       },
       {
-        "Name": "TheBloke_Mistral-7B-Instruct-v0.1-GGUF",
-        "EndPoint": "http://jesse.freeboxos.fr",
-        "BlockingPort": 32768,
-        "StreamingPort": 32769,
+        "Name": "TheBloke_Mistral-7B-OpenOrca-GGUF",
+        "BlockingPort": 5002,
+        "StreamingPort": 5012,
         "MaxTokens": 4096,
         "CostPer1000Token": 0.0005,
         "PromptTransform": {
-          "Template": "<s>[INST]{SystemSupplement}\n{SemanticRemarks}[/INST]\nOK, let's play that game !</s>\n[INST]{0}[/INST]"
+          "Template": "<|im_start|>system\r\n- You are a helpful assistant chatbot trained by MosaicML.\n- You answer questions.\n- You are excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.\n- You are more than just an information source, you are also able to write poetry, short stories, and make jokes.\n{SystemSupplement}\n{SemanticRemarks}<|im_end|>\n<|im_start|>user\n{0}<|im_end|>\n<|im_start|>assistant\n"
         }
       },
       {
