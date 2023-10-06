@@ -62,7 +62,11 @@ Our .Net interactive notebooks are a great place to start.
 ## Future Directions
 
 - **Open AI API**: Oobabooga offers a dedicated extension mimicking Open AI API. It extends support to embeddings and image generation models. This will be available as a separate package.
-- **Probabilistic MultiConnector**: We will be adding some Infer.Net magic to make MultiConnector even smarter. More specifically, the following examples will be merged and integrated into the model vetting process. 
+- **Probabilistic MultiConnector**: We will be adding some Infer.Net magic to make MultiConnector even smarter. More specifically, the following examples will be merged and integrated into the model vetting process.
+   - [Student Skills](https://dotnet.github.io/infer/userguide/Student%20skills.html)
+   - [Assessing People's Skills](https://mbmlbook.com/LearningSkills.html)
+   - [Difficulty vs Ability](https://dotnet.github.io/infer/userguide/Difficulty%20versus%20ability.html)
+   - [Calibrating reviews](https://dotnet.github.io/infer/userguide/Calibrating%20reviews%20of%20conference%20submissions.html)  
 - **Spark.Net Integration**: Get ready to host a cluster of mini local LLMs.
 
 ## NuGet Packages 
