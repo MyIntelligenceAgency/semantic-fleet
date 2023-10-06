@@ -21,10 +21,8 @@ using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
-using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 using SemanticKernel.UnitTests;
-using SharpToken;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -39,8 +37,8 @@ public sealed class MultiConnectorTests : IDisposable
     private const string StartGoal =
         "The goal of this plan is to evaluate the capabilities of a smaller LLM model. Start by writing a text of about 100 words on a given topic, as the input parameter of the plan. Then use distinct functions from the available skills on the input text and/or the previous functions results, choosing parameters in such a way that you know you will succeed at running each function but a smaller model might not. Try to propose steps of distinct difficulties so that models of distinct capabilities might succeed on some functions and fail on others. In a second phase, you will be asked to evaluate the function answers from smaller models. Please beware of correct Xml tags, attributes, and parameter names when defined and when reused.";
 
-    private const string PlansDirectory = ".\\Connectors\\MultiConnector\\Plans\\";
-    private const string TextsDirectory = ".\\Connectors\\MultiConnector\\Texts\\";
+    private const string PlansDirectory = "../../../../../../samples/Plans/";
+    private const string TextsDirectory = "../../../../../../samples/Texts/";
 
     private readonly IConfigurationRoot _configuration;
     private readonly List<ClientWebSocket> _webSockets = new();
