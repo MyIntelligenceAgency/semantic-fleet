@@ -23,13 +23,13 @@ A robust connector that currently covers the main Oobabooga's specific blocking 
 Install the package via NuGet:
 
 ```bash
-dotnet add package MyIA.SemanticKernel.Connectors.AI.Oobabooga --version 0.33.2
+dotnet add package MyIA.SemanticKernel.Connectors.AI.Oobabooga
 ```
 
 In .Net interactive :
 
 ```csharp
-#r "nuget: MyIA.SemanticKernel.Connectors.AI.Oobabooga, 0.33.2"
+#r "nuget: MyIA.SemanticKernel.Connectors.AI.Oobabooga"
 ```
 
 
