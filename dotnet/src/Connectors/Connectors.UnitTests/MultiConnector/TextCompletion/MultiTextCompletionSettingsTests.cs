@@ -3,6 +3,7 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.ArithmeticMocks;
 using Xunit;
@@ -13,6 +14,24 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion;
 public class MultiTextCompletionSettingsTests : MultiConnectorTestsBase
 {
     public MultiTextCompletionSettingsTests(ITestOutputHelper output) : base(output) { }
+
+    [Fact]
+    public void MultiTextCompletionSettingsShouldBeSerializable()
+    {
+        // Arrange
+        var settings = new MultiTextCompletionSettings();
+
+        // Act
+        string jsonString = Json.Serialize(settings);
+        var deserializedSettings = Json.Deserialize<MultiTextCompletionSettings>(jsonString);
+
+        // Assert
+        Assert.NotNull(deserializedSettings);
+        Assert.Equal(settings.EnablePromptSampling, deserializedSettings.EnablePromptSampling);
+        Assert.Equal(settings.SampleCollectionDelay, deserializedSettings.SampleCollectionDelay);
+        // Assert Inner Properties
+        Assert.Equal(settings.AnalysisSettings.AnalysisDelay, deserializedSettings.AnalysisSettings.AnalysisDelay);
+    }
 
     [Theory]
     [InlineData(true, false, "default")]
