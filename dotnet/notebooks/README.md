@@ -16,3 +16,4 @@ Run the `00-AI-settings.ipynb` notebook to set up your AI backend configurations
 1. [Text Completion with Oobabooga](01-oobabooga-text-completion.ipynb)
 2. [Chat Capabilities with Oobabooga](02-oobabooga-chat-capabilities.ipynb)
 3. [Introduction to Multiconnector with Arithmetic mocks](03-multiConnector-intro-with-arithmetic-mocks.ipynb)
+4. [Offloading a semantic function from a large LLM to a smaller one with a multiconnector](04-multiConnector-optimization-with-summarization-prompt.ipynb)
