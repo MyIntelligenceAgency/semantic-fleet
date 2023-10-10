@@ -118,9 +118,12 @@ Our .Net interactive notebooks are a great place to start.
 
 ## NuGet Packages 
 
+We'll be providing NuGet packages for both the Oobabooga Connector and MultiConnector for easier integration into your projects.
+
 Here is the [Nuget Package for Oobabooga connector](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Oobabooga/)
 
-We'll be providing NuGet packages for both the Oobabooga Connector and MultiConnector for easier integration into your projects.
+And here is the [Nuget Package for Multiconnector](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Multiconnector/)
+
 
 ## 🤝 Contributing
 

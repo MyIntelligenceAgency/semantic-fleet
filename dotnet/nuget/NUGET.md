@@ -12,7 +12,7 @@ Our first release, the Oobabooga Connector, is designed to make text and chat co
 - **Chat Blocking & Streaming**: The `OobaboogaChatCompletion` class handles chat-based completion with both blocking and streaming APIs.
 - **Advanced Settings**: Customize your requests with a rich set of parameters for fine-grained control.
 
-### 🚀 Multiconnector (Coming Soon)
+### 🚀 Multiconnector
 
 The Multiconnector builds on the Oobabooga Connector by allowing a superior LLM (like ChatGPT) to manage a series of smaller local LLMs hosted in Oobabooga. It routes prompts according to their types and the models' vetting on sampled data.
 
