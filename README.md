@@ -47,9 +47,56 @@ var completions = await oobabooga.GetCompletionsAsync("Hello, world!", new Compl
 
 ### 🌐 MultiConnector
  
-Why stick to one when you can have many? MultiConnector lets you integrate multiple LLMs seamlessly.
+Why stick to one when you can have many? MultiConnector lets you integrate multiple LLMs seamlessly, optimizing for speed and cost. It intelligently offloads tasks from a primary, more expensive connector to a secondary, more cost-effective one without sacrificing reliability nor performance.
 
 📖 **Learn More**: [MultiConnector Guide](./dotnet/src/IntegrationTests/Connectors/MultiConnector/README.md)
+
+#### Installation
+
+Install the package via NuGet:
+
+```bash
+dotnet add package MyIA.SemanticKernel.Connectors.AI.MultiConnector
+```
+
+In .Net interactive :
+
+```csharp
+#r "nuget: MyIA.SemanticKernel.Connectors.AI.MultiConnector
+```
+
+#### Quick Start
+
+Multiconnector has many settings controlling how to route text completion calls, and how to autmatically sample completions from a primary connector, test, evaluate and update the routing settings to use secondary connectors.
+
+```csharp
+var settings = new MultiTextCompletionSettings();
+
+// (...) Creating a primary openAiNamedCompletion and secondary  oobaboogaCompletions
+
+var builder = Microsoft.SemanticKernel.Kernel.Builder;
+
+builder.WithMultiConnectorCompletionService(
+    serviceId: null,
+    settings: settings,
+    mainTextCompletion: openAiNamedCompletion,
+    setAsDefault: true,
+    analysisTaskCancellationToken: cleanupToken.Token,
+    otherCompletions: oobaboogaCompletions.ToArray());
+
+var kernel = builder.Build();
+
+// Get text completion from primary connector first
+ var result = await kernel.RunAsync(semanticFunctionOrPlan, contextVariables, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
+
+ // (...) Peform analysis manually or automatically depending on settings
+
+// Get text completion from secondary connectors
+ var optimizedResult = await kernel.RunAsync(semanticFunctionOrPlan, contextVariables, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
+
+```
+
+For a detailed overview of how to fill the gaps, please refer to the notebooks and integration tests.
 
 
 ## 📚 Notebooks
