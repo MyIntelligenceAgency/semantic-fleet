@@ -10,6 +10,8 @@
 
 Run the `00-AI-settings.ipynb` notebook to set up your AI backend configurations. This will guide you through setting up OpenAI and Oobabooga and will save your settings to `config/settings.json`.
 
+Alternatively, you can copy and rename `config/settings.example.json` to `config/settings.json` and manually edit the file to set up your AI backend configurations.
+
 ## Topics
 
 0. [AI Backend Settings](00-AI-settings.ipynb)
