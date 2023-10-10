@@ -454,8 +454,6 @@ public class MultiTextCompletionSettings
         {
             // Signal the completion of the optimization
             suggestionCompletedTaskSource.SetResult(args);
-
-            suggestionCompletedTaskSource = new();
         };
 
         // Subscribe to the OptimizationCompleted event
