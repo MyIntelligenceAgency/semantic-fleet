@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
+using Microsoft.SemanticKernel.Orchestration;
 using Microsoft.SemanticKernel.SkillDefinition;
 using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
@@ -358,6 +359,7 @@ public class MultiTextCompletionSettings
     public async Task<MultiTextCompletionResult> ExecuteAsync(
         ISKFunction planOrFunction,
         IKernel kernel,
+        ContextVariables? variables = null,
         CancellationToken? cancellationToken = default,
         bool computeCost = false,
         bool collectSamples = false)
@@ -397,9 +399,9 @@ public class MultiTextCompletionSettings
             };
         }
 
-        var ctx = kernel.CreateNewContext();
+        variables = variables ?? kernel.CreateNewContext().Variables;
         var sw = Stopwatch.StartNew();
-        var result = await kernel.RunAsync(planOrFunction, ctx.Variables, cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
+        var result = await kernel.RunAsync(planOrFunction, variables, cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
         var duration = sw.Elapsed;
         var toReturn = new MultiTextCompletionResult(result)
         {
@@ -452,8 +454,6 @@ public class MultiTextCompletionSettings
         {
             // Signal the completion of the optimization
             suggestionCompletedTaskSource.SetResult(args);
-
-            suggestionCompletedTaskSource = new();
         };
 
         // Subscribe to the OptimizationCompleted event

@@ -334,7 +334,7 @@ public sealed class MultiConnectorTests : IDisposable
         //We enable sampling and analysis trigger. There is a lock to prevent automatic analysis starting while the test is running, but we'll manually trigger analysis after the test is done
         settings.EnablePromptSampling = true;
         settings.AnalysisSettings.EnableAnalysis = true;
-        var firstPassResult = await settings.ExecuteAsync(plan1, kernel, this._cleanupToken.Token, computeCost: true).ConfigureAwait(false);
+        var firstPassResult = await settings.ExecuteAsync(plan1, kernel, cancellationToken: this._cleanupToken.Token, computeCost: true).ConfigureAwait(false);
         this._testOutputHelper.LogTrace("\n# 1st run finished in {0}\n", firstPassResult.Duration);
         this._testOutputHelper.LogDebug("Result from primary connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", firstPassResult.Duration, firstPassResult.Cost, firstPassResult.Result);
 
@@ -350,7 +350,7 @@ public sealed class MultiConnectorTests : IDisposable
         var ctx = kernel.CreateNewContext();
         var plan2 = Plan.FromJson(plan1Json, ctx, true);
         this._testOutputHelper.LogTrace("\n# 2nd run of plan with updated settings and variable completions\n");
-        var secondPassResult = await settings.ExecuteAsync(plan2, kernel, this._cleanupToken.Token, computeCost: true).ConfigureAwait(false);
+        var secondPassResult = await settings.ExecuteAsync(plan2, kernel, cancellationToken: this._cleanupToken.Token, computeCost: true).ConfigureAwait(false);
         this._testOutputHelper.LogTrace("\n# 2nd run finished in {0}\n", secondPassResult.Duration);
         this._testOutputHelper.LogDebug("Result from vetted connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", secondPassResult.Duration, secondPassResult.Cost, secondPassResult.Result);
 
@@ -363,7 +363,7 @@ public sealed class MultiConnectorTests : IDisposable
         this._testOutputHelper.LogTrace("\n# 3rd run of plan with final settings\n");
         // Since we already collected samples for the optimization, we don't want to max out the number of samples collected for validation, so we'll just add one
         settings.MaxInstanceNb += 1;
-        var thirdPassResult = await settings.ExecuteAsync(plan3, kernel, this._cleanupToken.Token, computeCost: true, collectSamples: true).ConfigureAwait(false);
+        var thirdPassResult = await settings.ExecuteAsync(plan3, kernel, cancellationToken: this._cleanupToken.Token, computeCost: true, collectSamples: true).ConfigureAwait(false);
         this._testOutputHelper.LogTrace("\n# 3rd run finished in {0}\n", thirdPassResult.Duration);
         this._testOutputHelper.LogTrace("\n# Start final validation with {0} sample batches received from 3rd run validating manually with primary connector\n", thirdPassResult.SampleBatches!.Count);
         var evaluations = await settings.ValidateAsync(thirdPassResult.SampleBatches).ConfigureAwait(false);
