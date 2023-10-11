@@ -1,4 +1,4 @@
-# Contributing to Semantic Kernel
+# Contributing to Semantic Fleet
 
 You can contribute to any project of Semantic Fleet with issues and pull requests (PRs). Simply
 filing issues for problems you encounter is a great way to contribute. Contributing
