@@ -40,7 +40,7 @@ public static class Defaults
 {"
                                                 + nameof(Defaults.SemanticRemarks)
                                                 + @"}
-Does the reponse appropriately completes the prompt? Please answer simply with true or false.
+Does the response appropriately completes the prompt? Please answer simply with true or false.
 PROMPT:
 -------
 {prompt}

@@ -141,7 +141,7 @@ OobaboogaCompletionParameters and OobaboogaChatCompletionParameters classes offe
 
 #### Overlapping Fields with SK
 
-Those parameters supplied by semantic kernel with completion calls are either passed on or overriden.
+Those parameters supplied by semantic kernel with completion calls are either passed on or overridden.
 
 - **MaxNewTokens**: Similar to SK's `MaxTokens`, controls the maximum number of tokens to generate.
 - **Temperature**: Modulates the randomness of the next token probabilities.

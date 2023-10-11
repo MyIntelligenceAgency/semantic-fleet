@@ -94,7 +94,7 @@ Each test follows this workflow:
         - New plan is run with same settings
         - New samples are collected automatically during the run
         - Samples are evaluated by the primary connector
-    - Asserts are run on the results to validate the test, which succeeds iif:
+    - Asserts are run on the results to validate the test, which succeeds if and only if:
         - Some cost performance were observed between 1st and 2nd run (at least a secondary connector was vetted once)
         - Validation samples belonging to secondary connectors are all vetted by the primary connector, with at least one sample validated.
 

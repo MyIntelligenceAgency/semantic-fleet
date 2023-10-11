@@ -26,7 +26,7 @@ public class MultiOobaboogaConnectorConfiguration
     };
 
     /// <summary>
-    /// Default endpoint for secondary Oobabooga connectors. Can be overriden by each connector.
+    /// Default endpoint for secondary Oobabooga connectors. Can be overridden by each connector.
     /// </summary>
     public string OobaboogaEndPoint { get; set; } = "http://localhost";
 
