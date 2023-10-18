@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 
@@ -17,6 +18,7 @@ public class MultiCompletionAnalysis : TestEvent
     /// </summary>
     /// <returns>A string representation of the object for debugging purposes.</returns>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [JsonIgnore]
     public override string DebuggerDisplay => $"{base.DebuggerDisplay}, {this.Samples.Count} samples, {this.Tests.Count} tests, {this.Evaluations.Count} evaluations";
 
     /// <summary>

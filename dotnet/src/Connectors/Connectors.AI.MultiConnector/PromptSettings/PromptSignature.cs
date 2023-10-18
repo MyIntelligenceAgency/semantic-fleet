@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.Text;
@@ -19,6 +20,7 @@ public class PromptSignature
     private Regex? _compiledRegex;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [JsonIgnore]
     private string DebuggerDisplay => $"{this.PromptStart}";
 
     /// <summary>

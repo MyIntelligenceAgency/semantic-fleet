@@ -2,6 +2,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 
@@ -15,6 +16,7 @@ public class TestEvent
     /// Gets the debugger display.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [JsonIgnore]
     public virtual string DebuggerDisplay => $"{this.Timestamp}, Duration: {this.Duration}";
 
     /// <summary>

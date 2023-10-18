@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.Text;
@@ -87,6 +88,7 @@ public class MultiCompletionSession
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [JsonIgnore]
     private string DebuggerDisplay => $"{this.PromptSettings.PromptType.PromptName} - {this.NamedTextCompletion.Name}";
 
     /// <summary>
@@ -142,16 +144,19 @@ public class MultiCompletionSession
     /// <summary>
     /// The <see cref="System.Diagnostics.Stopwatch"/> that is used to measure the time taken to complete the call to the <see cref="MultiTextCompletion"/>.
     /// </summary>
+    [JsonIgnore]
     public Stopwatch Stopwatch { get; set; }
 
     /// <summary>
     /// Some operations require to pick on the result, some others not. This property is updated with completion result which is only deferred if needed.
     /// </summary>
+    [JsonIgnore]
     public AsyncLazy<string> ResultProducer { get; set; }
 
     /// <summary>
     /// Optional logger to be used for logging intermediate steps.
     /// </summary>
+    [JsonIgnore]
     public ILogger? Logger { get; set; }
 
     /// <summary>

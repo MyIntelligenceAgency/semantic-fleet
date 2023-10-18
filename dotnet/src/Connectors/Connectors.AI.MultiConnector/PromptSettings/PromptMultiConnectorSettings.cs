@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json.Serialization;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
@@ -16,6 +17,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 public class PromptMultiConnectorSettings
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [JsonIgnore]
     private string DebuggerDisplay => $"{this.PromptType.PromptName} - {this.ConnectorSettingsDictionary.Count} connector settings";
 
     /// <summary>

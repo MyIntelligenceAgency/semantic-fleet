@@ -2,6 +2,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +18,7 @@ public class AnalysisJob : TestEvent
     /// Gets the Debugger friendly string for the current AnalysisJob object.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    [JsonIgnore]
     public override string DebuggerDisplay => $"{base.DebuggerDisplay}, {this.TextCompletions.Count} Completions to test and analyze";
 
     /// <summary>
@@ -32,6 +34,7 @@ public class AnalysisJob : TestEvent
     /// <summary>
     /// Gets the logger for logging analysis events.
     /// </summary>
+    [JsonIgnore]
     public ILogger? Logger { get; }
 
     ///// <summary>
@@ -42,6 +45,7 @@ public class AnalysisJob : TestEvent
     /// <summary>
     /// Gets the cancellation token for the analysis job.
     /// </summary>
+    [JsonIgnore]
     public CancellationToken CancellationToken { get; }
 
     /// <summary>
