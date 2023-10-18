@@ -42,7 +42,7 @@ var settings = new OobaboogaTextCompletionSettings(endpoint: new Uri("http://loc
 var oobabooga = new OobaboogaTextCompletion(settings);
 
 // Get text completions
-var completions = await oobabooga.GetCompletionsAsync("Hello, world!", new CompleteRequestSettings());
+var completions = await oobabooga.GetCompletionsAsync("Hello, world!", new OobaboogaCompletionRequestSettings());
 ```
 
 ### 🌐 MultiConnector
