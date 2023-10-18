@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
@@ -302,36 +303,42 @@ public class OobaboogaCompletionRequestSettings : AIRequestSettings
                 switch (extendedProperty.Key.ToUpperInvariant())
                 {
                     case "TEMPERATURE":
-                        toReturn.Temperature = ((IConvertible)extendedProperty.Value.ToString()).ToDouble(CultureInfo.InvariantCulture);
+                        toReturn.Temperature = extendedProperty.Value is JsonElement jsonElementTemperature ? jsonElementTemperature.GetDouble() : ((IConvertible)extendedProperty.Value).ToDouble(CultureInfo.InvariantCulture);
                         break;
                     case "TOPP":
                     case "TOP_P":
-                        toReturn.TopP = ((IConvertible)extendedProperty.Value.ToString()).ToDouble(CultureInfo.InvariantCulture);
+                        toReturn.TopP = extendedProperty.Value is JsonElement jsonElementTopP ? jsonElementTopP.GetDouble() : ((IConvertible)extendedProperty.Value).ToDouble(CultureInfo.InvariantCulture);
                         break;
                     case "PRESENCEPENALTY":
                     case "PRESENCE_PENALTY":
-                        toReturn.RepetitionPenalty = GetRepetitionPenalty(((IConvertible)extendedProperty.Value.ToString()).ToDouble(CultureInfo.InvariantCulture));
+                        toReturn.RepetitionPenalty = GetRepetitionPenalty(extendedProperty.Value is JsonElement jsonElementPresencePenalty ? jsonElementPresencePenalty.GetDouble() : ((IConvertible)extendedProperty.Value).ToDouble(CultureInfo.InvariantCulture));
                         break;
                     case "MAXTOKENS":
                     case "MAX_TOKENS":
                     case "MAXNEWTOKENS":
-                        toReturn.MaxNewTokens = ((IConvertible)extendedProperty.Value.ToString()).ToInt32(CultureInfo.InvariantCulture);
+                        toReturn.MaxNewTokens = extendedProperty.Value is JsonElement jsonElementMaxTokens ? jsonElementMaxTokens.GetInt32() : ((IConvertible)extendedProperty.Value).ToInt32(CultureInfo.InvariantCulture);
                         break;
                     case "STOPSEQUENCES":
                     case "STOP_SEQUENCES":
-                        toReturn.StoppingStrings = new List<string>(((IEnumerable)extendedProperty.Value).Cast<string>());
+                        string strValue;
+                        if (extendedProperty.Value is JsonElement jsonElementStopSequences)
+                        {
+                            strValue = jsonElementStopSequences.GetRawText();
+                            toReturn.StoppingStrings = JsonSerializer.Deserialize<List<string>>(strValue) ?? new();
+                        }
+                        else if (extendedProperty.Value is IEnumerable enumerationStopSequences)
+                        {
+                            toReturn.StoppingStrings = new(((IEnumerable)extendedProperty.Value).Cast<string>());
+                        }
+                        else
+                        {
+                            throw new ArgumentException($"Unexpected type for {extendedProperty.Key} property: {extendedProperty.Value.GetType()}");
+                        }
+
                         break;
                     case "CHATSYSTEMPROMPT":
                     case "CHAT_SYSTEM_PROMPT":
-                        toReturn.ChatSystemPrompt = ((IConvertible)extendedProperty.Value.ToString()).ToString(CultureInfo.InvariantCulture);
-                        break;
-                    case "SERVICEID":
-                    case "SERVICE_ID":
-                        toReturn.ServiceId = ((IConvertible)extendedProperty.Value.ToString()).ToString(CultureInfo.InvariantCulture);
-                        break;
-                    case "MODELID":
-                    case "MODEL_ID":
-                        toReturn.ModelId = ((IConvertible)extendedProperty.Value.ToString()).ToString(CultureInfo.InvariantCulture);
+                        toReturn.ChatSystemPrompt = (extendedProperty.Value is JsonElement jsonElementChatSystemPrompt ? jsonElementChatSystemPrompt.GetString() : ((IConvertible)extendedProperty.Value).ToString(CultureInfo.InvariantCulture))!;
                         break;
                     default:
                         break;

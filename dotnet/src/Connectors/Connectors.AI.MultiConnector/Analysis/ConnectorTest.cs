@@ -1,6 +1,7 @@
 ﻿// Copyright (c) MyIA. All rights reserved.
 
 using System;
+using System.Text.Json.Serialization;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
@@ -13,6 +14,7 @@ public class ConnectorTest : TestEvent
     /// <summary>
     /// Gets the debugger display string for better debugging experience.
     /// </summary>
+    [JsonIgnore]
     public override string DebuggerDisplay => $"{base.DebuggerDisplay}, {this.ConnectorName}, Cost: {this.Cost}, Prompt: {PromptSignature.GeneratePromptLog(this.Prompt, 20, Defaults.TruncatedLogFormat, true)}, Result: {PromptSignature.GeneratePromptLog(this.Result, 20, Defaults.TruncatedLogFormat, true)}";
 
     /// <summary>

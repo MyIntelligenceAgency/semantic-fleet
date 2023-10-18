@@ -94,10 +94,6 @@ public class MultiCompletionRequestSettings : AIRequestSettings
                 {
                     var upperKey = pair.Key.ToUpperInvariant();
                     var pairValue = pair.Value;
-                    //if (pairValue is JsonElement jsonElement)
-                    //{
-                    //    pairValue = jsonElement.GetRawText();
-                    //}
                     newSettings.ExtensionData[upperKey] = pairValue;
                     switch (upperKey)
                     {
