@@ -25,7 +25,7 @@
       ],
       "next_step_index": 0,
       "name": "Summarize",
-      "skill_name": "SummarizeSkill",
+      "plugin_name": "SummarizeSkill",
       "description": "Summarize given text or any text document"
     },
     {
@@ -47,7 +47,7 @@
       ],
       "next_step_index": 0,
       "name": "Topics",
-      "skill_name": "SummarizeSkill",
+      "plugin_name": "SummarizeSkill",
       "description": "Analyze given text or document and extract key topics worth remembering"
     },
     {
@@ -77,7 +77,7 @@
       ],
       "next_step_index": 0,
       "name": "ElementAtIndex",
-      "skill_name": "MiscSkill",
+      "plugin_name": "MiscSkill",
       "description": "Get an element from an array at a specified index"
     }
   ],
@@ -93,7 +93,7 @@
     "RESULT__THIRD_TOPIC"
   ],
   "next_step_index": 0,
-  "name": "",
-  "skill_name": "Microsoft.SemanticKernel.Planning.Plan",
+  "name": "Summarize Topics Elements plan",
+  "plugin_name": "Plan",
   "description": "Evaluates the capabilities of a smaller LLM model. Starting with an input text on a given topic, several functions will be called on the text and/or the previous functions results."
 }

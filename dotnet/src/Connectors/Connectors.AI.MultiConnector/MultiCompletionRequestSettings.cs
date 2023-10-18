@@ -5,6 +5,7 @@ using System.Globalization;
 using Microsoft.SemanticKernel.AI;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 
@@ -16,18 +17,46 @@ public class MultiCompletionRequestSettings : AIRequestSettings
     /// <summary>
     /// Modulates the next token probabilities. A value of 0 implies deterministic output (only the most likely token is used). Higher values increase randomness.
     /// </summary>
+    [JsonIgnore]
     public double? Temperature
     {
-        get => this.ExtensionData.TryGetValue("TEMPERATURE", out object? value) ? ((IConvertible)value).ToDouble(CultureInfo.InvariantCulture) : null;
+        get
+        {
+            if (this.ExtensionData.TryGetValue("TEMPERATURE", out object? value))
+            {
+                if (value is JsonElement jsonElement)
+                {
+                    return jsonElement.GetDouble();
+                }
+
+                return ((IConvertible)value).ToDouble(CultureInfo.InvariantCulture);
+            }
+
+            return null;
+        }
         set => this.ExtensionData["TEMPERATURE"] = value!;
     }
 
     /// <summary>
     /// The maximum number of tokens to generate, ignoring the number of tokens in the prompt.
     /// </summary>
+    [JsonIgnore]
     public int? MaxTokens
     {
-        get => this.ExtensionData.TryGetValue("MAXTOKENS", out object? value) ? ((IConvertible)value).ToInt32(CultureInfo.InvariantCulture) : null;
+        get
+        {
+            if (this.ExtensionData.TryGetValue("MAXTOKENS", out object? value))
+            {
+                if (value is JsonElement jsonElement)
+                {
+                    return jsonElement.GetInt32();
+                }
+
+                return ((IConvertible)value).ToInt32(CultureInfo.InvariantCulture);
+            }
+
+            return null;
+        }
         set => this.ExtensionData["MAXTOKENS"] = value!;
     }
 
@@ -64,11 +93,16 @@ public class MultiCompletionRequestSettings : AIRequestSettings
                 foreach (var pair in deserialized.ExtensionData)
                 {
                     var upperKey = pair.Key.ToUpperInvariant();
-                    newSettings.ExtensionData[upperKey] = pair.Value;
+                    var pairValue = pair.Value;
+                    //if (pairValue is JsonElement jsonElement)
+                    //{
+                    //    pairValue = jsonElement.GetRawText();
+                    //}
+                    newSettings.ExtensionData[upperKey] = pairValue;
                     switch (upperKey)
                     {
                         case "MAXNEWTOKENS":
-                            newSettings.ExtensionData["MAXTOKENS"] = pair.Value;
+                            newSettings.ExtensionData["MAXTOKENS"] = pairValue;
                             break;
                         default:
                             break;
