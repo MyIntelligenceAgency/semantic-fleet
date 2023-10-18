@@ -2,10 +2,10 @@
 
 using System;
 using System.Globalization;
-using Microsoft.SemanticKernel.AI;
-using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.SemanticKernel.AI;
+using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 
