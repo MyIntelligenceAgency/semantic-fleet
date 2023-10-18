@@ -49,7 +49,7 @@ public sealed class MultiConnectorTextCompletionTests : MultiConnectorTestsBase
         var prompt = ArithmeticEngine.GeneratePrompt(operation, operand1, operand2);
 
         // Act
-        var result = await service.CompleteAsync(prompt, new CompleteRequestSettings());
+        var result = await service.CompleteAsync(prompt, new MultiCompletionRequestSettings());
 
         // Assert
         Assert.Equal(expectedResult.ToString(CultureInfo.InvariantCulture), result);
@@ -136,7 +136,7 @@ public sealed class MultiConnectorTextCompletionTests : MultiConnectorTestsBase
             ConnectorComparer = MultiTextCompletionSettings.GetWeightedConnectorComparer(durationWeight, costWeight),
             // Uncomment to enable additional logging of MultiTextCompletion calls, results and/or test sample collection
             LogCallResult = true,
-            //LogTestCollection = true,
+            LogTestCollection = true,
         };
 
         // Cleanup in case the previous test failed to delete the analysis file

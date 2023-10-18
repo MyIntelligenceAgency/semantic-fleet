@@ -76,7 +76,7 @@ public class MultiConnectorTestsBase : IDisposable
     // Create sample prompts
     protected CompletionJob[] CreateSampleJobs(ArithmeticOperation[] operations, int operand1, int operand2)
     {
-        var requestSettings = new CompleteRequestSettings()
+        var requestSettings = new MultiCompletionRequestSettings()
         {
             Temperature = 0,
             MaxTokens = 10

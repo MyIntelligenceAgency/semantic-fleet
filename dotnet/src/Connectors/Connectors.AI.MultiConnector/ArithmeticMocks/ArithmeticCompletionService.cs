@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
@@ -82,7 +83,7 @@ public class ArithmeticCompletionService : ITextCompletion
     public CallRequestCostCreditor? Creditor { get; set; }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ITextResult>> GetCompletionsAsync(string text, CompleteRequestSettings requestSettings, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ITextResult>> GetCompletionsAsync(string text, AIRequestSettings? requestSettings, CancellationToken cancellationToken = default)
     {
         var job = new CompletionJob(text, requestSettings);
         ArithmeticStreamingResultBase streamingResult = await this.ComputeResultAsync(job, cancellationToken).ConfigureAwait(false);
@@ -93,7 +94,7 @@ public class ArithmeticCompletionService : ITextCompletion
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<ITextStreamingResult> GetStreamingCompletionsAsync(string text, CompleteRequestSettings requestSettings, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<ITextStreamingResult> GetStreamingCompletionsAsync(string text, AIRequestSettings? requestSettings, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var job = new CompletionJob(text, requestSettings);
         ArithmeticStreamingResultBase streamingResult = await this.ComputeResultAsync(job, cancellationToken).ConfigureAwait(false);

@@ -12,7 +12,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 /// <summary>
 /// Settings for <see cref="OobaboogaTextCompletion"/>. It controls how oobabooga completion requests are made. Some parameters control the endpoint to which requests are sent, others control the behavior of the requests themselves. In particular, oobabooga offers a streaming API through websockets, and this class controls how websockets are managed for optimal resources management.
 /// </summary>
-public class OobaboogaTextCompletionSettings : OobaboogaCompletionSettings<OobaboogaCompletionParameters>
+public class OobaboogaTextCompletionSettings : OobaboogaCompletionSettings<OobaboogaCompletionRequestSettings>
 {
     /// <summary>
     /// This is the default constructor for deserialization purposes. It is not meant to be used directly.

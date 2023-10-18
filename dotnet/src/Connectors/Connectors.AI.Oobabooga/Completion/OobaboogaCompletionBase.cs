@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.Diagnostics;
 
 namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
@@ -20,9 +21,9 @@ namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 /// <summary>
 /// Base class for Oobabooga completion with common scaffolding shared between Text and Chat completions and generic parameters corresponding to the various types used in Text and Chat completions.
 /// </summary>
-public abstract class OobaboogaCompletionBase<TCompletionInput, TRequestSettings, TOobaboogaParameters, TCompletionRequest, TCompletionResponse, TCompletionResult, TCompletionStreamingResult> : OobaboogaCompletionBase
+public abstract class OobaboogaCompletionBase<TCompletionInput, TOobaboogaParameters, TCompletionRequest, TCompletionResponse, TCompletionResult, TCompletionStreamingResult> : OobaboogaCompletionBase
     where TCompletionStreamingResult : CompletionStreamingResultBase, new()
-    where TOobaboogaParameters : OobaboogaCompletionParameters, new()
+    where TOobaboogaParameters : OobaboogaCompletionRequestSettings, new()
 
 {
     /// <summary>
@@ -38,7 +39,7 @@ public abstract class OobaboogaCompletionBase<TCompletionInput, TRequestSettings
     /// </summary>
     protected async Task<IReadOnlyList<TCompletionResult>> GetCompletionsBaseAsync(
         TCompletionInput input,
-        TRequestSettings? requestSettings,
+        AIRequestSettings? requestSettings,
         CancellationToken cancellationToken = default)
     {
         try
@@ -79,7 +80,7 @@ public abstract class OobaboogaCompletionBase<TCompletionInput, TRequestSettings
     /// </summary>
     protected async IAsyncEnumerable<TCompletionStreamingResult> GetStreamingCompletionsBaseAsync(
         TCompletionInput input,
-        TRequestSettings? requestSettings,
+        AIRequestSettings? requestSettings,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await this.OobaboogaSettings.StartConcurrentCallAsync(cancellationToken).ConfigureAwait(false);
@@ -143,7 +144,7 @@ public abstract class OobaboogaCompletionBase<TCompletionInput, TRequestSettings
     /// <summary>
     /// This method contains the logic to build the Oobabooga request object. It is used by both Text and Chat completion, the latter extending the former with additional parameters.
     /// </summary>
-    protected abstract TCompletionRequest CreateCompletionRequest(TCompletionInput input, TRequestSettings? requestSettings);
+    protected abstract TCompletionRequest CreateCompletionRequest(TCompletionInput input, AIRequestSettings? requestSettings);
 }
 
 /// <summary>

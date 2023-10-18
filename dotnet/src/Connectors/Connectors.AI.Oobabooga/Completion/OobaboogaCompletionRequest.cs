@@ -1,9 +1,8 @@
 ﻿// Copyright (c) MyIA. All rights reserved.
 
 using System;
-using System.Linq;
 using System.Text.Json.Serialization;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.AI;
 
 namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 
@@ -12,7 +11,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 /// See <see href="https://github.com/oobabooga/text-generation-webui/blob/main/docs/Generation-parameters.md"/> and subsequent links for additional information.
 /// </summary>
 [Serializable]
-public class OobaboogaCompletionRequest : OobaboogaCompletionParameters
+public class OobaboogaCompletionRequest : OobaboogaCompletionRequestSettings
 {
     /// <summary>
     /// The prompt text to complete.
@@ -23,7 +22,7 @@ public class OobaboogaCompletionRequest : OobaboogaCompletionParameters
     /// <summary>
     /// Creates a new CompletionRequest with the given prompt, oobabooga settings and semantic-kernel settings.
     /// </summary>
-    public static OobaboogaCompletionRequest Create(string prompt, OobaboogaCompletionSettings<OobaboogaCompletionParameters> settings, CompleteRequestSettings requestSettings)
+    public static OobaboogaCompletionRequest Create(string prompt, OobaboogaCompletionSettings<OobaboogaCompletionRequestSettings> settings, AIRequestSettings requestSettings)
     {
         var toReturn = new OobaboogaCompletionRequest()
         {
@@ -32,11 +31,8 @@ public class OobaboogaCompletionRequest : OobaboogaCompletionParameters
         toReturn.Apply(settings.OobaboogaParameters);
         if (!settings.OverrideRequestSettings)
         {
-            toReturn.MaxNewTokens = requestSettings.MaxTokens;
-            toReturn.Temperature = requestSettings.Temperature;
-            toReturn.TopP = requestSettings.TopP;
-            toReturn.RepetitionPenalty = GetRepetitionPenalty(requestSettings.PresencePenalty);
-            toReturn.StoppingStrings = requestSettings.StopSequences.ToList();
+            var tempSettings = OobaboogaCompletionRequestSettings.FromRequestSettings(requestSettings, toReturn.MaxNewTokens);
+            toReturn.Apply(tempSettings);
         }
 
         return toReturn;

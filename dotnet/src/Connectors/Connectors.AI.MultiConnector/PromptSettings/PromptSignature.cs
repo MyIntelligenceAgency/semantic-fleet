@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.Text;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
@@ -18,7 +18,6 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 public class PromptSignature
 {
     private Regex? _compiledRegex;
-    private const float FloatComparisonTolerance = 2 * float.Epsilon;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private string DebuggerDisplay => $"{this.PromptStart}";
@@ -26,7 +25,7 @@ public class PromptSignature
     /// <summary>
     /// Gets or sets the request settings supplied with the prompt on a completion call.
     /// </summary>
-    public CompleteRequestSettings RequestSettings { get; set; }
+    public AIRequestSettings RequestSettings { get; set; }
 
     /// <summary>
     /// First chars of a prompt that identify its type while staying the same between different calls.
@@ -65,7 +64,7 @@ public class PromptSignature
     /// </summary>
     /// <param name="requestSettings">The request settings for the prompt.</param>
     /// <param name="promptStart">The beginning of the text to identify the prompt type.</param>
-    public PromptSignature(CompleteRequestSettings requestSettings, string promptStart)
+    public PromptSignature(AIRequestSettings requestSettings, string promptStart)
     {
         this.RequestSettings = requestSettings;
         this.PromptStart = promptStart;
@@ -102,7 +101,7 @@ public class PromptSignature
     /// <summary>
     /// Extracts a <see cref="PromptSignature"/> from a prompt string, request settings and distinct prompt instance of the same type, increasing from default truncated start to deal with overlapping prompt starts.
     /// </summary>
-    public static PromptSignature ExtractFrom2Instances(string prompt1, string prompt2, CompleteRequestSettings settings)
+    public static PromptSignature ExtractFrom2Instances(string prompt1, string prompt2, AIRequestSettings settings)
     {
         int staticPartLength = GetCommonPrefix(prompt1, prompt2).Length;
 
@@ -172,15 +171,22 @@ public class PromptSignature
         return toReturn;
     }
 
-    private bool MatchSettings(CompleteRequestSettings promptSettings)
+    private bool MatchSettings(AIRequestSettings promptSettings)
     {
-        return this.RequestSettings.MaxTokens == promptSettings.MaxTokens &&
-               Math.Abs(this.RequestSettings.Temperature - promptSettings.Temperature) < FloatComparisonTolerance &&
-               Math.Abs(this.RequestSettings.TopP - promptSettings.TopP) < FloatComparisonTolerance &&
-               this.RequestSettings.StopSequences.SequenceEqual(promptSettings.StopSequences) &&
-               Math.Abs(this.RequestSettings.PresencePenalty - promptSettings.PresencePenalty) < FloatComparisonTolerance &&
-               Math.Abs(this.RequestSettings.FrequencyPenalty - promptSettings.FrequencyPenalty) < FloatComparisonTolerance &&
-               this.RequestSettings.ChatSystemPrompt == promptSettings.ChatSystemPrompt &&
-               this.RequestSettings.ResultsPerPrompt == promptSettings.ResultsPerPrompt;
+        if (!(this.RequestSettings.ModelId == promptSettings.ModelId &&
+              this.RequestSettings.ServiceId == promptSettings.ServiceId))
+        {
+            return false;
+        }
+
+        foreach (KeyValuePair<string, object> keyValuePair in this.RequestSettings.ExtensionData)
+        {
+            if (!promptSettings.ExtensionData.TryGetValue(keyValuePair.Key, out var targetValue) || keyValuePair.Value.ToString() != targetValue.ToString())
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
 using Microsoft.SemanticKernel.Text;
@@ -48,11 +49,14 @@ public class MultiCompletionAnalysisSettings : IDisposable
     /// <summary>
     /// Those are the default settings used for connectors evaluation
     /// </summary>
-    public static readonly CompleteRequestSettings DefaultVettingRequestSettings = new()
+    public static readonly MultiCompletionRequestSettings DefaultVettingRequestSettings = new()
     {
-        MaxTokens = 1,
-        Temperature = 0.0,
-        ResultsPerPrompt = 1,
+        ExtensionData = new Dictionary<string, object>()
+        {
+            { "MaxTokens", 1 },
+            { "Temperature", 0.0 },
+            { "ResultsPerPrompt", 1 }
+        }
     };
 
     private readonly Channel<AnalysisJob> _analysisChannel = Channel.CreateUnbounded<AnalysisJob>();
@@ -114,7 +118,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
     /// In order to better assess model capabilities, one might want to increase temperature just for testing. This might enable the use of fewer prompts
     /// </summary>
     [JsonIgnore]
-    public Func<double, double>? TestsTemperatureTransform { get; set; }
+    public Func<double?, double?>? TestsTemperatureTransform { get; set; }
 
     /// <summary>
     /// Enable or disable the evaluation of test prompts
@@ -183,7 +187,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
     /// <summary>
     /// Request settings for the vetting process
     /// </summary>
-    public CompleteRequestSettings VettingRequestSettings { get; set; } = DefaultVettingRequestSettings;
+    public AIRequestSettings VettingRequestSettings { get; set; } = DefaultVettingRequestSettings;
 
     /// <summary>
     /// Loads the completion analysis file according to settings
@@ -581,8 +585,8 @@ public class MultiCompletionAnalysisSettings : IDisposable
 
                     if (this.TestsTemperatureTransform != null)
                     {
-                        var temperatureUpdater = new SettingsUpdater<CompleteRequestSettings>(session.CallJob.RequestSettings, MultiTextCompletionSettings.CloneRequestSettings);
-                        var adjustedSettings = temperatureUpdater.ModifyIfChanged(settings => settings.Temperature, this.TestsTemperatureTransform, (settings, newTemp) => settings.Temperature = newTemp, out var settingChanged);
+                        var temperatureUpdater = new SettingsUpdater<MultiCompletionRequestSettings>(session.CallJob.RequestSettings, MultiCompletionRequestSettings.CloneRequestSettings);
+                        var adjustedSettings = temperatureUpdater.ModifyIfChanged<double?>(settings => settings.Temperature, this.TestsTemperatureTransform, (settings, newTemp) => settings.Temperature = newTemp, out var settingChanged);
                         if (settingChanged)
                         {
                             session.CallJob = new CompletionJob(session.CallJob.Prompt, adjustedSettings);
@@ -968,7 +972,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
         return Task.Factory.StartNew(
             async () =>
             {
-                initialJob.Logger?.LogTrace("\n# Analysis task was started\n");
+                initialJob.Logger?.LogTrace("\n# Background Analysis task was started\n");
 
                 using (CancellationTokenSource linkedCts =
                        CancellationTokenSource.CreateLinkedTokenSource(initialJob.CancellationToken, this._internalCancellationTokenSource.Token))
@@ -979,7 +983,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
                     }
                 }
 
-                initialJob.Logger?.LogTrace("\n# Analysis task was cancelled and is closing gracefully\n");
+                initialJob.Logger?.LogTrace("\n# Background Analysis task was cancelled and is closing gracefully\n");
             },
             initialJob.CancellationToken,
             TaskCreationOptions.LongRunning,

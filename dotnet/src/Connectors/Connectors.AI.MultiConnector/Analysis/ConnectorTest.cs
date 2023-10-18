@@ -1,7 +1,6 @@
 ﻿// Copyright (c) MyIA. All rights reserved.
 
 using System;
-using Microsoft.SemanticKernel.AI.TextCompletion;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
@@ -29,7 +28,7 @@ public class ConnectorTest : TestEvent
     /// <summary>
     /// Request settings for the test (before connector-specific adjustments).
     /// </summary>
-    public CompleteRequestSettings RequestSettings { get; set; } = new();
+    public MultiCompletionRequestSettings RequestSettings { get; set; } = new();
 
     /// <summary>
     /// Result returned by the connector called with the test prompt.

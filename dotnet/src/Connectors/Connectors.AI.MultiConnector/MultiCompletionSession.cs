@@ -7,7 +7,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
@@ -207,7 +206,7 @@ public class MultiCompletionSession
 
         var adjustedSettings = multiCompletionSession.InputJob.RequestSettings;
 
-        var adjustedSettingsModifier = new SettingsUpdater<CompleteRequestSettings>(adjustedSettings, MultiTextCompletionSettings.CloneRequestSettings);
+        var adjustedSettingsModifier = new SettingsUpdater<MultiCompletionRequestSettings>(adjustedSettings, MultiCompletionRequestSettings.CloneRequestSettings);
 
         bool valueChanged = false;
         if (multiCompletionSession.NamedTextCompletion.MaxTokens != null && adjustedSettings.MaxTokens != null)
@@ -249,7 +248,7 @@ public class MultiCompletionSession
 
         if (multiCompletionSession.NamedTextCompletion.TemperatureTransform != null)
         {
-            adjustedSettings = adjustedSettingsModifier.ModifyIfChanged(r => r.Temperature, multiCompletionSession.NamedTextCompletion.TemperatureTransform, (setting, value) => setting.Temperature = value, out valueChanged);
+            adjustedSettings = adjustedSettingsModifier.ModifyIfChanged<double?>(r => r.Temperature, multiCompletionSession.NamedTextCompletion.TemperatureTransform, (setting, value) => setting.Temperature = value, out valueChanged);
 
             if (valueChanged)
             {

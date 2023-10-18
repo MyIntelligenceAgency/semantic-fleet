@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 
 namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
@@ -15,7 +16,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 /// Oobabooga text completion service API.
 /// Adapted from <see href="https://github.com/oobabooga/text-generation-webui/tree/main/api-examples"/>
 /// </summary>
-public class OobaboogaTextCompletion : OobaboogaCompletionBase<string, CompleteRequestSettings, OobaboogaCompletionParameters, OobaboogaCompletionRequest, TextCompletionResponse, TextCompletionResult, TextCompletionStreamingResult>, ITextCompletion
+public class OobaboogaTextCompletion : OobaboogaCompletionBase<string, OobaboogaCompletionRequestSettings, OobaboogaCompletionRequest, TextCompletionResponse, TextCompletionResult, TextCompletionStreamingResult>, ITextCompletion
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="OobaboogaTextCompletion"/> class.
@@ -28,7 +29,7 @@ public class OobaboogaTextCompletion : OobaboogaCompletionBase<string, CompleteR
     /// <inheritdoc/>
     public async Task<IReadOnlyList<ITextResult>> GetCompletionsAsync(
         string text,
-        CompleteRequestSettings requestSettings,
+        AIRequestSettings? requestSettings,
         CancellationToken cancellationToken = default)
     {
         this.LogActionDetails();
@@ -38,7 +39,7 @@ public class OobaboogaTextCompletion : OobaboogaCompletionBase<string, CompleteR
     /// <inheritdoc/>
     public async IAsyncEnumerable<ITextStreamingResult> GetStreamingCompletionsAsync(
         string text,
-        CompleteRequestSettings requestSettings,
+        AIRequestSettings? requestSettings,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await foreach (var chatCompletionStreamingResult in this.GetStreamingCompletionsBaseAsync(text, requestSettings, cancellationToken))
@@ -53,17 +54,17 @@ public class OobaboogaTextCompletion : OobaboogaCompletionBase<string, CompleteR
     /// <param name="input">The text to complete.</param>
     /// <param name="requestSettings">The request settings.</param>
     /// <returns>An Oobabooga TextCompletionRequest object with the text and completion parameters.</returns>
-    protected override OobaboogaCompletionRequest CreateCompletionRequest(string input, CompleteRequestSettings? requestSettings)
+    protected override OobaboogaCompletionRequest CreateCompletionRequest(string input, AIRequestSettings? requestSettings)
     {
         if (string.IsNullOrWhiteSpace(input))
         {
             throw new ArgumentNullException(nameof(input));
         }
 
-        requestSettings ??= new CompleteRequestSettings();
+        requestSettings ??= new AIRequestSettings();
 
         // Prepare the request using the provided parameters.
-        var toReturn = OobaboogaCompletionRequest.Create(input, (OobaboogaCompletionSettings<OobaboogaCompletionParameters>)this.OobaboogaSettings, requestSettings);
+        var toReturn = OobaboogaCompletionRequest.Create(input, (OobaboogaCompletionSettings<OobaboogaCompletionRequestSettings>)this.OobaboogaSettings, requestSettings);
         return toReturn;
     }
 

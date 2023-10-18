@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.AI;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 
@@ -19,10 +19,10 @@ public readonly struct CompletionJob : System.IEquatable<CompletionJob>
     /// <param name="prompt">The input prompt for the job.</param>
     /// <param name="settings">The request settings for the job.</param>
     /// <exception cref="ArgumentNullException">Thrown when prompt or settings are null.</exception>
-    public CompletionJob(string prompt, CompleteRequestSettings settings)
+    public CompletionJob(string prompt, AIRequestSettings? settings)
     {
         this.Prompt = prompt ?? throw new ArgumentNullException(nameof(prompt));
-        this.RequestSettings = settings ?? throw new ArgumentNullException(nameof(settings));
+        this.RequestSettings = MultiCompletionRequestSettings.FromRequestSettings(settings ?? throw new ArgumentNullException(nameof(settings)));
     }
 
     /// <summary>
@@ -37,9 +37,9 @@ public readonly struct CompletionJob : System.IEquatable<CompletionJob>
     public string Prompt { get; }
 
     /// <summary>
-    /// The <see cref="CompleteRequestSettings"/> that are passed to <see cref="MultiTextCompletion"/>.
+    /// The <see cref="MultiCompletionRequestSettings"/> that are passed to <see cref="MultiTextCompletion"/>.
     /// </summary>
-    public CompleteRequestSettings RequestSettings { get; }
+    public MultiCompletionRequestSettings RequestSettings { get; }
 
     /// <summary>
     /// Determines whether the specified object is equal to the current object.
@@ -90,6 +90,6 @@ public readonly struct CompletionJob : System.IEquatable<CompletionJob>
     public bool Equals(CompletionJob other)
     {
         return this.Prompt == other.Prompt &&
-               EqualityComparer<CompleteRequestSettings>.Default.Equals(this.RequestSettings, other.RequestSettings);
+               EqualityComparer<AIRequestSettings>.Default.Equals(this.RequestSettings, other.RequestSettings);
     }
 }

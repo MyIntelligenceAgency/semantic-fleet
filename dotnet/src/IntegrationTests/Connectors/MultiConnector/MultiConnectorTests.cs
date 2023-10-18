@@ -14,8 +14,8 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextCompletion;
+using Microsoft.SemanticKernel.Planners;
 using Microsoft.SemanticKernel.Planning;
-using Microsoft.SemanticKernel.Planning.Sequential;
 using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
@@ -110,7 +110,7 @@ public sealed class MultiConnectorTests : IDisposable
         {
             var planJson = await System.IO.File.ReadAllTextAsync(planPath, token);
             var ctx = kernel.CreateNewContext();
-            var plan = Plan.FromJson(planJson, ctx, true);
+            var plan = Plan.FromJson(planJson, ctx.Functions, true);
             var inputPath = textPath;
             if (isValidation)
             {
@@ -147,8 +147,7 @@ public sealed class MultiConnectorTests : IDisposable
 
         Func<IKernel, CancellationToken, bool, Task<Plan>> planFactory = async (kernel, token, isValidation) =>
         {
-            var planner = new SequentialPlanner(kernel,
-                new SequentialPlannerConfig { RelevancyThreshold = 0.65, MaxRelevantFunctions = 30, Memory = kernel.Memory });
+            var planner = new SequentialPlanner(kernel);
             var inputPath = textPath;
             if (isValidation)
             {
@@ -273,7 +272,7 @@ public sealed class MultiConnectorTests : IDisposable
                 // This is the number of tests to run and validate for each prompt type before it can be considered able to handle the prompt type
                 NbPromptTests = nbPromptTests,
                 // Because we only collect one sample, we have to artificially raise the temperature for the test completion request settings, in order to induce diverse results
-                TestsTemperatureTransform = d => Math.Max(d, 0.7),
+                TestsTemperatureTransform = d => Math.Max(d ?? 0, 0.7),
                 // We use manual release of analysis task to make sure analysis event is only fired once with the final result
                 AnalysisAwaitsManualTrigger = true,
                 // Accordingly, delays and periods are also removed
@@ -348,7 +347,7 @@ public sealed class MultiConnectorTests : IDisposable
 
         //Re execute plan with suggested settings
         var ctx = kernel.CreateNewContext();
-        var plan2 = Plan.FromJson(plan1Json, ctx, true);
+        var plan2 = Plan.FromJson(plan1Json, ctx.Functions, true);
         this._testOutputHelper.LogTrace("\n# 2nd run of plan with updated settings and variable completions\n");
         var secondPassResult = await settings.ExecuteAsync(plan2, kernel, cancellationToken: this._cleanupToken.Token, computeCost: true).ConfigureAwait(false);
         this._testOutputHelper.LogTrace("\n# 2nd run finished in {0}\n", secondPassResult.Duration);

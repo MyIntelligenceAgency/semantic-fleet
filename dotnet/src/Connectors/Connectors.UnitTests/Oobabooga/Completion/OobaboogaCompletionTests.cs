@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
@@ -121,7 +122,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        await sut.GetCompletionsAsync(CompletionText, new CompleteRequestSettings());
+        await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings());
 
         //Assert
         Assert.True(this._messageHandlerStub.RequestHeaders?.Contains("User-Agent"));
@@ -144,7 +145,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        await sut.GetCompletionsAsync(CompletionText, new CompleteRequestSettings());
+        await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings());
 
         //Assert
         Assert.StartsWith(EndPoint, this._messageHandlerStub.RequestUri?.AbsoluteUri, StringComparison.OrdinalIgnoreCase);
@@ -162,7 +163,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        await sut.GetCompletionsAsync(CompletionText, new CompleteRequestSettings());
+        await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings());
         var expectedUri = new UriBuilder(this._endPointUri)
         {
             Path = "/api/v1/generate",
@@ -185,7 +186,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        await sut.GetCompletionsAsync(CompletionText, new CompleteRequestSettings()).ConfigureAwait(false);
+        await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings()).ConfigureAwait(false);
 
         //Assert
         var requestPayload = JsonSerializer.Deserialize<OobaboogaCompletionRequest>(this._messageHandlerStub.RequestContent);
@@ -206,7 +207,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        var result = await sut.GetCompletionsAsync(CompletionText, new CompleteRequestSettings());
+        var result = await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings());
 
         //Assert
         Assert.NotNull(result);
@@ -446,10 +447,10 @@ public sealed class OobaboogaCompletionTests : IDisposable
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    localResponse = ((OobaboogaTextCompletion)sut).CompleteStreamAsync(requestMessage, new CompleteRequestSettings()
+                    localResponse = ((OobaboogaTextCompletion)sut).CompleteStreamAsync(requestMessage, new OobaboogaCompletionRequestSettings()
                     {
                         Temperature = 0.01,
-                        MaxTokens = 7,
+                        MaxNewTokens = 7,
                         TopP = 0.1,
                     }, cancellationToken: cleanupToken.Token);
                     return localResponse;
@@ -620,10 +621,10 @@ public sealed class OobaboogaCompletionTests : IDisposable
     private async IAsyncEnumerable<string> GetStreamingMessagesAsync(OobaboogaChatCompletion sut, ChatHistory history, CancellationTokenSource cleanupToken)
     {
         IAsyncEnumerable<IChatStreamingResult> tempResponse;
-        tempResponse = sut.GetStreamingChatCompletionsAsync(history, new ChatRequestSettings()
+        tempResponse = sut.GetStreamingChatCompletionsAsync(history, new OobaboogaChatCompletionRequestSettings()
         {
             Temperature = 0.01,
-            MaxTokens = 7,
+            MaxNewTokens = 7,
             TopP = 0.1,
         }, cancellationToken: cleanupToken.Token);
 

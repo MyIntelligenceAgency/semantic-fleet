@@ -9,6 +9,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
@@ -59,7 +60,7 @@ public class MultiTextCompletion : ITextCompletion
     public MultiTextCompletionSettings Settings => this._settings;
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ITextResult>> GetCompletionsAsync(string text, CompleteRequestSettings requestSettings, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ITextResult>> GetCompletionsAsync(string text, AIRequestSettings? requestSettings, CancellationToken cancellationToken = default)
     {
         this._logger?.LogTrace("\n## Starting MultiTextCompletion.GetCompletionsAsync\n");
         var completionJob = new CompletionJob(text, requestSettings);
@@ -83,7 +84,7 @@ public class MultiTextCompletion : ITextCompletion
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<ITextStreamingResult> GetStreamingCompletionsAsync(string text, CompleteRequestSettings requestSettings, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<ITextStreamingResult> GetStreamingCompletionsAsync(string text, AIRequestSettings? requestSettings, CancellationToken cancellationToken = default)
     {
         this._logger?.LogTrace("\n## Starting MultiTextCompletion.GetStreamingCompletionsAsync\n");
         var completionJob = new CompletionJob(text, requestSettings);

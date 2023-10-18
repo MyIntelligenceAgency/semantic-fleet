@@ -48,10 +48,10 @@ public class OobaboogaConnectorConfiguration : ConnectorConfigurationBase
     /// <summary>
     /// Creates Oobabooga Text or Chat completion settings according to this configuration.
     /// </summary>
-    public ICovariantOobaboogaCompletionSettings<OobaboogaCompletionParameters> CreateSettings(string defaultEndpoint, Func<ClientWebSocket>? webSocketFactory = null, ILoggerFactory? loggerFactory = null)
+    public ICovariantOobaboogaCompletionSettings<OobaboogaCompletionRequestSettings> CreateSettings(string defaultEndpoint, Func<ClientWebSocket>? webSocketFactory = null, ILoggerFactory? loggerFactory = null)
     {
         Uri endpoint = new(this.EndPoint ?? defaultEndpoint);
-        ICovariantOobaboogaCompletionSettings<OobaboogaCompletionParameters> settings;
+        ICovariantOobaboogaCompletionSettings<OobaboogaCompletionRequestSettings> settings;
 
         if (this.UseChatCompletion)
         {

@@ -5,11 +5,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{831DDCA2-7D2C-4C31-80DB-6BDB3E1F7AE0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{FA3720F1-C99A-49B2-9577-A940257098BF}"
-	ProjectSection(SolutionItems) = preProject
-		..\samples\dotnet\Directory.Build.props = ..\samples\dotnet\Directory.Build.props
-		..\samples\dotnet\Directory.Build.targets = ..\samples\dotnet\Directory.Build.targets
-		..\samples\dotnet\Directory.Packages.props = ..\samples\dotnet\Directory.Packages.props
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IntegrationTests", "src\IntegrationTests\IntegrationTests.csproj", "{E4B777A1-28E1-41BE-96AE-7F3EC61FD5D4}"
 EndProject
@@ -18,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\.editorconfig = ..\.editorconfig
 		..\.gitignore = ..\.gitignore
 		Directory.Build.props = Directory.Build.props
+		Directory.Build.targets = Directory.Build.targets
 		Directory.Packages.props = Directory.Packages.props
 		..\.github\workflows\dotnet-format.yml = ..\.github\workflows\dotnet-format.yml
 		..\README.md = ..\README.md
@@ -85,6 +81,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connectors.AI.Oobabooga", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connectors.AI.MultiConnector", "src\Connectors\Connectors.AI.MultiConnector\Connectors.AI.MultiConnector.csproj", "{A1C7B64B-0BB0-4CBE-8B1B-BC5EF02490FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyIA.SemanticFleet.ConsoleSamples", "samples\ConsoleSamples\MyIA.SemanticFleet.ConsoleSamples.csproj", "{E4994BEE-1E24-4486-92E5-A00F3BFE2A8A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -116,6 +114,12 @@ Global
 		{A1C7B64B-0BB0-4CBE-8B1B-BC5EF02490FD}.Publish|Any CPU.Build.0 = Publish|Any CPU
 		{A1C7B64B-0BB0-4CBE-8B1B-BC5EF02490FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1C7B64B-0BB0-4CBE-8B1B-BC5EF02490FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4994BEE-1E24-4486-92E5-A00F3BFE2A8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4994BEE-1E24-4486-92E5-A00F3BFE2A8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4994BEE-1E24-4486-92E5-A00F3BFE2A8A}.Publish|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4994BEE-1E24-4486-92E5-A00F3BFE2A8A}.Publish|Any CPU.Build.0 = Debug|Any CPU
+		{E4994BEE-1E24-4486-92E5-A00F3BFE2A8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4994BEE-1E24-4486-92E5-A00F3BFE2A8A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -135,6 +139,7 @@ Global
 		{3CDE10B2-AE8F-4FC4-8D55-92D4AD32E144} = {958AD708-F048-4FAF-94ED-D2F2B92748B9}
 		{677F1381-7830-4115-9C1A-58B282629DC6} = {0247C2C9-86C3-45BA-8873-28B0948EDC0C}
 		{A1C7B64B-0BB0-4CBE-8B1B-BC5EF02490FD} = {0247C2C9-86C3-45BA-8873-28B0948EDC0C}
+		{E4994BEE-1E24-4486-92E5-A00F3BFE2A8A} = {FA3720F1-C99A-49B2-9577-A940257098BF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FBDC56A3-86AD-4323-AA0F-201E59123B83}

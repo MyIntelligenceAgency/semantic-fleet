@@ -1,14 +1,20 @@
 ﻿// Copyright (c) MyIA. All rights reserved.
 
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text.Json.Serialization;
+using Microsoft.SemanticKernel.AI;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 
 namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 
 /// <summary>
 /// HTTP schema to perform oobabooga completion request, without the user input.
 /// </summary>
-public class OobaboogaCompletionParameters
+public class OobaboogaCompletionRequestSettings : AIRequestSettings
 {
     /// <summary>
     /// The maximum number of tokens to generate, ignoring the number of tokens in the prompt.
@@ -191,40 +197,48 @@ public class OobaboogaCompletionParameters
     public List<string> StoppingStrings { get; set; } = new();
 
     /// <summary>
+    /// The system prompt to use when generating text completions using a chat model.
+    /// Defaults to "Assistant is a large language model."
+    /// </summary>
+    [JsonPropertyName("chat_system_prompt")]
+    public string ChatSystemPrompt { get; set; } = "Assistant is a large language model.";
+
+    /// <summary>
     /// Imports the settings from the given <see cref="OobaboogaCompletionSettings"/> object.
     /// </summary>
-    public void Apply(OobaboogaCompletionParameters parameters)
+    public void Apply(OobaboogaCompletionRequestSettings requestSettings)
     {
-        this.AddBosToken = parameters.AddBosToken;
-        this.AutoMaxNewTokens = parameters.AutoMaxNewTokens;
-        this.BanEosToken = parameters.BanEosToken;
-        this.DoSample = parameters.DoSample;
-        this.EarlyStopping = parameters.EarlyStopping;
-        this.EpsilonCutoff = parameters.EpsilonCutoff;
-        this.EtaCutoff = parameters.EtaCutoff;
-        this.GuidanceScale = parameters.GuidanceScale;
-        this.LengthPenalty = parameters.LengthPenalty;
-        this.MaxNewTokens = parameters.MaxNewTokens;
-        this.MinLength = parameters.MinLength;
-        this.MirostatEta = parameters.MirostatEta;
-        this.MirostatMode = parameters.MirostatMode;
-        this.MirostatTau = parameters.MirostatTau;
-        this.NegativePrompt = parameters.NegativePrompt;
-        this.NoRepeatNgramSize = parameters.NoRepeatNgramSize;
-        this.NumBeams = parameters.NumBeams;
-        this.PenaltyAlpha = parameters.PenaltyAlpha;
-        this.Preset = parameters.Preset;
-        this.RepetitionPenalty = parameters.RepetitionPenalty;
-        this.Seed = parameters.Seed;
-        this.SkipSpecialTokens = parameters.SkipSpecialTokens;
-        this.StoppingStrings = parameters.StoppingStrings;
-        this.Temperature = parameters.Temperature;
-        this.Tfs = parameters.Tfs;
-        this.TopA = parameters.TopA;
-        this.TopK = parameters.TopK;
-        this.TopP = parameters.TopP;
-        this.TruncationLength = parameters.TruncationLength;
-        this.TypicalP = parameters.TypicalP;
+        this.AddBosToken = requestSettings.AddBosToken;
+        this.AutoMaxNewTokens = requestSettings.AutoMaxNewTokens;
+        this.BanEosToken = requestSettings.BanEosToken;
+        this.DoSample = requestSettings.DoSample;
+        this.EarlyStopping = requestSettings.EarlyStopping;
+        this.EpsilonCutoff = requestSettings.EpsilonCutoff;
+        this.EtaCutoff = requestSettings.EtaCutoff;
+        this.GuidanceScale = requestSettings.GuidanceScale;
+        this.LengthPenalty = requestSettings.LengthPenalty;
+        this.MaxNewTokens = requestSettings.MaxNewTokens;
+        this.MinLength = requestSettings.MinLength;
+        this.MirostatEta = requestSettings.MirostatEta;
+        this.MirostatMode = requestSettings.MirostatMode;
+        this.MirostatTau = requestSettings.MirostatTau;
+        this.NegativePrompt = requestSettings.NegativePrompt;
+        this.NoRepeatNgramSize = requestSettings.NoRepeatNgramSize;
+        this.NumBeams = requestSettings.NumBeams;
+        this.PenaltyAlpha = requestSettings.PenaltyAlpha;
+        this.Preset = requestSettings.Preset;
+        this.RepetitionPenalty = requestSettings.RepetitionPenalty;
+        this.Seed = requestSettings.Seed;
+        this.SkipSpecialTokens = requestSettings.SkipSpecialTokens;
+        this.StoppingStrings = requestSettings.StoppingStrings;
+        this.Temperature = requestSettings.Temperature;
+        this.Tfs = requestSettings.Tfs;
+        this.TopA = requestSettings.TopA;
+        this.TopK = requestSettings.TopK;
+        this.TopP = requestSettings.TopP;
+        this.TruncationLength = requestSettings.TruncationLength;
+        this.TypicalP = requestSettings.TypicalP;
+        this.ChatSystemPrompt = requestSettings.ChatSystemPrompt;
     }
 
     /// <summary>
@@ -233,5 +247,98 @@ public class OobaboogaCompletionParameters
     public static double GetRepetitionPenalty(double presencePenalty)
     {
         return 1 + presencePenalty / 2;
+    }
+
+    /// <summary>
+    /// Create a new settings object with the values from another settings object.
+    /// </summary>
+    /// <param name="requestSettings">generic request settings</param>
+    /// <param name="defaultMaxTokens">Default max tokens</param>
+    /// <returns>An instance of <see cref="OobaboogaCompletionRequestSettings"/></returns>
+    public static OobaboogaCompletionRequestSettings FromRequestSettings(AIRequestSettings? requestSettings, int? defaultMaxTokens = null)
+    {
+        // No request settings provided
+        if (requestSettings is null)
+        {
+            var newSettings = new OobaboogaCompletionRequestSettings();
+            if (defaultMaxTokens != null)
+            {
+                newSettings.MaxNewTokens = defaultMaxTokens;
+            }
+
+            return newSettings;
+        }
+
+        //Request settings are Oobabooga Completion or ChatCompletion parameters
+        if (requestSettings is OobaboogaCompletionRequestSettings requestSettingsOobaboogaCompletionParameters)
+        {
+            return requestSettingsOobaboogaCompletionParameters;
+        }
+
+        //Request settings are OpenAI request settings
+        if (requestSettings is OpenAIRequestSettings requestSettingsOpenAIRequestSettings)
+        {
+            var fromOpenAI = new OobaboogaCompletionRequestSettings();
+            fromOpenAI.MaxNewTokens = requestSettingsOpenAIRequestSettings.MaxTokens;
+            fromOpenAI.Temperature = requestSettingsOpenAIRequestSettings.Temperature;
+            fromOpenAI.TopP = requestSettingsOpenAIRequestSettings.TopP;
+            fromOpenAI.RepetitionPenalty = GetRepetitionPenalty(requestSettingsOpenAIRequestSettings.PresencePenalty);
+            fromOpenAI.StoppingStrings = requestSettingsOpenAIRequestSettings.StopSequences.ToList();
+            return fromOpenAI;
+        }
+
+        //Request settings are an unknown format. Trying to leverage ExtensionData property 
+
+        var toReturn = new OobaboogaCompletionRequestSettings
+        {
+            ServiceId = requestSettings.ServiceId,
+            ModelId = requestSettings.ModelId
+        };
+
+        foreach (KeyValuePair<string, object> extendedProperty in requestSettings.ExtensionData)
+        {
+            if (extendedProperty.Value != null)
+            {
+                switch (extendedProperty.Key.ToUpperInvariant())
+                {
+                    case "TEMPERATURE":
+                        toReturn.Temperature = ((IConvertible)extendedProperty.Value.ToString()).ToDouble(CultureInfo.InvariantCulture);
+                        break;
+                    case "TOPP":
+                    case "TOP_P":
+                        toReturn.TopP = ((IConvertible)extendedProperty.Value.ToString()).ToDouble(CultureInfo.InvariantCulture);
+                        break;
+                    case "PRESENCEPENALTY":
+                    case "PRESENCE_PENALTY":
+                        toReturn.RepetitionPenalty = GetRepetitionPenalty(((IConvertible)extendedProperty.Value.ToString()).ToDouble(CultureInfo.InvariantCulture));
+                        break;
+                    case "MAXTOKENS":
+                    case "MAX_TOKENS":
+                    case "MAXNEWTOKENS":
+                        toReturn.MaxNewTokens = ((IConvertible)extendedProperty.Value.ToString()).ToInt32(CultureInfo.InvariantCulture);
+                        break;
+                    case "STOPSEQUENCES":
+                    case "STOP_SEQUENCES":
+                        toReturn.StoppingStrings = new List<string>(((IEnumerable)extendedProperty.Value).Cast<string>());
+                        break;
+                    case "CHATSYSTEMPROMPT":
+                    case "CHAT_SYSTEM_PROMPT":
+                        toReturn.ChatSystemPrompt = ((IConvertible)extendedProperty.Value.ToString()).ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case "SERVICEID":
+                    case "SERVICE_ID":
+                        toReturn.ServiceId = ((IConvertible)extendedProperty.Value.ToString()).ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case "MODELID":
+                    case "MODEL_ID":
+                        toReturn.ModelId = ((IConvertible)extendedProperty.Value.ToString()).ToString(CultureInfo.InvariantCulture);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        return toReturn;
     }
 }

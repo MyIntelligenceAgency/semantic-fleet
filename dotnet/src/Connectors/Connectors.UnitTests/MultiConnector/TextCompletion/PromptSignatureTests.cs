@@ -2,7 +2,7 @@
 
 using System;
 using System.Collections.Generic;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.AI;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 using Xunit;
@@ -15,7 +15,7 @@ public class PromptSignatureTests
     public void TestExtractFromPromptWithShortPromptThrowsArgumentException()
     {
         // Arrange
-        var completionJob = new CompletionJob("short", new CompleteRequestSettings());
+        var completionJob = new CompletionJob("short", new AIRequestSettings());
         var promptMultiConnectorSettingsCollection = new List<PromptMultiConnectorSettings>(); // Example collection
 
         // Act & Assert
@@ -30,7 +30,7 @@ public class PromptSignatureTests
         // Arrange
         var prompt1 = "Hello, this is a";
         var prompt2 = "Hello, that was a";
-        var settings = new CompleteRequestSettings();
+        var settings = new AIRequestSettings();
 
         // Act
         var signature = PromptSignature.ExtractFrom2Instances(prompt1, prompt2, settings);
@@ -60,10 +60,10 @@ public class PromptSignatureTests
         var signature = new PromptSignature
         {
             PromptStart = "Hello, ",
-            RequestSettings = new CompleteRequestSettings() // You can set specific properties.
+            RequestSettings = new AIRequestSettings() // You can set specific properties.
         };
 
-        var completionJob = new CompletionJob("Hello, this is a test.", new CompleteRequestSettings());
+        var completionJob = new CompletionJob("Hello, this is a test.", new AIRequestSettings());
 
         // Act
         var isMatch = signature.Matches(completionJob);

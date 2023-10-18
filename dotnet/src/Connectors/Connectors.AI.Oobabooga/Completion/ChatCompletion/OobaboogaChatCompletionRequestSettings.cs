@@ -7,7 +7,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 /// <summary>
 /// Settings to perform oobabooga chat completion request.
 /// </summary>
-public class OobaboogaChatCompletionParameters : OobaboogaCompletionParameters
+public class OobaboogaChatCompletionRequestSettings : OobaboogaCompletionRequestSettings
 {
     /// <summary>
     /// The mode of chat completion. Valid options: 'chat', 'chat-instruct', 'instruct'.
@@ -70,20 +70,20 @@ public class OobaboogaChatCompletionParameters : OobaboogaCompletionParameters
     public string ContextInstruct { get; set; } = "";
 
     /// <summary>
-    /// Imports the settings from the given <see cref="OobaboogaChatCompletionParameters"/> object.
+    /// Imports the settings from the given <see cref="OobaboogaChatCompletionRequestSettings"/> object.
     /// </summary>
-    public void Apply(OobaboogaChatCompletionParameters parameters)
+    public void Apply(OobaboogaChatCompletionRequestSettings requestSettings)
     {
-        base.Apply(parameters);
-        this.ChatInstructCommand = parameters.ChatInstructCommand;
-        this.Character = parameters.Character;
-        this.ChatGenerationAttempts = parameters.ChatGenerationAttempts;
-        this.ContextInstruct = parameters.ContextInstruct;
-        this.Continue = parameters.Continue;
-        this.InstructionTemplate = parameters.InstructionTemplate;
-        this.Mode = parameters.Mode;
-        this.Regenerate = parameters.Regenerate;
-        this.StopAtNewline = parameters.StopAtNewline;
-        this.YourName = parameters.YourName;
+        base.Apply(requestSettings);
+        this.ChatInstructCommand = requestSettings.ChatInstructCommand;
+        this.Character = requestSettings.Character;
+        this.ChatGenerationAttempts = requestSettings.ChatGenerationAttempts;
+        this.ContextInstruct = requestSettings.ContextInstruct;
+        this.Continue = requestSettings.Continue;
+        this.InstructionTemplate = requestSettings.InstructionTemplate;
+        this.Mode = requestSettings.Mode;
+        this.Regenerate = requestSettings.Regenerate;
+        this.StopAtNewline = requestSettings.StopAtNewline;
+        this.YourName = requestSettings.YourName;
     }
 }

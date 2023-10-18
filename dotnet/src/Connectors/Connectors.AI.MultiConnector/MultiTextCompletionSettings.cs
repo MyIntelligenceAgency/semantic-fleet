@@ -11,10 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
 using Microsoft.SemanticKernel.Orchestration;
-using Microsoft.SemanticKernel.SkillDefinition;
 using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
@@ -331,25 +329,6 @@ public class MultiTextCompletionSettings
             var doubledResult = (costWeight * costCoefficient ?? 1 + durationWeight * durationCoefficient ?? 1) / (costWeight + durationWeight);
             var intResult = doubledResult <= 1 ? Math.Abs(doubledResult - 1) < 0.01 ? 0 : 1 : -1;
             return intResult;
-        };
-    }
-
-    /// <summary>
-    /// Static function that clones a <see cref="CompleteRequestSettings"/> object.
-    /// </summary>
-    public static CompleteRequestSettings CloneRequestSettings(CompleteRequestSettings requestSettings)
-    {
-        return new CompleteRequestSettings()
-        {
-            MaxTokens = requestSettings.MaxTokens,
-            ResultsPerPrompt = requestSettings.ResultsPerPrompt,
-            ChatSystemPrompt = requestSettings.ChatSystemPrompt,
-            FrequencyPenalty = requestSettings.FrequencyPenalty,
-            PresencePenalty = requestSettings.PresencePenalty,
-            StopSequences = requestSettings.StopSequences,
-            Temperature = requestSettings.Temperature,
-            TokenSelectionBiases = requestSettings.TokenSelectionBiases,
-            TopP = requestSettings.TopP,
         };
     }
 

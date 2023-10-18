@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.SkillDefinition;
 
 namespace SemanticKernel.IntegrationTests;
 
@@ -39,6 +38,6 @@ internal static class TestHelpers
 
         string skillParentDirectory = Path.GetFullPath(Path.Combine(currentAssemblyDirectory, "../../../../../../samples/skills"));
 
-        return target.ImportSemanticSkillFromDirectory(skillParentDirectory, skillNames);
+        return target.ImportSemanticFunctionsFromDirectory(skillParentDirectory, skillNames);
     }
 }

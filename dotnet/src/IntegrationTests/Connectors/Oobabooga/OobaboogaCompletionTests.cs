@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.AI.TextCompletion;
+using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 using Xunit;
@@ -57,10 +58,10 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var oobaboogaLocal = new OobaboogaTextCompletion(oobaboogaSettings);
 
         // Act
-        var localResponse = await oobaboogaLocal.CompleteAsync(Input, new CompleteRequestSettings()
+        var localResponse = await oobaboogaLocal.CompleteAsync(Input, new OobaboogaCompletionRequestSettings()
         {
             Temperature = 0.01,
-            MaxTokens = 7,
+            MaxNewTokens = 7,
             TopP = 0.1,
         });
 
@@ -76,10 +77,10 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var oobaboogaLocal = new OobaboogaTextCompletion(oobaboogaSettings);
 
         // Act
-        var localResponse = oobaboogaLocal.CompleteStreamAsync(Input, new CompleteRequestSettings()
+        var localResponse = oobaboogaLocal.CompleteStreamAsync(Input, new OobaboogaCompletionRequestSettings()
         {
             Temperature = 0.01,
-            MaxTokens = 7,
+            MaxNewTokens = 7,
             TopP = 0.1,
         });
 
@@ -104,10 +105,10 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var history = new ChatHistory();
         history.AddUserMessage("What is your name?");
         // Act
-        var localResponse = await oobaboogaLocal.GetChatCompletionsAsync(history, new ChatRequestSettings()
+        var localResponse = await oobaboogaLocal.GetChatCompletionsAsync(history, new OobaboogaChatCompletionRequestSettings()
         {
             Temperature = 0.01,
-            MaxTokens = 20,
+            MaxNewTokens = 20,
             TopP = 0.1,
         });
 
@@ -128,10 +129,10 @@ public sealed class OobaboogaCompletionTests : IDisposable
         history.AddUserMessage("What is your name?");
 
         // Act
-        var localResponse = oobaboogaLocal.GetStreamingChatCompletionsAsync(history, new ChatRequestSettings()
+        var localResponse = oobaboogaLocal.GetStreamingChatCompletionsAsync(history, new OobaboogaChatCompletionRequestSettings()
         {
             Temperature = 0.01,
-            MaxTokens = 7,
+            MaxNewTokens = 7,
             TopP = 0.1,
         });
 
@@ -156,7 +157,6 @@ public sealed class OobaboogaCompletionTests : IDisposable
         Assert.NotNull(localResponse);
         // Depends on the target LLM obviously, but most LLMs should propose an arbitrary surname preceded by a white space, including the start prompt or not
         // ie "  My name is" => " John (...)" or "  My name is" => " My name is John (...)".
-        // Here are a couple LLMs that were tested successfully: gpt2, aisquared_dlite-v1-355m, bigscience_bloomz-560m,  eachadea_vicuna-7b-1.1, TheBloke_WizardLM-30B-GPTQ etc.
         // A few will return an empty string, but well those shouldn't be used for integration tests.
         var expectedRegex = new Regex(@"\s\w+.*");
         Assert.Matches(expectedRegex, localResponse);

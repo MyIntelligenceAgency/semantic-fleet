@@ -15,7 +15,7 @@ public class MultiTextCompletionResult
     /// <summary>
     /// Initializes a new instance of the <see cref="MultiTextCompletionResult"/> class.
     /// </summary>
-    public MultiTextCompletionResult(SKContext result)
+    public MultiTextCompletionResult(KernelResult result)
     {
         this.Result = result;
     }
@@ -23,7 +23,7 @@ public class MultiTextCompletionResult
     /// <summary>
     /// The result of running a function or a plan
     /// </summary>
-    public SKContext Result { get; set; }
+    public KernelResult Result { get; set; }
 
     /// <summary>
     /// The effective cost of the completion according to parameters
