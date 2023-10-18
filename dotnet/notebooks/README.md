@@ -16,6 +16,7 @@ Ready to get started? Follow the setup and configuration steps below!
 - [Install .NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)
 - [Install Visual Studio Code (VS Code)](https://code.visualstudio.com)
 - [Install the "Polyglot" extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode)
+- [Install Oobabooga and run one or several models](../../docs/OOBABOOGA.md)
 
 ## Configuration
 
