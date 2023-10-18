@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.AI.TextCompletion;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
@@ -24,9 +25,6 @@ namespace SemanticKernel.IntegrationTests.Connectors.Oobabooga;
 /// </summary>
 public sealed class OobaboogaCompletionTests : IDisposable
 {
-    private const string Endpoint = "http://localhost";
-    private const int BlockingPort = 5000;
-    private const int StreamingPort = 5005;
     private const string Input = " My name is";
 
     private readonly IConfigurationRoot _configuration;
@@ -52,8 +50,12 @@ public sealed class OobaboogaCompletionTests : IDisposable
     [Fact(Skip = "This test is for manual verification.")]
     public async Task OobaboogaLocalTextCompletionAsync()
     {
-        var oobaboogaSettings = new OobaboogaTextCompletionSettings(endpoint: new Uri(Endpoint),
-            blockingPort: BlockingPort);
+        var oobaboogaConfiguration = this._configuration.GetSection("Oobabooga").Get<OobaboogaConnectorConfiguration>();
+
+        Assert.NotNull(oobaboogaConfiguration);
+
+        var oobaboogaSettings = new OobaboogaTextCompletionSettings(endpoint: new Uri(oobaboogaConfiguration!.EndPoint!),
+            blockingPort: oobaboogaConfiguration.BlockingPort);
 
         var oobaboogaLocal = new OobaboogaTextCompletion(oobaboogaSettings);
 
@@ -71,8 +73,12 @@ public sealed class OobaboogaCompletionTests : IDisposable
     [Fact(Skip = "This test is for manual verification.")]
     public async Task OobaboogaLocalTextCompletionStreamingAsync()
     {
-        var oobaboogaSettings = new OobaboogaTextCompletionSettings(endpoint: new Uri(Endpoint),
-            streamingPort: StreamingPort, webSocketFactory: this._webSocketFactory);
+        var oobaboogaConfiguration = this._configuration.GetSection("Oobabooga").Get<OobaboogaConnectorConfiguration>();
+
+        Assert.NotNull(oobaboogaConfiguration);
+
+        var oobaboogaSettings = new OobaboogaTextCompletionSettings(endpoint: new Uri(oobaboogaConfiguration!.EndPoint!),
+            streamingPort: oobaboogaConfiguration!.StreamingPort, webSocketFactory: this._webSocketFactory);
 
         var oobaboogaLocal = new OobaboogaTextCompletion(oobaboogaSettings);
 
@@ -97,8 +103,12 @@ public sealed class OobaboogaCompletionTests : IDisposable
     [Fact(Skip = "This test is for manual verification.")]
     public async Task OobaboogaLocalChatCompletionAsync()
     {
-        var oobaboogaSettings = new OobaboogaChatCompletionSettings(endpoint: new Uri(Endpoint),
-            blockingPort: BlockingPort);
+        var oobaboogaConfiguration = this._configuration.GetSection("Oobabooga").Get<OobaboogaConnectorConfiguration>();
+
+        Assert.NotNull(oobaboogaConfiguration);
+
+        var oobaboogaSettings = new OobaboogaChatCompletionSettings(endpoint: new Uri(oobaboogaConfiguration!.EndPoint!),
+            blockingPort: oobaboogaConfiguration.BlockingPort);
 
         var oobaboogaLocal = new OobaboogaChatCompletion(oobaboogaSettings);
 
@@ -119,9 +129,12 @@ public sealed class OobaboogaCompletionTests : IDisposable
     [Fact(Skip = "This test is for manual verification.")]
     public async Task OobaboogaLocalChatCompletionStreamingAsync()
     {
-        var oobaboogaSettings = new OobaboogaChatCompletionSettings(endpoint: new Uri(Endpoint),
-            blockingPort: BlockingPort,
-            streamingPort: StreamingPort, webSocketFactory: this._webSocketFactory);
+        var oobaboogaConfiguration = this._configuration.GetSection("Oobabooga").Get<OobaboogaConnectorConfiguration>();
+
+        Assert.NotNull(oobaboogaConfiguration);
+
+        var oobaboogaSettings = new OobaboogaChatCompletionSettings(endpoint: new Uri(oobaboogaConfiguration!.EndPoint!),
+            streamingPort: oobaboogaConfiguration.StreamingPort, webSocketFactory: this._webSocketFactory);
 
         var oobaboogaLocal = new OobaboogaChatCompletion(oobaboogaSettings);
 
@@ -143,7 +156,14 @@ public sealed class OobaboogaCompletionTests : IDisposable
             await foreach (var message in result.GetStreamingChatMessageAsync())
             {
                 stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"{message.Role}: {message.Content}");
-                chatMessage = message;
+                if (chatMessage is null)
+                {
+                    chatMessage = message;
+                }
+                else
+                {
+                    chatMessage.Content += message.Content;
+                }
             }
         }
 
