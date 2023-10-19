@@ -53,9 +53,9 @@ public class MultiCompletionAnalysisSettings : IDisposable
     {
         ExtensionData = new Dictionary<string, object>()
         {
-            { "MaxTokens", 1 },
-            { "Temperature", 0.0 },
-            { "ResultsPerPrompt", 1 }
+            { "MAX_TOKENS", 1 },
+            { "TEMPERATURE", 0.0 },
+            { "RESULTSPERPROMPT", 1 }
         }
     };
 
@@ -586,7 +586,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
                     if (this.TestsTemperatureTransform != null)
                     {
                         var temperatureUpdater = new SettingsUpdater<MultiCompletionRequestSettings>(session.CallJob.RequestSettings, MultiCompletionRequestSettings.CloneRequestSettings);
-                        var adjustedSettings = temperatureUpdater.ModifyIfChanged<double?>(settings => settings.Temperature, this.TestsTemperatureTransform, (settings, newTemp) => settings.Temperature = newTemp, out var settingChanged);
+                        var adjustedSettings = temperatureUpdater.ModifyIfChanged<double?>(settings => settings.TemperatureMulti, this.TestsTemperatureTransform, (settings, newTemp) => settings.TemperatureMulti = newTemp, out var settingChanged);
                         if (settingChanged)
                         {
                             session.CallJob = new CompletionJob(session.CallJob.Prompt, adjustedSettings);
@@ -606,7 +606,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
                     var connectorTest = ConnectorTest.Create(testJob, namedTextCompletion, result, duration, textCompletionCost);
                     connectorTests.Add(connectorTest);
 
-                    analysisJob.Logger?.LogDebug("Generated Test results for connector {0}, temperature: {1} duration: {2}\nTEST_PROMPT:\n{3}\nTEST_RESULT:\n{4}\n", connectorTest.ConnectorName, session.CallJob.RequestSettings.Temperature, connectorTest.Duration, analysisJob.Settings.GeneratePromptLog(session.CallJob.Prompt), analysisJob.Settings.GeneratePromptLog(connectorTest.Result));
+                    analysisJob.Logger?.LogDebug("Generated Test results for connector {0}, temperature: {1} duration: {2}\nTEST_PROMPT:\n{3}\nTEST_RESULT:\n{4}\n", connectorTest.ConnectorName, session.CallJob.RequestSettings.TemperatureMulti, connectorTest.Duration, analysisJob.Settings.GeneratePromptLog(session.CallJob.Prompt), analysisJob.Settings.GeneratePromptLog(connectorTest.Result));
                 }
                 catch (SKException exception)
                 {

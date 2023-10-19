@@ -78,8 +78,8 @@ public class MultiConnectorTestsBase : IDisposable
     {
         var requestSettings = new MultiCompletionRequestSettings()
         {
-            Temperature = 0,
-            MaxTokens = 10
+            TemperatureMulti = 0,
+            MaxTokensMulti = 10
         };
         var prompts = operations.Select(op => ArithmeticEngine.GeneratePrompt(op, operand1, operand2)).ToArray();
         return prompts.Select(p => new CompletionJob(p, requestSettings)).ToArray();

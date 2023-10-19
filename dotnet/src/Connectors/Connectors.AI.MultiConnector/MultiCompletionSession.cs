@@ -214,7 +214,7 @@ public class MultiCompletionSession
         var adjustedSettingsModifier = new SettingsUpdater<MultiCompletionRequestSettings>(adjustedSettings, MultiCompletionRequestSettings.CloneRequestSettings);
 
         bool valueChanged = false;
-        if (multiCompletionSession.NamedTextCompletion.MaxTokens != null && adjustedSettings.MaxTokens != null)
+        if (multiCompletionSession.NamedTextCompletion.MaxTokens != null && adjustedSettings.MaxTokensMulti != null)
         {
             int? ComputeMaxTokens(int? initialValue)
             {
@@ -243,21 +243,21 @@ public class MultiCompletionSession
                 return newMaxTokens;
             }
 
-            adjustedSettings = adjustedSettingsModifier.ModifyIfChanged(r => r.MaxTokens, ComputeMaxTokens, (setting, value) => setting.MaxTokens = value, out valueChanged);
+            adjustedSettings = adjustedSettingsModifier.ModifyIfChanged(r => r.MaxTokensMulti, ComputeMaxTokens, (setting, value) => setting.MaxTokensMulti = value, out valueChanged);
 
             if (valueChanged)
             {
-                multiCompletionSession.Logger?.LogDebug("Changed request max token from {0} to {1}", multiCompletionSession.InputJob.RequestSettings.MaxTokens?.ToString(CultureInfo.InvariantCulture) ?? "null", adjustedSettings.MaxTokens?.ToString(CultureInfo.InvariantCulture) ?? "null");
+                multiCompletionSession.Logger?.LogDebug("Changed request max token from {0} to {1}", multiCompletionSession.InputJob.RequestSettings.MaxTokensMulti?.ToString(CultureInfo.InvariantCulture) ?? "null", adjustedSettings.MaxTokensMulti?.ToString(CultureInfo.InvariantCulture) ?? "null");
             }
         }
 
         if (multiCompletionSession.NamedTextCompletion.TemperatureTransform != null)
         {
-            adjustedSettings = adjustedSettingsModifier.ModifyIfChanged<double?>(r => r.Temperature, multiCompletionSession.NamedTextCompletion.TemperatureTransform, (setting, value) => setting.Temperature = value, out valueChanged);
+            adjustedSettings = adjustedSettingsModifier.ModifyIfChanged<double?>(r => r.TemperatureMulti, multiCompletionSession.NamedTextCompletion.TemperatureTransform, (setting, value) => setting.TemperatureMulti = value, out valueChanged);
 
             if (valueChanged)
             {
-                multiCompletionSession.Logger?.LogDebug("Changed temperature from {0} to {1}", multiCompletionSession.InputJob.RequestSettings.Temperature, adjustedSettings.Temperature);
+                multiCompletionSession.Logger?.LogDebug("Changed temperature from {0} to {1}", multiCompletionSession.InputJob.RequestSettings.TemperatureMulti, adjustedSettings.TemperatureMulti);
             }
         }
 

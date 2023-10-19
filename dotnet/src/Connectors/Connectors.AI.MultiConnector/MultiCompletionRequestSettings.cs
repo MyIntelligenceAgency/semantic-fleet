@@ -18,7 +18,7 @@ public class MultiCompletionRequestSettings : AIRequestSettings
     /// Modulates the next token probabilities. A value of 0 implies deterministic output (only the most likely token is used). Higher values increase randomness.
     /// </summary>
     [JsonIgnore]
-    public double? Temperature
+    public double? TemperatureMulti
     {
         get
         {
@@ -41,11 +41,11 @@ public class MultiCompletionRequestSettings : AIRequestSettings
     /// The maximum number of tokens to generate, ignoring the number of tokens in the prompt.
     /// </summary>
     [JsonIgnore]
-    public int? MaxTokens
+    public int? MaxTokensMulti
     {
         get
         {
-            if (this.ExtensionData.TryGetValue("MAXTOKENS", out object? value))
+            if (this.ExtensionData.TryGetValue("MAX_TOKENS", out object? value))
             {
                 if (value is JsonElement jsonElement)
                 {
@@ -57,7 +57,7 @@ public class MultiCompletionRequestSettings : AIRequestSettings
 
             return null;
         }
-        set => this.ExtensionData["MAXTOKENS"] = value!;
+        set => this.ExtensionData["MAX_TOKENS"] = value!;
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public class MultiCompletionRequestSettings : AIRequestSettings
         var newSettings = new MultiCompletionRequestSettings();
         if (defaultMaxTokens != null)
         {
-            newSettings.ExtensionData["MAXTOKENS"] = defaultMaxTokens;
+            newSettings.ExtensionData["MAX_TOKENS"] = defaultMaxTokens;
         }
 
         if (requestSettings != null)
@@ -98,7 +98,7 @@ public class MultiCompletionRequestSettings : AIRequestSettings
                     switch (upperKey)
                     {
                         case "MAXNEWTOKENS":
-                            newSettings.ExtensionData["MAXTOKENS"] = pairValue;
+                            newSettings.ExtensionData["MAX_TOKENS"] = pairValue;
                             break;
                         default:
                             break;
