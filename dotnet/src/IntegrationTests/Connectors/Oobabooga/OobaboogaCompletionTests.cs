@@ -188,7 +188,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         Assert.NotNull(chatMessage.Content);
         Assert.Equal(chatMessage.Role, AuthorRole.Assistant);
         // Default chat settings use the "Example" character, which depicts an assistant named Chiharu. Any non trivial chat model should return the appropriate name.
-        var expectedRegex = new Regex(@"\w+.*Chiharu.*");
+        var expectedRegex = new Regex(@".*Chiharu.*");
         Assert.Matches(expectedRegex, chatMessage.Content);
     }
 

@@ -14,7 +14,7 @@
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.SemanticKernel" Version="1.0.0-beta2" />
+    <PackageVersion Include="Microsoft.SemanticKernel" Version="1.0.0-beta6" />
     <PackageVersion Include="MyIA.SemanticKernel.Connectors.AI.MultiConnector" Version="0.34.2" />
     <PackageVersion Include="MyIA.SemanticKernel.Connectors.AI.Oobabooga" Version="0.34.2" />
     <PackageVersion Include="NRedisStack" Version="0.9.0" />

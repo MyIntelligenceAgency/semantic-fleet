@@ -12,7 +12,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.ArithmeticMocks;
 /// <summary>
 /// Base class for arithmetic streaming results that implements the ITextStreamingResult interface.
 /// </summary>
-public abstract class ArithmeticStreamingResultBase : ITextStreamingResult
+public abstract class ArithmeticStreamingResultBase : ITextStreamingResult, ITextResult
 {
     private ModelResult? _modelResult;
 

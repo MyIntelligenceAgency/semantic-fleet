@@ -93,12 +93,12 @@ public sealed class MultiConnectorTests : IDisposable
     [InlineData(true, "TheBloke_Mistral-7B-OpenOrca-GGUF", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_Mistral-7B-OpenOrca-GGUF", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_Mistral-7B-OpenOrca-GGUF", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToSingleOobaboogaUsingFileAsync(bool succeedsOffloading, string completion, int nbTests, string planFile, string inputFile, string validationFile, params string[] skills)
     {
         // Load the plan from the provided file path
@@ -136,8 +136,8 @@ public sealed class MultiConnectorTests : IDisposable
     [Theory]
     //[InlineData("",  1, "medium", "SummarizeSkill", "MiscSkill")]
     //[InlineData("TheBloke_StableBeluga-13B-GGML", 1, "medium", "SummarizeSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
-    [InlineData(true, "TheBloke_Synthia-13B-v1.2-GGUF", 1, "medium", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
+    [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "medium", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToOobaboogaUsingPlannerAsync(bool succeedsOffloading, string completionName, int nbPromptTests, string difficulty, string inputFile, string validationFile, params string[] skillNames)
     {
         // Create a plan using SequentialPlanner based on difficulty
