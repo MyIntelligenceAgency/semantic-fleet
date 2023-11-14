@@ -424,7 +424,7 @@ public sealed class MultiConnectorTests : IDisposable
             return null;
         }
 
-        var builder = Kernel.Builder
+        var builder = new KernelBuilder()
             .WithLoggerFactory(this._testOutputHelper);
 
         builder.WithMultiConnectorCompletionService(
