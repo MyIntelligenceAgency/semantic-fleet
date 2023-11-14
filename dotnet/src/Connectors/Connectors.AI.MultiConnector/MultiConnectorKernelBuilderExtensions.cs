@@ -4,10 +4,7 @@ using System.Threading;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 
-#pragma warning disable IDE0130
-// ReSharper disable once CheckNamespace - Using NS of KernelConfig
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
-#pragma warning restore IDE0130
 
 /// <summary>
 /// Provides extension methods for the <see cref="KernelBuilder"/> class to configure a Multi connector completion.

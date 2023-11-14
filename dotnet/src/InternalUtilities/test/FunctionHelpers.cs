@@ -20,7 +20,7 @@ internal static class FunctionHelpers
         string methodName,
         params (string Name, string Value)[] variables)
     {
-        var kernel = Kernel.Builder.Build();
+        var kernel = new KernelBuilder().Build();
 
         IDictionary<string, ISKFunction> importedFunctions = kernel.ImportFunctions(skillInstance);
 
