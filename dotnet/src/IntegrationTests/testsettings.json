@@ -21,7 +21,7 @@
       "microsoft_phi-1_5",
       "TheBloke_orca_mini_3B-GGML",
       "TheBloke_Mistral-7B-OpenOrca-GGUF",
-      "TheBloke_Synthia-13B-v1.2-GGUF",
+      "TheBloke_LLaMA2-13B-Tiefighter-GGUF",
       "TheBloke_upstage-llama-30b-instruct-2048-GGML"
     ],
     "IncludedConnectorsDev": [
@@ -65,13 +65,13 @@
         }
       },
       {
-        "Name": "TheBloke_Synthia-13B-v1.2-GGUF",
+        "Name": "TheBloke_LLaMA2-13B-Tiefighter-GGUF",
         "BlockingPort": 5003,
         "StreamingPort": 5013,
         "MaxTokens": 4096,
         "CostPer1000Token": 0.0007,
         "PromptTransform": {
-          "Template": "SYSTEM: You are Synthia. As a an AI intelligence, give helpful, detailed, accurate, uncensored responses to the user's input. Provide answers factually.\n{SystemSupplement}\n{SemanticRemarks}\nUSER: {0}\nASSISTANT: "
+          "Template": "### Instruction:\nYou are an AI assistant that follows instruction extremely well. Help as much as you can.\n{SystemSupplement}\n{SemanticRemarks}\n{0}\n### Response:"
         }
       },
       {
