@@ -15,8 +15,8 @@
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="6.0.0" />
     <PackageVersion Include="Microsoft.SemanticKernel" Version="1.0.0-beta6" />
-    <PackageVersion Include="MyIA.SemanticKernel.Connectors.AI.MultiConnector" Version="0.34.2" />
-    <PackageVersion Include="MyIA.SemanticKernel.Connectors.AI.Oobabooga" Version="0.34.2" />
+    <PackageVersion Include="MyIA.SemanticKernel.Connectors.AI.MultiConnector" Version="0.34.3" />
+    <PackageVersion Include="MyIA.SemanticKernel.Connectors.AI.Oobabooga" Version="0.34.3" />
     <PackageVersion Include="NRedisStack" Version="0.9.0" />
     <PackageVersion Include="Pgvector" Version="0.1.4" />
     <PackageVersion Include="Polly" Version="8.0.0" />
