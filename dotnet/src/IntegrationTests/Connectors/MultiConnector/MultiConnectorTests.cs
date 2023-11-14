@@ -71,7 +71,7 @@ public sealed class MultiConnectorTests : IDisposable
     /// <summary>
     /// This test method uses a plan loaded from a file, an input text of a particular difficulty, and all models configured in settings file
     /// </summary>
-    [Theory]
+    [Theory(Skip = "This test is for manual verification.")]
     [InlineData(true, 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToMultipleOobaboogaUsingFileAsync(bool succeedsOffloading, int nbPromptTests, string planFileName, string inputTextFileName, string validationTextFileName, params string[] skillNames)
@@ -82,8 +82,7 @@ public sealed class MultiConnectorTests : IDisposable
     /// <summary>
     /// This test method uses a plan loaded from a file, together with an input text loaded from a file, and adds a single completion model from its name as configured in the settings file.
     /// </summary>
-    //[Theory(Skip = "This test is for manual verification.")]
-    [Theory]
+    [Theory(Skip = "This test is for manual verification.")]
     [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(false, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
@@ -133,7 +132,7 @@ public sealed class MultiConnectorTests : IDisposable
 
     // This test method uses the SequentialPlanner to create a plan based on difficulty
     //[Theory(Skip = "This test is for manual verification.")]
-    [Theory]
+    [Theory(Skip = "This test is for manual verification.")]
     //[InlineData("",  1, "medium", "SummarizeSkill", "MiscSkill")]
     //[InlineData("TheBloke_StableBeluga-13B-GGML", 1, "medium", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
