@@ -7,6 +7,19 @@
 
 Semantic-Fleet is a repository designed to extend the capabilities of [Semantic Kernel](https://github.com/microsoft/semantic-kernel). It focuses on providing connectors to small large language models (e.g. Llamas), and to provide tools for distributing work to a fleet of models, with ChatGPT serving as the captain of the fleet. This repository is more than just a collection of existing connectors; it's a platform for future innovations in the .NET ecosystem for AI.
 
+### 🚨 Important: Change in Compatibility with Oobabooga
+
+We would like to inform our users that due to recent changes in the Oobabooga API (see [commit 454fcf3 from 13/11/2023](https://github.com/oobabooga/text-generation-webui/commit/454fcf39a95691f5e375c48fbc6fe6aa96f0c738)), **any versions of Oobabooga beyond this commit will no longer be supported by `semantic-fleet`**.
+
+The designer of Oobabooga has replaced the traditional API with a new one modeled after OpenAI's API. Unfortunately, we have not yet had the opportunity to update our bridge to be compatible with these changes.
+
+We are actively working to ensure compatibility in future releases, but for now, we recommend our users to:
+
+1. **Avoid updating Oobabooga beyond the specified commit** if you wish to continue using `semantic-fleet` without interruption.
+2. Stay tuned for our future updates for the support of the new Oobabooga API.
+
+We appreciate your understanding and patience as we work through these changes.
+
 ## What's On Deck?
 
 ### 🤖 Oobabooga Connector
