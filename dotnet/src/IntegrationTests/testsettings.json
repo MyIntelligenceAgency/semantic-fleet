@@ -3,7 +3,24 @@
     "ServiceId": "text-davinci-003",
     "ModelId": "text-davinci-003",
     "ChatModelId": "gpt-3.5-turbo",
-    "ApiKey": ""
+    "ApiKey": "***REMOVED***"
+  },
+  "LocalModels": {
+    "Micro": {
+      "EndpointName": "Local Model - Micro",
+      "ApiKey": "32885271D7845A3839F1AE0274676D87",
+      "BaseUrl": "https://api.micro.text-generation-webui.myia.io/v1"
+    },
+    "Mini": {
+      "EndpointName": "Local Model - Mini",
+      "ApiKey": "0EO6JAQITAL2Q0LW0ZUVA55W3YNCX4W9",
+      "BaseUrl": "https://api.mini.text-generation-webui.myia.io/v1"
+    },
+    "Medium": {
+      "EndpointName": "Local Model - Medium",
+      "ApiKey": "X0EC4YYP068CPD5TGARP9VQB5U4MAGHY",
+      "BaseUrl": "https://api.medium.text-generation-webui.myia.io/v1"
+    }
   },
   "Oobabooga": {
     "BlockingPort": 5000,
@@ -25,13 +42,6 @@
       "TheBloke_upstage-llama-30b-instruct-2048-GGML"
     ],
     "IncludedConnectorsDev": [
-      // Use this property in your testsettings.development.json file, uncommenting the appropriate lines according to your multi-start configuration,
-      // This allows enabling and disabling secondary completions without altering the main testsettings.json file.
-      //"microsoft_phi-1_5",
-      //"TheBloke_orca_mini_3B-GGML",
-      //"TheBloke_Mistral-7B-OpenOrca-GGUF",
-      //"TheBloke_Synthia-13B-v1.2-GGUF",
-      //"TheBloke_upstage-llama-30b-instruct-2048-GGML"
     ],
     "OobaboogaCompletions": [
       {
@@ -76,7 +86,6 @@
       },
       {
         "Name": "TheBloke_upstage-llama-30b-instruct-2048-GGML",
-        //"EndPoint": "http://x.x.x.x", Most probably you won't host that model on the same machine as the tests runner and the rest of the models
         "BlockingPort": 5004,
         "StreamingPort": 5014,
         "MaxTokens": 2048,
