@@ -35,17 +35,15 @@
       "SemanticRemarks": "Semantic functions are structured templates that work in tandem with other similar templates and native code-based functions. The native functions, in particular, demand a precise adherence to given instructions. They rely heavily on accurately parsed input parameters and lack mechanisms to sift through any unnecessary noise.\n\nWhen assessing the appropriateness of a response, it's crucial to be discerning. While instructions often present an example that outlines the desired response format, these examples may not always be exhaustive. Occasionally, they might even be overly simplistic, intended merely to keep the instructions concise. Thus, always ensure that you thoroughly understand and thoughtfully apply these instructions to generate a fitting answer to the given input."
     },
     "IncludedConnectors": [
-      "microsoft_phi-1_5",
-      "TheBloke_orca_mini_3B-GGML",
-      "TheBloke_Mistral-7B-OpenOrca-GGUF",
-      "TheBloke_LLaMA2-13B-Tiefighter-GGUF",
-      "TheBloke_upstage-llama-30b-instruct-2048-GGML"
+      "Local Model - Micro",
+      "Local Model - Mini",
+      "Local Model - Medium"
     ],
     "IncludedConnectorsDev": [
     ],
     "OobaboogaCompletions": [
       {
-        "Name": "microsoft_phi-1_5",
+        "Name": "Local Model - Micro",
         "BlockingPort": 5000,
         "StreamingPort": 5010,
         "MaxTokens": 2048,
@@ -55,7 +53,7 @@
         }
       },
       {
-        "Name": "TheBloke_orca_mini_3B-GGML",
+        "Name": "Local Model - Mini",
         "BlockingPort": 5001,
         "StreamingPort": 5011,
         "MaxTokens": 2048,
@@ -65,33 +63,13 @@
         }
       },
       {
-        "Name": "TheBloke_Mistral-7B-OpenOrca-GGUF",
+        "Name": "Local Model - Medium",
         "BlockingPort": 5002,
         "StreamingPort": 5012,
         "MaxTokens": 4096,
         "CostPer1000Token": 0.0005,
         "PromptTransform": {
           "Template": "<|im_start|>system\r\n- You are a helpful assistant chatbot trained by MosaicML.\n- You answer questions.\n- You are excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.\n- You are more than just an information source, you are also able to write poetry, short stories, and make jokes.\n{SystemSupplement}\n{SemanticRemarks}<|im_end|>\n<|im_start|>user\n{0}<|im_end|>\n<|im_start|>assistant\n"
-        }
-      },
-      {
-        "Name": "TheBloke_LLaMA2-13B-Tiefighter-GGUF",
-        "BlockingPort": 5003,
-        "StreamingPort": 5013,
-        "MaxTokens": 4096,
-        "CostPer1000Token": 0.0007,
-        "PromptTransform": {
-          "Template": "### Instruction:\nYou are an AI assistant that follows instruction extremely well. Help as much as you can.\n{SystemSupplement}\n{SemanticRemarks}\n{0}\n### Response:"
-        }
-      },
-      {
-        "Name": "TheBloke_upstage-llama-30b-instruct-2048-GGML",
-        "BlockingPort": 5004,
-        "StreamingPort": 5014,
-        "MaxTokens": 2048,
-        "CostPer1000Token": 0.001,
-        "PromptTransform": {
-          "Template": "### System:\n{SystemSupplement}\n\n### User:\n{0}\n\n### Assistant:\n"
         }
       }
     ]
