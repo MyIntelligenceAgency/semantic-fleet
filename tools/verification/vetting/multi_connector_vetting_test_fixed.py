@@ -540,7 +540,7 @@ async def main():
     Point d'entrée principal
     """
     # Clé API OpenAI
-    api_key = "***REMOVED***"
+    api_key = "YOUR_OPENAI_API_KEY"
     
     # Modèles à tester
     primary_model = "gpt-4o"  # Modèle principal pour le vetting
@@ -566,3 +566,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+

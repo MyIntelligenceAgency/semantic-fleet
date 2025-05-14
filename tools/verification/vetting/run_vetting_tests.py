@@ -7,7 +7,7 @@ async def main():
     Point d'entrée principal pour l'exécution des tests de vetting automatique
     """
     parser = argparse.ArgumentParser(description="Tests du MultiConnector avec vetting automatique")
-    parser.add_argument("--api-key", default="***REMOVED***", 
+    parser.add_argument("--api-key", default="YOUR_OPENAI_API_KEY", 
                         help="Clé API OpenAI")
     parser.add_argument("--primary-model", default="gpt-4o", 
                         help="Modèle principal pour le vetting")

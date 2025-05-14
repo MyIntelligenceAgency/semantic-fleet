@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 
 # Configuration de l'API OpenAI
-API_KEY = "***REMOVED***"
+API_KEY = "YOUR_OPENAI_API_KEY"
 BASE_URL = "https://api.openai.com/v1"
 
 # Modèles à tester
@@ -628,3 +628,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

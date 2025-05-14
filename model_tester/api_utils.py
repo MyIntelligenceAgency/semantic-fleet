@@ -7,7 +7,7 @@ from typing import Dict, List, Any, Optional, Tuple
 # Configuration des APIs
 API_CONFIGS = {
     "openai": {
-        "api_key": os.environ.get("OPENAI_API_KEY", "***REMOVED***"),
+        "api_key": os.environ.get("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY"),
         "base_url": "https://api.openai.com/v1"
     },
     "micro": {
