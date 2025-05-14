@@ -7,7 +7,7 @@ from typing import Dict, List, Any, Optional, Tuple
 # Configuration des APIs
 API_CONFIGS = {
     "openai": {
-        "api_key": "***REMOVED***",
+        "api_key": os.environ.get("OPENAI_API_KEY", "***REMOVED***"),
         "base_url": "https://api.openai.com/v1"
     },
     "micro": {
@@ -93,7 +93,11 @@ def complete_prompt(
         Tuple contenant (réponse, temps_d'exécution, nombre_de_tokens)
     """
     # Vérifier si le modèle est un modèle de chat (GPT-4o, GPT-4o-mini, O3, O4-mini)
-    chat_models = ["gpt-4o", "gpt-4o-mini", "o3", "o4-mini"]
+    chat_models = [
+        "gpt-4o", "gpt-4o-mini",
+        "o3", "o3-2025-04-16", "o3-mini", "o3-mini-2025-01-31",
+        "o4-mini", "o4-mini-2025-04-16"
+    ]
     is_chat_model = any(model.lower().startswith(cm.lower()) for cm in chat_models)
     
     if is_chat_model:
@@ -167,15 +171,26 @@ def complete_chat(
         "Content-Type": "application/json"
     }
     
-    data = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        "max_tokens": max_tokens,
-        "temperature": temperature
-    }
+    # Paramètres spécifiques pour les modèles o3 et o4-mini
+    if "o3" in model.lower() or "o4" in model.lower():
+        data = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": temperature
+        }
+    else:
+        data = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": max_tokens,
+            "temperature": temperature
+        }
     
     start_time = time.time()
     try:

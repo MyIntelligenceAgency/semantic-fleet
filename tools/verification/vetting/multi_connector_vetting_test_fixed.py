@@ -399,7 +399,7 @@ class MultiConnectorTester:
                         model_results["summary"]["scores_by_difficulty"][diff] = round(data["total"] / data["count"], 2)
         
         # Sauvegarder les résultats
-        self._save_results(results, "multi_connector_vetting_results_fixed.json")
+        self._save_results(results, "vetting_tests/multi_connector_vetting_results_fixed.json")
         
         return results
     
@@ -416,7 +416,7 @@ class MultiConnectorTester:
             json.dump(results, f, indent=2, ensure_ascii=False)
         print(f"Résultats sauvegardés dans {filepath}")
     
-    def generate_report(self, results_file: str = "multi_connector_vetting_results_fixed.json") -> str:
+    def generate_report(self, results_file: str = "vetting_tests/multi_connector_vetting_results_fixed.json") -> str:
         """
         Génère un rapport détaillé à partir des résultats.
         
@@ -527,7 +527,7 @@ class MultiConnectorTester:
         report += "Pour utiliser ces modèles dans le MultiConnector, il est nécessaire d'adapter les paramètres de requête en fonction de ces contraintes.\n"
         
         # Sauvegarder le rapport
-        report_filepath = os.path.join(self.output_dir, "rapport_vetting_fixed.md")
+        report_filepath = os.path.join(self.output_dir, "reports/vetting_reports/rapport_vetting_fixed.md")
         with open(report_filepath, "w", encoding="utf-8") as f:
             f.write(report)
         

@@ -462,7 +462,7 @@ def calculate_vetting_scores(results: Dict[str, Any], primary_model: str = "gpt-
     
     return results
 
-def save_results(results: Dict[str, Any], filename: str = "transparent_test_results.json") -> None:
+def save_results(results: Dict[str, Any], filename: str = "transparent_tests/transparent_test_results.json") -> None:
     """
     Sauvegarde les résultats dans un fichier JSON
     
@@ -568,7 +568,7 @@ def generate_report(results: Dict[str, Any]) -> str:
         report += "- Vérifier les permissions de la clé API pour ce modèle\n\n"
     
     # Sauvegarder le rapport
-    report_filepath = os.path.join("../results", "rapport_test_transparent.md")
+    report_filepath = os.path.join("../results", "reports/transparent_reports/rapport_test_transparent.md")
     with open(report_filepath, "w", encoding="utf-8") as f:
         f.write(report)
     
