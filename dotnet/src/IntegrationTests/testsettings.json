@@ -5,6 +5,29 @@
     "ChatModelId": "gpt-3.5-turbo",
     "ApiKey": ""
   },
+  "OpenRouter": {
+    "ServiceId": "openrouter",
+    "ApiKey": "",
+    "BaseUrl": "https://openrouter.ai/api/v1",
+    "Models": {
+      "ClaudeSonnet": {
+        "ModelId": "anthropic/claude-3-sonnet-20240229",
+        "ChatModelId": "anthropic/claude-3-sonnet-20240229"
+      },
+      "GeminiPro": {
+        "ModelId": "google/gemini-pro-1.5",
+        "ChatModelId": "google/gemini-pro-1.5"
+      },
+      "Qwen72B": {
+        "ModelId": "qwen/qwen-72b",
+        "ChatModelId": "qwen/qwen-72b"
+      },
+      "QwenChat": {
+        "ModelId": "qwen/qwen-chat",
+        "ChatModelId": "qwen/qwen-chat"
+      }
+    }
+  },
   "Oobabooga": {
     "BlockingPort": 5000,
     "StreamingPort": 5010,
@@ -24,15 +47,7 @@
       "TheBloke_LLaMA2-13B-Tiefighter-GGUF",
       "TheBloke_upstage-llama-30b-instruct-2048-GGML"
     ],
-    "IncludedConnectorsDev": [
-      // Use this property in your testsettings.development.json file, uncommenting the appropriate lines according to your multi-start configuration,
-      // This allows enabling and disabling secondary completions without altering the main testsettings.json file.
-      //"microsoft_phi-1_5",
-      //"TheBloke_orca_mini_3B-GGML",
-      //"TheBloke_Mistral-7B-OpenOrca-GGUF",
-      //"TheBloke_Synthia-13B-v1.2-GGUF",
-      //"TheBloke_upstage-llama-30b-instruct-2048-GGML"
-    ],
+    "IncludedConnectorsDev": [],
     "OobaboogaCompletions": [
       {
         "Name": "microsoft_phi-1_5",
@@ -76,7 +91,6 @@
       },
       {
         "Name": "TheBloke_upstage-llama-30b-instruct-2048-GGML",
-        //"EndPoint": "http://x.x.x.x", Most probably you won't host that model on the same machine as the tests runner and the rest of the models
         "BlockingPort": 5004,
         "StreamingPort": 5014,
         "MaxTokens": 2048,
