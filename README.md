@@ -3,89 +3,102 @@
 [![Oobabooga Connector Nuget package](https://img.shields.io/nuget/vpre/MyIA.SemanticKernel.Connectors.AI.Oobabooga?label=nuget%20Oobabooga%20Connector)](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Oobabooga/)
 [![Multiconnector Nuget package](https://img.shields.io/nuget/vpre/MyIA.SemanticKernel.Connectors.AI.MultiConnector?label=nuget%20MultiConnector)](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.MultiConnector/)
 
-## Overview
+## Vue d'ensemble
 
-Semantic-Fleet is a repository designed to extend the capabilities of [Semantic Kernel](https://github.com/microsoft/semantic-kernel). It focuses on providing connectors to small large language models (e.g. Llamas), and to provide tools for distributing work to a fleet of models, with ChatGPT serving as the captain of the fleet. This repository is more than just a collection of existing connectors; it's a platform for future innovations in the .NET ecosystem for AI.
+Semantic-Fleet est un dépôt conçu pour étendre les capacités de [Semantic Kernel](https://github.com/microsoft/semantic-kernel). Il se concentre sur la fourniture de connecteurs pour les petits modèles de langage (par exemple, Llamas) et d'outils pour distribuer le travail à une flotte de modèles, avec ChatGPT servant de capitaine de la flotte. Ce dépôt est plus qu'une simple collection de connecteurs existants ; c'est une plateforme pour les innovations futures dans l'écosystème .NET pour l'IA.
 
-### 🚨 Important: Change in Compatibility with Oobabooga
+### 🚨 Important : Changement de compatibilité avec Oobabooga
 
-We would like to inform our users that due to recent changes in the Oobabooga API (see [commit 454fcf3 from 13/11/2023](https://github.com/oobabooga/text-generation-webui/commit/454fcf39a95691f5e375c48fbc6fe6aa96f0c738)), **any versions of Oobabooga beyond this commit will no longer be supported by `semantic-fleet`**.
+Nous souhaitons informer nos utilisateurs qu'en raison de récents changements dans l'API Oobabooga (voir [commit 454fcf3 du 13/11/2023](https://github.com/oobabooga/text-generation-webui/commit/454fcf39a95691f5e375c48fbc6fe6aa96f0c738)), **toutes les versions d'Oobabooga au-delà de ce commit ne seront plus prises en charge par `semantic-fleet`**.
 
-The designer of Oobabooga has replaced the traditional API with a new one modeled after OpenAI's API. Unfortunately, we have not yet had the opportunity to update our bridge to be compatible with these changes.
+Le concepteur d'Oobabooga a remplacé l'API traditionnelle par une nouvelle API modelée sur celle d'OpenAI. Malheureusement, nous n'avons pas encore eu l'occasion de mettre à jour notre pont pour être compatible avec ces changements.
 
-We are actively working to ensure compatibility in future releases, but for now, we recommend our users to:
+Nous travaillons activement pour assurer la compatibilité dans les futures versions, mais pour l'instant, nous recommandons à nos utilisateurs de :
 
-1. **Avoid updating Oobabooga beyond the specified commit** if you wish to continue using `semantic-fleet` without interruption.
-2. Stay tuned for our future updates for the support of the new Oobabooga API.
+1. **Éviter de mettre à jour Oobabooga au-delà du commit spécifié** si vous souhaitez continuer à utiliser `semantic-fleet` sans interruption.
+2. Restez à l'écoute de nos futures mises à jour pour le support de la nouvelle API Oobabooga.
 
-We appreciate your understanding and patience as we work through these changes.
+Nous apprécions votre compréhension et votre patience pendant que nous travaillons sur ces changements.
 
-## What's On Deck?
+## Composants principaux
 
-### 🤖 Oobabooga Connector
+### 🤖 Connecteur Oobabooga
 
-A robust connector that currently covers the main Oobabooga's specific blocking and streaming completion and chat APIs. 
+Un connecteur robuste qui couvre actuellement les principales API de complétion et de chat spécifiques à Oobabooga, en mode bloquant et streaming.
 
-📖 **Learn More**: 
-- [Installing Oobabooga and Configuring Multi-Start Scripts](./docs/OOBABOOGA.md)
-- [Oobabooga Connector Guide](./dotnet/src/Connectors/Connectors.AI.Oobabooga/README.md)
-- Don't forget to check-out [notebooks](./dotnet/notebooks/README.md). They provide a great overview of what's possible with our published connectors.
+📖 **En savoir plus** : 
+- [Installation d'Oobabooga et configuration des scripts Multi-Start](./docs/OOBABOOGA.md)
+- [Guide du connecteur Oobabooga](./dotnet/src/Connectors/Connectors.AI.Oobabooga/README.md)
+- N'oubliez pas de consulter les [notebooks](./dotnet/notebooks/README.md). Ils fournissent un excellent aperçu de ce qui est possible avec nos connecteurs publiés.
 
 #### Installation
 
-Install the package via NuGet:
+Installez le package via NuGet :
 
 ```bash
 dotnet add package MyIA.SemanticKernel.Connectors.AI.Oobabooga
 ```
 
-In .Net interactive :
+Dans .Net interactive :
 
 ```csharp
 #r "nuget: MyIA.SemanticKernel.Connectors.AI.Oobabooga"
 ```
 
+#### Démarrage rapide
 
-#### Quick Start
-
-Different settings are used for text and chat completion, both in blocking and streaming modes. Here's a quick example for text completion:
+Des paramètres différents sont utilisés pour la complétion de texte et de chat, à la fois en mode bloquant et en streaming. Voici un exemple rapide pour la complétion de texte :
 
 ```csharp
 var settings = new OobaboogaTextCompletionSettings(endpoint: new Uri("http://localhost/"),  blockingPort: 5000, streamingPort: 5005);
 var oobabooga = new OobaboogaTextCompletion(settings);
 
-// Get text completions
+// Obtenir des complétions de texte
 var completions = await oobabooga.GetCompletionsAsync("Hello, world!", new OobaboogaCompletionRequestSettings());
 ```
 
 ### 🌐 MultiConnector
  
-Why stick to one when you can have many? MultiConnector lets you integrate multiple LLMs seamlessly, optimizing for speed and cost. It intelligently offloads tasks from a primary, more expensive connector to a secondary, more cost-effective one without sacrificing reliability nor performance.
+Pourquoi se limiter à un seul modèle quand on peut en avoir plusieurs ? MultiConnector vous permet d'intégrer plusieurs LLMs de manière transparente, en optimisant la vitesse et le coût. Il décharge intelligemment les tâches d'un connecteur principal, plus coûteux, vers un connecteur secondaire, plus économique, sans sacrifier la fiabilité ni les performances.
 
-📖 **Learn More**: [MultiConnector Guide](./dotnet/src/IntegrationTests/Connectors/MultiConnector/README.md)
+📖 **En savoir plus** : 
+- [Guide du MultiConnector](./dotnet/src/Connectors/Connectors.AI.MultiConnector/README.md)
+- [Cartographie des fonctionnalités](./docs/MultiConnector_Cartographie.md)
+- [Optimisations récentes](./docs/MultiConnector_Optimizations.md)
+- [Guide d'intégration des petits modèles](./docs/SMALL_MODELS_INTEGRATION.md)
+- [Tests d'intégration](./dotnet/src/IntegrationTests/Connectors/MultiConnector/README.md)
+
+#### Documentation des composants du MultiConnector
+
+Le MultiConnector est composé de plusieurs sous-systèmes, chacun documenté en détail :
+
+- [Système d'analyse](./dotnet/src/Connectors/Connectors.AI.MultiConnector/Analysis/README.md) - Évaluation automatique des performances des modèles
+- [Système de gestion des prompts](./dotnet/src/Connectors/Connectors.AI.MultiConnector/PromptSettings/README.md) - Transformation et adaptation des prompts
+- [Mocks arithmétiques](./dotnet/src/Connectors/Connectors.AI.MultiConnector/ArithmeticMocks/README.md) - Simulations pour les tests
+- [Configuration](./dotnet/src/Connectors/Connectors.AI.MultiConnector/Configuration/README.md) - Gestion des paramètres des connecteurs
 
 #### Installation
 
-Install the package via NuGet:
+Installez le package via NuGet :
 
 ```bash
 dotnet add package MyIA.SemanticKernel.Connectors.AI.MultiConnector
 ```
 
-In .Net interactive :
+Dans .Net interactive :
 
 ```csharp
-#r "nuget: MyIA.SemanticKernel.Connectors.AI.MultiConnector
+#r "nuget: MyIA.SemanticKernel.Connectors.AI.MultiConnector"
 ```
 
-#### Quick Start
+#### Démarrage rapide
 
-Multiconnector has many settings controlling how to route text completion calls, and how to autmatically sample completions from a primary connector, test, evaluate and update the routing settings to use secondary connectors.
+Le MultiConnector dispose de nombreux paramètres contrôlant la façon de router les appels de complétion de texte, et comment échantillonner automatiquement les complétions d'un connecteur principal, tester, évaluer et mettre à jour les paramètres de routage pour utiliser des connecteurs secondaires.
 
 ```csharp
 var settings = new MultiTextCompletionSettings();
 
-// (...) Creating a primary openAiNamedCompletion and secondary  oobaboogaCompletions
+// (...) Création d'un openAiNamedCompletion principal et de oobaboogaCompletions secondaires
 
 var builder = Microsoft.SemanticKernel.Kernel.Builder;
 
@@ -99,47 +112,51 @@ builder.WithMultiConnectorCompletionService(
 
 var kernel = builder.Build();
 
-// Get text completion from primary connector first
- var result = await kernel.RunAsync(semanticFunctionOrPlan, contextVariables, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
+// Obtenir une complétion de texte du connecteur principal d'abord
+var result = await kernel.RunAsync(semanticFunctionOrPlan, contextVariables, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
 
- // (...) Peform analysis manually or automatically depending on settings
+// (...) Effectuer une analyse manuellement ou automatiquement selon les paramètres
 
-// Get text completion from secondary connectors
- var optimizedResult = await kernel.RunAsync(semanticFunctionOrPlan, contextVariables, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
-
+// Obtenir une complétion de texte des connecteurs secondaires
+var optimizedResult = await kernel.RunAsync(semanticFunctionOrPlan, contextVariables, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
 ```
 
-For a detailed overview of how to fill the gaps, please refer to the notebooks and integration tests.
-
+Pour un aperçu détaillé de la façon de combler les lacunes, veuillez vous référer aux notebooks et aux tests d'intégration.
 
 ## 📚 Notebooks
 
-Want a overview of what's possible with our published connectors? 
-Our .Net interactive notebooks are a great place to start.
+Vous voulez un aperçu de ce qui est possible avec nos connecteurs publiés ? 
+Nos notebooks .Net interactive sont un excellent point de départ.
 
-📖 **Learn More**: [Notebooks Guide](./dotnet/notebooks/README.md)
+📖 **En savoir plus** : [Guide des notebooks](./dotnet/notebooks/README.md)
 
-## Future Directions
+## 🧪 Tests et évaluation
 
-- **Open AI API**: Oobabooga offers a dedicated extension mimicking Open AI API. It extends support to embeddings and image generation models. This will be available as a separate package.
-- **Probabilistic MultiConnector**: We will be adding some Infer.Net magic to make MultiConnector even smarter. More specifically, the following examples will be merged and integrated into the model vetting process.
+Le projet comprend plusieurs outils pour tester et évaluer les performances des modèles :
+
+- [Tests comparatifs des modèles](./model_tester/README.md) - Scripts pour comparer les performances des différents modèles
+- [Campagne de tests avancés](./campaign_tests/README.md) - Outils pour exécuter des campagnes de tests complètes
+
+## Orientations futures
+
+- **API Open AI** : Oobabooga offre une extension dédiée imitant l'API Open AI. Elle étend le support aux modèles d'embeddings et de génération d'images. Cela sera disponible en tant que package séparé.
+- **MultiConnector probabiliste** : Nous ajouterons de la magie Infer.Net pour rendre MultiConnector encore plus intelligent. Plus précisément, les exemples suivants seront fusionnés et intégrés dans le processus de validation des modèles.
    - [Student Skills](https://dotnet.github.io/infer/userguide/Student%20skills.html)
    - [Assessing People's Skills](https://mbmlbook.com/LearningSkills.html)
    - [Difficulty vs Ability](https://dotnet.github.io/infer/userguide/Difficulty%20versus%20ability.html)
    - [Calibrating reviews](https://dotnet.github.io/infer/userguide/Calibrating%20reviews%20of%20conference%20submissions.html)  
-- **Spark.Net Integration**: Get ready to host a cluster of mini local LLMs.
+- **Intégration Spark.Net** : Préparez-vous à héberger un cluster de mini LLMs locaux.
 
-## NuGet Packages 
+## Packages NuGet 
 
-We'll be providing NuGet packages for both the Oobabooga Connector and MultiConnector for easier integration into your projects.
+Nous fournissons des packages NuGet pour le connecteur Oobabooga et le MultiConnector pour une intégration plus facile dans vos projets.
 
-Here is the [Nuget Package for Oobabooga connector](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Oobabooga/)
+Voici le [package Nuget pour le connecteur Oobabooga](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Oobabooga/)
 
-And here is the [Nuget Package for Multiconnector](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Multiconnector/)
+Et voici le [package Nuget pour le Multiconnector](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Multiconnector/)
 
+## 🤝 Contribuer
 
-## 🤝 Contributing
+Vous avez quelque chose à ajouter ? Nous serions ravis de le voir. Consultez nos [directives de contribution](./CONTRIBUTING.md).
 
-Got something to add? We'd love to see it. Check out our [contributing guidelines](./CONTRIBUTING.md).
-
-Got something you'd like to get added? Do you want those future features already? We'd love you to [get in touch](https://github.com/MyIntelligenceAgency) !
+Vous avez quelque chose que vous aimeriez voir ajouté ? Vous voulez déjà ces fonctionnalités futures ? Nous serions ravis que vous [nous contactiez](https://github.com/MyIntelligenceAgency) !
