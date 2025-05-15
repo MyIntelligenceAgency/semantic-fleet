@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Script de test transparent pour les modèles OpenAI
+Script de test transparent pour les modèles OpenAI et OpenRouter
 Ce script permet d'observer directement les prompts et les réponses des différents modèles,
-y compris O3 et O4-mini qui ont généré des erreurs 400 lors des tests précédents.
+et d'exécuter des tests avec les modèles réels configurés via OpenAI et OpenRouter.
 """
 
 import os
@@ -11,21 +11,51 @@ import json
 import time
 import requests
 import asyncio
+import argparse
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
+from dotenv import load_dotenv
 
-# Configuration de l'API OpenAI
-API_KEY = "YOUR_OPENAI_API_KEY"
-BASE_URL = "https://api.openai.com/v1"
+# Chargement des variables d'environnement
+load_dotenv()
+
+# Configuration des APIs
+API_CONFIGS = {
+    "openai": {
+        "api_key": os.environ.get("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY"),
+        "base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    },
+    "openrouter": {
+        "api_key": os.environ.get("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY"),
+        "base_url": os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    }
+}
+
+# Configuration par défaut (OpenAI)
+API_KEY = API_CONFIGS["openai"]["api_key"]
+BASE_URL = API_CONFIGS["openai"]["base_url"]
 
 # Modèles à tester
 MODELS_TO_TEST = [
+    # Modèles OpenAI
     "gpt-4o",           # modèle principal
     "gpt-4o-mini",
     "gpt-3.5-turbo",
-    "o3",               # vérifier pourquoi ce modèle a généré une erreur 400
-    "o4-mini",          # vérifier pourquoi ce modèle a généré une erreur 400
-    "gpt-4"
+    
+    # Modèles O3 et O4-mini (à tester)
+    "o3",
+    "o4-mini",
+    
+    # Modèles via OpenRouter
+    "anthropic/claude-3.7-sonnet",         # Claude 3.7 Sonnet
+    "google/gemini-pro-1.5",               # Gemini 2.5 Pro
+    
+    # Modèles Qwen via OpenRouter
+    "qwen/qwen3-1.7b",                     # Qwen 3 1.7B
+    "qwen/qwen3-8b",                       # Qwen 3 8B
+    "qwen/qwen3-14b",                      # Qwen 3 14B
+    "qwen/qwen3-30b-a3b",                  # Qwen 3 30B A3B
+    "qwen/qwen3-32b"                       # Qwen 3 32B
 ]
 
 # Variantes de noms à tester pour O3 et O4-mini
@@ -74,6 +104,53 @@ TEST_PROMPTS = [
     }
 ]
 
+# Prompts supplémentaires pour les tests avec les modèles réels
+REAL_MODEL_PROMPTS = [
+    {
+        "category": "summarization",
+        "difficulty": "simple",
+        "prompt": "Résume le texte suivant en 3 phrases: 'Le réchauffement climatique est l'augmentation à long terme de la température moyenne du système climatique de la Terre. C'est un aspect majeur du changement climatique, démontré par des mesures directes de température et par divers effets du réchauffement. Le terme désigne généralement le réchauffement observé depuis le début du 20e siècle, résultant en grande partie des émissions de gaz à effet de serre dues aux activités humaines.'"
+    },
+    {
+        "category": "summarization",
+        "difficulty": "complexe",
+        "prompt": "Résume cet article scientifique en 5 points clés: 'L'intelligence artificielle (IA) a connu des avancées significatives ces dernières années, notamment grâce aux progrès dans l'apprentissage profond. Les modèles de langage de grande taille (LLM) comme GPT-4 et Claude ont démontré des capacités impressionnantes dans la compréhension et la génération de texte. Cependant, ces systèmes présentent également des défis importants en termes d'explicabilité, de biais et d'alignement avec les valeurs humaines. Les chercheurs travaillent activement sur ces problèmes pour développer des systèmes d'IA plus sûrs et plus fiables. L'avenir de l'IA dépendra de notre capacité à résoudre ces défis tout en exploitant le potentiel de cette technologie pour améliorer la vie humaine.'"
+    },
+    {
+        "category": "classification",
+        "difficulty": "simple",
+        "prompt": "Classifie le texte suivant comme positif, négatif ou neutre: 'Le nouveau restaurant du quartier offre une cuisine délicieuse et un service impeccable.'"
+    },
+    {
+        "category": "classification",
+        "difficulty": "complexe",
+        "prompt": "Classifie le texte suivant selon les catégories suivantes: politique, économie, science, technologie, culture ou sport: 'Les récentes avancées en intelligence artificielle soulèvent des questions éthiques importantes concernant la vie privée et l'emploi, alors que les entreprises technologiques continuent d'investir massivement dans ce domaine en pleine expansion.'"
+    },
+    {
+        "category": "writing",
+        "difficulty": "simple",
+        "prompt": "Écris un email de remerciement à un collègue qui t'a aidé sur un projet."
+    },
+    {
+        "category": "writing",
+        "difficulty": "complexe",
+        "prompt": "Rédige une lettre de motivation pour un poste d'ingénieur logiciel dans une entreprise spécialisée en intelligence artificielle, en mettant en avant tes compétences en apprentissage automatique et en développement de systèmes distribués."
+    },
+    {
+        "category": "chat",
+        "difficulty": "simple",
+        "prompt": "Quelle est la capitale de la France?"
+    },
+    {
+        "category": "chat",
+        "difficulty": "complexe",
+        "prompt": "Explique-moi les différences entre l'apprentissage supervisé, non supervisé et par renforcement en intelligence artificielle."
+    }
+]
+
+# Combiner les prompts pour les tests
+ALL_TEST_PROMPTS = TEST_PROMPTS + REAL_MODEL_PROMPTS
+
 def get_available_models() -> List[Dict[str, Any]]:
     """
     Récupère la liste des modèles disponibles via l'API OpenAI
@@ -105,7 +182,8 @@ def test_model_completion(
     max_tokens: int = 2000,
     temperature: float = 0.7,
     is_chat_model: bool = True,
-    verbose: bool = True
+    verbose: bool = True,
+    provider: str = "openai"  # Par défaut, utilise OpenAI
 ) -> Dict[str, Any]:
     """
     Teste un modèle avec un prompt donné et affiche les détails de la requête et de la réponse
@@ -121,25 +199,37 @@ def test_model_completion(
     Returns:
         Dictionnaire contenant les résultats du test
     """
+    # Déterminer le provider en fonction du modèle
+    if any(provider in model.lower() for provider in ["anthropic", "claude", "google", "gemini", "qwen"]):
+        provider = "openrouter"
+    
+    # Configurer l'API en fonction du provider
+    api_key = API_CONFIGS[provider]["api_key"]
+    base_url = API_CONFIGS[provider]["base_url"]
+    
     headers = {
-        "Authorization": f"Bearer {API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     
+    # Ajouter les en-têtes spécifiques à OpenRouter si nécessaire
+    if provider == "openrouter":
+        headers["HTTP-Referer"] = "https://semantic-fleet.myia.io"
+        headers["X-Title"] = "Semantic Fleet Model Tester"
+    
     # Préparer les données de la requête
     if is_chat_model:
-        endpoint = f"{BASE_URL}/chat/completions"
+        endpoint = f"{base_url}/chat/completions"
         
         # Tester différentes configurations pour O3 et O4-mini
         if "o3" in model.lower() or "o4" in model.lower():
-            # Essayer sans max_tokens pour O3 et O4-mini
+            # Pour O3 et O4-mini, ne pas utiliser le paramètre temperature
             data = {
                 "model": model,
                 "messages": [
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": prompt}
-                ],
-                "temperature": temperature
+                ]
             }
         else:
             data = {
@@ -152,7 +242,7 @@ def test_model_completion(
                 "temperature": temperature
             }
     else:
-        endpoint = f"{BASE_URL}/completions"
+        endpoint = f"{base_url}/completions"
         data = {
             "model": model,
             "prompt": prompt,
@@ -414,12 +504,52 @@ def calculate_vetting_scores(results: Dict[str, Any], primary_model: str = "gpt-
     """
     print("\n" + "="*80)
     print("CALCUL DES SCORES DE VETTING")
+def generate_test_data(output_dir: str) -> None:
+    """
+    Génère des données de test pour les différents niveaux de complexité.
+    
+    Args:
+        output_dir: Répertoire de sortie pour les données de test
+    """
+    print("\n" + "="*80)
+    print("GÉNÉRATION DES DONNÉES DE TEST")
     print("="*80)
     
-    # Vérifier que le modèle principal existe dans les résultats
-    if primary_model not in results["results_by_model"]:
-        print(f"❌ Le modèle principal {primary_model} n'est pas dans les résultats")
-        return results
+    # Créer le répertoire de sortie s'il n'existe pas
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Générer des données pour chaque niveau de complexité
+    complexity_levels = ['Trivial', 'Simple', 'Medium', 'Hard']
+    
+    for complexity in complexity_levels:
+        # Filtrer les prompts par niveau de complexité
+        prompts = []
+        
+        for prompt_data in ALL_TEST_PROMPTS:
+            if complexity.lower() == 'trivial' and prompt_data['difficulty'] == 'simple':
+                prompts.append(prompt_data)
+            elif complexity.lower() == prompt_data['difficulty'].lower():
+                prompts.append(prompt_data)
+        
+        # Générer le fichier de données
+        data = {
+            "complexity": complexity,
+            "prompts": prompts
+        }
+        
+        output_path = os.path.join(output_dir, f"test_data_{complexity.lower()}.json")
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        print(f"Données de test pour le niveau {complexity} générées: {output_path} ({len(prompts)} prompts)")
+    
+    print("\nGénération des données de test terminée.")
+    print("="*80)
+    
+    # Fin de la génération des données de test
+    print("\nGénération des données de test terminée.")
+    print("="*80)
+    return
     
     primary_results = results["results_by_model"][primary_model]["detailed_results"]
     
@@ -462,34 +592,34 @@ def calculate_vetting_scores(results: Dict[str, Any], primary_model: str = "gpt-
     
     return results
 
-def save_results(results: Dict[str, Any], filename: str = "transparent_tests/transparent_test_results.json") -> None:
+def save_results(results: Dict[str, Any], filepath: str = "../results/transparent_tests/transparent_test_results.json") -> None:
     """
     Sauvegarde les résultats dans un fichier JSON
     
     Args:
         results: Résultats à sauvegarder
-        filename: Nom du fichier
+        filepath: Chemin du fichier
     """
-    # Créer le répertoire results s'il n'existe pas
-    os.makedirs("../results", exist_ok=True)
+    # Créer le répertoire parent s'il n'existe pas
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     
-    filepath = os.path.join("../results", filename)
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     
     print(f"\nRésultats sauvegardés dans {filepath}")
 
-def generate_report(results: Dict[str, Any]) -> str:
+def generate_report(results: Dict[str, Any], report_path: str = "../results/reports/transparent_reports/rapport_test_transparent.md") -> str:
     """
     Génère un rapport détaillé des tests
     
     Args:
         results: Résultats des tests
+        report_path: Chemin du rapport à générer
         
     Returns:
         Rapport au format Markdown
     """
-    report = "# Rapport de Test Transparent des Modèles OpenAI\n\n"
+    report = "# Rapport de Test Transparent des Modèles OpenAI et OpenRouter\n\n"
     report += f"Date: {datetime.fromisoformat(results['timestamp']).strftime('%d/%m/%Y %H:%M:%S')}\n\n"
     
     # Tableau comparatif des performances
@@ -568,20 +698,80 @@ def generate_report(results: Dict[str, Any]) -> str:
         report += "- Vérifier les permissions de la clé API pour ce modèle\n\n"
     
     # Sauvegarder le rapport
-    report_filepath = os.path.join("../results", "reports/transparent_reports/rapport_test_transparent.md")
-    with open(report_filepath, "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(report_path), exist_ok=True)
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write(report)
     
-    print(f"\nRapport généré et sauvegardé dans {report_filepath}")
+    print(f"\nRapport généré et sauvegardé dans {report_path}")
     return report
 
 def main():
     """
     Point d'entrée principal
     """
+    parser = argparse.ArgumentParser(description='Test transparent des modèles OpenAI et OpenRouter')
+    parser.add_argument('--model', type=str, help='Modèle spécifique à tester')
+    parser.add_argument('--provider', type=str, default='openai', choices=['openai', 'openrouter'], help='Provider API à utiliser')
+    parser.add_argument('--output-dir', type=str, default='../results/transparent_tests', help='Répertoire de sortie pour les résultats')
+    parser.add_argument('--verbose', action='store_true', help='Afficher les détails des requêtes et des réponses')
+    parser.add_argument('--generate-data', action='store_true', help='Générer des données de test')
+    
+    args = parser.parse_args()
+    
     print("="*80)
     print("TEST QUALITATIF TRANSPARENT DU MULTICONNECTOR")
     print("="*80)
+    
+    # Créer le répertoire de sortie s'il n'existe pas
+    os.makedirs(args.output_dir, exist_ok=True)
+    
+    # Générer des données de test si demandé
+    if args.generate_data:
+        generate_test_data(os.path.join(args.output_dir, 'data'))
+        return
+    
+    # Configurer l'API en fonction du provider
+    global API_KEY, BASE_URL
+    API_KEY = API_CONFIGS[args.provider]["api_key"]
+    BASE_URL = API_CONFIGS[args.provider]["base_url"]
+    
+    # Vérifier les configurations
+    print("\nConfigurations API chargées:")
+    for provider, config in API_CONFIGS.items():
+        api_key_masked = f"{config['api_key'][:8]}...{config['api_key'][-4:]}" if len(config['api_key']) > 12 else "Non configurée"
+        print(f"  - {provider.upper()}: {api_key_masked} ({config['base_url']})")
+    
+    # Si un modèle spécifique est fourni, tester uniquement ce modèle
+    if args.model:
+        print(f"\nTest du modèle spécifique: {args.model}")
+        
+        # Tester le modèle avec quelques prompts
+        results = {}
+        for i, prompt_data in enumerate(ALL_TEST_PROMPTS[:3]):  # Limiter à 3 prompts pour éviter les coûts excessifs
+            print(f"\nTest du prompt {i+1}: {prompt_data['category']} ({prompt_data['difficulty']})")
+            result = test_model_completion(args.model, prompt_data['prompt'], verbose=args.verbose, provider=args.provider)
+            
+            # Sauvegarder le résultat
+            # Remplacer les caractères spéciaux dans le nom du fichier
+            safe_model_name = args.model.replace('/', '_').replace('\\', '_')
+            result_filename = f"{safe_model_name}_{args.provider}_{prompt_data['category']}.json"
+            result_path = os.path.join(args.output_dir, result_filename)
+            
+            # Créer le répertoire de sortie s'il n'existe pas
+            os.makedirs(os.path.dirname(result_path), exist_ok=True)
+            
+            with open(result_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
+            
+            print(f"Résultat sauvegardé dans: {result_path}")
+            
+            # Ajouter au dictionnaire de résultats
+            results[prompt_data['category']] = result
+        
+        print("\nTests terminés.")
+        return
+    
+    # Sinon, exécuter le flux de test standard
     
     # 1. Vérifier la disponibilité des modèles
     availability = check_model_availability(MODELS_TO_TEST)
@@ -596,7 +786,8 @@ def main():
         if working_o3:
             print(f"\n✅ Variante fonctionnelle trouvée pour O3: {working_o3}")
             # Remplacer O3 dans la liste des modèles à tester
-            MODELS_TO_TEST[MODELS_TO_TEST.index("o3")] = working_o3
+            if "o3" in MODELS_TO_TEST:
+                MODELS_TO_TEST[MODELS_TO_TEST.index("o3")] = working_o3
     
     if not availability.get("o4-mini", False):
         print("\nTest des variantes de noms pour O4-mini...")
@@ -607,20 +798,38 @@ def main():
         if working_o4_mini:
             print(f"\n✅ Variante fonctionnelle trouvée pour O4-mini: {working_o4_mini}")
             # Remplacer O4-mini dans la liste des modèles à tester
-            MODELS_TO_TEST[MODELS_TO_TEST.index("o4-mini")] = working_o4_mini
+            if "o4-mini" in MODELS_TO_TEST:
+                MODELS_TO_TEST[MODELS_TO_TEST.index("o4-mini")] = working_o4_mini
     
     # 3. Exécuter les tests complets
     print("\nExécution des tests complets...")
-    results = run_comprehensive_tests(MODELS_TO_TEST, TEST_PROMPTS)
+    
+    # Filtrer les modèles en fonction des API keys disponibles
+    filtered_models = MODELS_TO_TEST.copy()
+    if API_CONFIGS["openai"]["api_key"] == "YOUR_OPENAI_API_KEY":
+        filtered_models = [m for m in filtered_models if not any(m.startswith(prefix) for prefix in ["gpt-", "text-davinci"])]
+        print("⚠️ Clé API OpenAI non configurée, les modèles OpenAI seront ignorés.")
+    
+    if API_CONFIGS["openrouter"]["api_key"] == "YOUR_OPENROUTER_API_KEY":
+        filtered_models = [m for m in filtered_models if not any(provider in m.lower() for provider in ["anthropic", "claude", "google", "gemini", "qwen"])]
+        print("⚠️ Clé API OpenRouter non configurée, les modèles via OpenRouter seront ignorés.")
+    
+    if not filtered_models:
+        print("❌ Aucun modèle disponible pour les tests. Veuillez configurer au moins une clé API.")
+        return
+    
+    print(f"Modèles sélectionnés pour les tests: {filtered_models}")
+    results = run_comprehensive_tests(filtered_models, ALL_TEST_PROMPTS)
     
     # 4. Calculer les scores de vetting
     results = calculate_vetting_scores(results)
     
     # 5. Sauvegarder les résultats
-    save_results(results)
+    save_results(results, os.path.join(args.output_dir, "transparent_test_results.json"))
     
     # 6. Générer le rapport
-    generate_report(results)
+    report_path = os.path.join(args.output_dir, "reports/transparent_reports/rapport_test_transparent.md")
+    generate_report(results, report_path)
     
     print("\n" + "="*80)
     print("TESTS TERMINÉS")
