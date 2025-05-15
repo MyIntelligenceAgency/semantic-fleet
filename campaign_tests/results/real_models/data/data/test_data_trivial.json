@@ -1,0 +1,40 @@
+{
+  "complexity": "Trivial",
+  "prompts": [
+    {
+      "category": "raisonnement",
+      "difficulty": "simple",
+      "prompt": "Explique-moi le paradoxe du bateau de Thésée en termes simples."
+    },
+    {
+      "category": "code",
+      "difficulty": "simple",
+      "prompt": "Écris une fonction Python qui calcule la suite de Fibonacci jusqu'à n termes."
+    },
+    {
+      "category": "mathématiques",
+      "difficulty": "simple",
+      "prompt": "Résous l'équation quadratique suivante: 3x² + 5x - 2 = 0"
+    },
+    {
+      "category": "summarization",
+      "difficulty": "simple",
+      "prompt": "Résume le texte suivant en 3 phrases: 'Le réchauffement climatique est l'augmentation à long terme de la température moyenne du système climatique de la Terre. C'est un aspect majeur du changement climatique, démontré par des mesures directes de température et par divers effets du réchauffement. Le terme désigne généralement le réchauffement observé depuis le début du 20e siècle, résultant en grande partie des émissions de gaz à effet de serre dues aux activités humaines.'"
+    },
+    {
+      "category": "classification",
+      "difficulty": "simple",
+      "prompt": "Classifie le texte suivant comme positif, négatif ou neutre: 'Le nouveau restaurant du quartier offre une cuisine délicieuse et un service impeccable.'"
+    },
+    {
+      "category": "writing",
+      "difficulty": "simple",
+      "prompt": "Écris un email de remerciement à un collègue qui t'a aidé sur un projet."
+    },
+    {
+      "category": "chat",
+      "difficulty": "simple",
+      "prompt": "Quelle est la capitale de la France?"
+    }
+  ]
+}
