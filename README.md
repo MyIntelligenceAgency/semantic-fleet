@@ -74,6 +74,7 @@ Le MultiConnector est composé de plusieurs sous-systèmes, chacun documenté en
 
 - [Système d'analyse](./dotnet/src/Connectors/Connectors.AI.MultiConnector/Analysis/README.md) - Évaluation automatique des performances des modèles
 - [Système de gestion des prompts](./dotnet/src/Connectors/Connectors.AI.MultiConnector/PromptSettings/README.md) - Transformation et adaptation des prompts
+- [Système de détection de signatures des prompts](./docs/systeme_detection_signatures_prompts.md) - Identification efficace des patterns dans les prompts
 - [Mocks arithmétiques](./dotnet/src/Connectors/Connectors.AI.MultiConnector/ArithmeticMocks/README.md) - Simulations pour les tests
 - [Configuration](./dotnet/src/Connectors/Connectors.AI.MultiConnector/Configuration/README.md) - Gestion des paramètres des connecteurs
 
