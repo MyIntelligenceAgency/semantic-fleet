@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dotnet", "dotnet", "{71E6E750-85FD-B5BC-4321-E01377EC6231}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "notebooks", "notebooks", "{AEA6EB18-1EC0-CCE5-802B-FD6C7E5EABC8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test-packages", "dotnet\notebooks\test-packages\test-packages.csproj", "{EC1F9CD8-5E78-5C54-92AB-0683DF0C8347}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EC1F9CD8-5E78-5C54-92AB-0683DF0C8347}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC1F9CD8-5E78-5C54-92AB-0683DF0C8347}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC1F9CD8-5E78-5C54-92AB-0683DF0C8347}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC1F9CD8-5E78-5C54-92AB-0683DF0C8347}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AEA6EB18-1EC0-CCE5-802B-FD6C7E5EABC8} = {71E6E750-85FD-B5BC-4321-E01377EC6231}
+		{EC1F9CD8-5E78-5C54-92AB-0683DF0C8347} = {AEA6EB18-1EC0-CCE5-802B-FD6C7E5EABC8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1DFB7B96-F5B9-49BF-BB4F-5C07305F01CA}
+	EndGlobalSection
+EndGlobal
