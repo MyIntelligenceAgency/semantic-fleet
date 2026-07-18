@@ -4,15 +4,14 @@ using System;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.SemanticKernel.AI;
-using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
+using Microsoft.SemanticKernel;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 
 /// <summary>
 /// Represents general settings for a <see cref="MultiTextCompletion"/> request, adapted from specific completion or prompt config settings.
 /// </summary>
-public class MultiCompletionRequestSettings : AIRequestSettings
+public class MultiCompletionRequestSettings : PromptExecutionSettings
 {
     /// <summary>
     /// Modulates the next token probabilities. A value of 0 implies deterministic output (only the most likely token is used). Higher values increase randomness.
@@ -65,8 +64,8 @@ public class MultiCompletionRequestSettings : AIRequestSettings
     /// </summary>
     /// <param name="requestSettings">generic request settings</param>
     /// <param name="defaultMaxTokens">Default max tokens</param>
-    /// <returns>An instance of <see cref="OobaboogaCompletionRequestSettings"/></returns>
-    public static MultiCompletionRequestSettings FromRequestSettings(AIRequestSettings? requestSettings, int? defaultMaxTokens = null)
+    /// <returns>An instance of <see cref="MultiCompletionRequestSettings"/></returns>
+    public static MultiCompletionRequestSettings FromRequestSettings(PromptExecutionSettings? requestSettings, int? defaultMaxTokens = null)
     {
         //Request settings are MultiCompletionRequestSettings
         if (requestSettings != null && requestSettings is MultiCompletionRequestSettings requestSettingsMultiCompletionRequestSettings)
@@ -86,7 +85,7 @@ public class MultiCompletionRequestSettings : AIRequestSettings
             newSettings.ServiceId = requestSettings.ServiceId;
 
             var json = JsonSerializer.Serialize(requestSettings);
-            var deserialized = JsonSerializer.Deserialize<AIRequestSettings>(json);
+            var deserialized = JsonSerializer.Deserialize<PromptExecutionSettings>(json);
 
             if (deserialized != null)
             {

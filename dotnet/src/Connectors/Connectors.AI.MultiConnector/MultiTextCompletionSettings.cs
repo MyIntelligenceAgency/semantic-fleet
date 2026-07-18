@@ -11,8 +11,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Diagnostics;
-using Microsoft.SemanticKernel.Orchestration;
 using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
@@ -336,9 +334,9 @@ public class MultiTextCompletionSettings
     /// Helper method to run a function or plan and return the result and optionally the cost and samples.
     /// </summary>
     public async Task<MultiTextCompletionResult> ExecuteAsync(
-        ISKFunction planOrFunction,
-        IKernel kernel,
-        ContextVariables? variables = null,
+        KernelFunction planOrFunction,
+        Kernel kernel,
+        KernelArguments? variables = null,
         CancellationToken? cancellationToken = default,
         bool computeCost = false,
         bool collectSamples = false)
@@ -378,9 +376,9 @@ public class MultiTextCompletionSettings
             };
         }
 
-        variables = variables ?? kernel.CreateNewContext().Variables;
+        variables = variables ?? new KernelArguments();
         var sw = Stopwatch.StartNew();
-        var result = await kernel.RunAsync(planOrFunction, variables, cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
+        var result = await kernel.InvokeAsync(planOrFunction, variables, cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
         var duration = sw.Elapsed;
         var toReturn = new MultiTextCompletionResult(result)
         {
@@ -465,7 +463,7 @@ public class MultiTextCompletionSettings
                 var evaluation = await this.AnalysisSettings.EvaluateConnectorTestAsync(sample, validationTestBatch.AnalysisJob).ConfigureAwait(false);
                 if (evaluation == null)
                 {
-                    throw new SKException("Validation of MultiCompletion failed to complete");
+                    throw new KernelException("Validation of MultiCompletion failed to complete");
                 }
 
                 evaluations.Add((evaluation, validationTestBatch.AnalysisJob));

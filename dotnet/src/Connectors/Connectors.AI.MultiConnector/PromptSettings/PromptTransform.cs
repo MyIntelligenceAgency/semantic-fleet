@@ -199,17 +199,17 @@ public class PromptTransform
             });
     }
 
-    private sealed class CustomDynamicTypeProvider : IDynamicLinkCustomTypeProvider
+    private sealed class CustomDynamicTypeProvider : IDynamicLinqCustomTypeProvider
     {
         private readonly Dictionary<string, object> _context;
 
-        public CustomDynamicTypeProvider(Dictionary<string, object> context, IDynamicLinkCustomTypeProvider dynamicLinkCustomTypeProvider)
+        public CustomDynamicTypeProvider(Dictionary<string, object> context, IDynamicLinqCustomTypeProvider dynamicLinkCustomTypeProvider)
         {
             this._context = context;
             this.DefaultProvider = dynamicLinkCustomTypeProvider;
         }
 
-        public IDynamicLinkCustomTypeProvider DefaultProvider { get; set; }
+        public IDynamicLinqCustomTypeProvider DefaultProvider { get; set; }
 
         public HashSet<Type> GetCustomTypes()
         {

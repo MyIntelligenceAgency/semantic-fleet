@@ -2,12 +2,11 @@
 
 using System;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.Orchestration;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.ArithmeticMocks;
 
 /// <summary>
-/// Class representing an arithmetic streaming result for an arithmetic computation that implements the ITextStreamingResult interface.
+/// Class representing an arithmetic result for an arithmetic computation.
 /// </summary>
 public class ArithmeticComputingStreamingResult : ArithmeticStreamingResultBase
 {
@@ -24,9 +23,9 @@ public class ArithmeticComputingStreamingResult : ArithmeticStreamingResultBase
     }
 
     /// <inheritdoc />
-    protected override Task<ModelResult> GenerateModelResult()
+    protected override Task<string> GenerateResultAsync()
     {
         var result = this._engine.Run(this._prompt);
-        return Task.FromResult(new ModelResult(result));
+        return Task.FromResult(result);
     }
 }

@@ -3,15 +3,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.SemanticKernel.AI;
-using Microsoft.SemanticKernel.AI.TextCompletion;
-using Microsoft.SemanticKernel.Diagnostics;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.TextGeneration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
@@ -20,7 +20,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 /// Represents a text completion comprising several child completion connectors and capable of routing completion calls to specific connectors.
 /// Offers analysis capabilities where a primary completion connector is tasked with vetting secondary connectors.
 /// </summary>
-public class MultiTextCompletion : ITextCompletion
+public class MultiTextCompletion : ITextGenerationService
 {
     private readonly ILogger? _logger;
     private readonly IReadOnlyList<NamedTextCompletion> _textCompletions;
@@ -60,62 +60,69 @@ public class MultiTextCompletion : ITextCompletion
     public MultiTextCompletionSettings Settings => this._settings;
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ITextResult>> GetCompletionsAsync(string text, AIRequestSettings? requestSettings, CancellationToken cancellationToken = default)
+    public IReadOnlyDictionary<string, object?> Attributes { get; } = new Dictionary<string, object?>();
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(string text, PromptExecutionSettings? requestSettings, Kernel? kernel, CancellationToken cancellationToken)
     {
-        this._logger?.LogTrace("\n## Starting MultiTextCompletion.GetCompletionsAsync\n");
+        this._logger?.LogTrace("\n## Starting MultiTextCompletion.GetTextContentsAsync\n");
         var completionJob = new CompletionJob(text, requestSettings);
         var session = this._settings.GetMultiCompletionSession(completionJob, this.TextCompletions, this._logger);
         this._logger?.LogTrace("Calling chosen completion with adjusted prompt and settings");
-        var completions = await session.NamedTextCompletion.TextCompletion.GetCompletionsAsync(session.CallJob.Prompt, session.CallJob.RequestSettings, cancellationToken).ConfigureAwait(false);
 
-        var resultLazy = new AsyncLazy<string>(() =>
-        {
-            var toReturn = completions[0].GetCompletionAsync(cancellationToken);
-            session.Stopwatch.Stop();
-            return toReturn;
-        }, cancellationToken);
+        // Child completions are already materialized in SK 1.78 (TextContent.Text), so the
+        // legacy ITextResult laziness collapses: we capture the first result now and wrap it in
+        // the session's AsyncLazy producer to keep the costing/logging/analysis path unchanged.
+        var completions = await session.NamedTextCompletion.TextCompletion.GetCompletionsAsync(session.CallJob.Prompt, session.CallJob.RequestSettings, cancellationToken).ConfigureAwait(false);
+        session.Stopwatch.Stop();
+
+        var firstResult = completions.Count > 0 ? (completions[0] ?? string.Empty) : string.Empty;
+
+        var resultLazy = new AsyncLazy<string>(() => Task.FromResult(firstResult), cancellationToken);
 
         session.ResultProducer = resultLazy;
 
         await this.ProcessTextCompletionResultsAsync(session, cancellationToken).ConfigureAwait(false);
 
-        this._logger?.LogTrace("\n## Ending MultiTextCompletion.GetCompletionsAsync\n");
-        return completions;
+        this._logger?.LogTrace("\n## Ending MultiTextCompletion.GetTextContentsAsync\n");
+        return completions.Select(c => new TextContent(c, modelId: null)).ToList();
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<ITextStreamingResult> GetStreamingCompletionsAsync(string text, AIRequestSettings? requestSettings, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(string text, PromptExecutionSettings? requestSettings, Kernel? kernel, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        this._logger?.LogTrace("\n## Starting MultiTextCompletion.GetStreamingCompletionsAsync\n");
+        this._logger?.LogTrace("\n## Starting MultiTextCompletion.GetStreamingTextContentsAsync\n");
         var completionJob = new CompletionJob(text, requestSettings);
         var session = this._settings.GetMultiCompletionSession(completionJob, this.TextCompletions, this._logger);
         this._logger?.LogTrace("Calling chosen completion with adjusted prompt and settings");
-        var result = session.NamedTextCompletion.TextCompletion.GetStreamingCompletionsAsync(session.CallJob.Prompt, session.CallJob.RequestSettings, cancellationToken);
+        var result = session.NamedTextCompletion.TextCompletion.GetStreamingTextContentsAsync(session.CallJob.Prompt, session.CallJob.RequestSettings, kernel, cancellationToken);
 
-        var resultLazy = new AsyncLazy<string>(async () =>
+        // The child stream is single-enumerable; tee it once into a buffer while accumulating the
+        // full text for the session producer, then replay the buffer to the caller. This preserves
+        // the legacy semantics where the costing/logging/analysis task and the caller both observed
+        // the (single) result stream.
+        var sb = new StringBuilder();
+        var buffered = new List<StreamingTextContent>();
+        await foreach (var chunk in result.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
-            var sb = new StringBuilder();
-            await foreach (var completionResult in result.WithCancellation(cancellationToken))
-            {
-                await foreach (var word in completionResult.GetCompletionStreamingAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    sb.Append(word);
-                }
+            sb.Append(chunk.Text);
+            buffered.Add(chunk);
+        }
 
-                break;
-            }
+        session.Stopwatch.Stop();
 
-            session.Stopwatch.Stop();
-            return sb.ToString();
-        }, cancellationToken);
+        var resultLazy = new AsyncLazy<string>(() => Task.FromResult(sb.ToString()), cancellationToken);
 
         session.ResultProducer = resultLazy;
 
         this.ProcessTextCompletionResultsAsync(session, cancellationToken).ConfigureAwait(false);
 
-        this._logger?.LogTrace("\n## Ending MultiTextCompletion.GetStreamingCompletionsAsync\n");
+        this._logger?.LogTrace("\n## Ending MultiTextCompletion.GetStreamingTextContentsAsync\n");
 
-        return result;
+        foreach (var chunk in buffered)
+        {
+            yield return chunk;
+        }
     }
 
     /// <summary>
@@ -242,7 +249,7 @@ public class MultiTextCompletion : ITextCompletion
         {
             var message = "CollectSamplesAsync task failed";
             this._logger?.LogError("{0} with exception {1}", exception, message, exception.ToString());
-            throw new SKException(message, exception);
+            throw new KernelException(message, exception);
         }
     }
 

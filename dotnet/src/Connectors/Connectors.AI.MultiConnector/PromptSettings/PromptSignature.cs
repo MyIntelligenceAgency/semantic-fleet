@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Microsoft.SemanticKernel.AI;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Text;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
@@ -26,7 +26,7 @@ public class PromptSignature
     /// <summary>
     /// Gets or sets the request settings supplied with the prompt on a completion call.
     /// </summary>
-    public AIRequestSettings RequestSettings { get; set; }
+    public PromptExecutionSettings RequestSettings { get; set; }
 
     /// <summary>
     /// First chars of a prompt that identify its type while staying the same between different calls.
@@ -65,7 +65,7 @@ public class PromptSignature
     /// </summary>
     /// <param name="requestSettings">The request settings for the prompt.</param>
     /// <param name="promptStart">The beginning of the text to identify the prompt type.</param>
-    public PromptSignature(AIRequestSettings requestSettings, string promptStart)
+    public PromptSignature(PromptExecutionSettings requestSettings, string promptStart)
     {
         this.RequestSettings = requestSettings;
         this.PromptStart = promptStart;
@@ -102,7 +102,7 @@ public class PromptSignature
     /// <summary>
     /// Extracts a <see cref="PromptSignature"/> from a prompt string, request settings and distinct prompt instance of the same type, increasing from default truncated start to deal with overlapping prompt starts.
     /// </summary>
-    public static PromptSignature ExtractFrom2Instances(string prompt1, string prompt2, AIRequestSettings settings)
+    public static PromptSignature ExtractFrom2Instances(string prompt1, string prompt2, PromptExecutionSettings settings)
     {
         int staticPartLength = GetCommonPrefix(prompt1, prompt2).Length;
 
@@ -172,7 +172,7 @@ public class PromptSignature
         return toReturn;
     }
 
-    private bool MatchSettings(AIRequestSettings promptSettings)
+    private bool MatchSettings(PromptExecutionSettings promptSettings)
     {
         if (!(this.RequestSettings.ModelId == promptSettings.ModelId &&
               this.RequestSettings.ServiceId == promptSettings.ServiceId))

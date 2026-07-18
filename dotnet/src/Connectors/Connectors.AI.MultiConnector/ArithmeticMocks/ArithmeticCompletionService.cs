@@ -5,16 +5,16 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.AI;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.TextGeneration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.ArithmeticMocks;
 
 /// <summary>
-///Arithmetic computation completion model that implements the ITextCompletion interface. It supports several or all the 4 basic arithmetic operations, and can vet the result of another connector.
+///Arithmetic computation completion model that implements the ITextGenerationService interface. It supports several or all the 4 basic arithmetic operations, and can vet the result of another connector.
 /// </summary>
-public class ArithmeticCompletionService : ITextCompletion
+public class ArithmeticCompletionService : ITextGenerationService
 {
     /// <summary>
     /// Initializes a new instance of the ArithmeticCompletionService class with the specified settings and parameters.
@@ -83,22 +83,29 @@ public class ArithmeticCompletionService : ITextCompletion
     public CallRequestCostCreditor? Creditor { get; set; }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ITextResult>> GetCompletionsAsync(string text, AIRequestSettings? requestSettings, CancellationToken cancellationToken = default)
+    public IReadOnlyDictionary<string, object?> Attributes { get; } = new Dictionary<string, object?>();
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(string text, PromptExecutionSettings? requestSettings, Kernel? kernel, CancellationToken cancellationToken)
     {
         var job = new CompletionJob(text, requestSettings);
         ArithmeticStreamingResultBase streamingResult = await this.ComputeResultAsync(job, cancellationToken).ConfigureAwait(false);
-        return new List<ITextResult>
+        var resultText = await streamingResult.GetResultAsync(cancellationToken).ConfigureAwait(false);
+        return new List<TextContent>
         {
-            streamingResult
+            new(resultText, modelId: null)
         };
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<ITextStreamingResult> GetStreamingCompletionsAsync(string text, AIRequestSettings? requestSettings, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(string text, PromptExecutionSettings? requestSettings, Kernel? kernel, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var job = new CompletionJob(text, requestSettings);
         ArithmeticStreamingResultBase streamingResult = await this.ComputeResultAsync(job, cancellationToken).ConfigureAwait(false);
-        yield return streamingResult;
+        await foreach (var word in streamingResult.GetStreamingAsync(cancellationToken).ConfigureAwait(false))
+        {
+            yield return new StreamingTextContent(word);
+        }
     }
 
     private async Task<ArithmeticStreamingResultBase> ComputeResultAsync(CompletionJob job, CancellationToken cancellationToken = default)

@@ -3,7 +3,6 @@
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.Orchestration;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.ArithmeticMocks;
 
@@ -27,9 +26,9 @@ public class ArithmeticVettingStreamingResult : ArithmeticStreamingResultBase
     }
 
     /// <summary>
-    /// Generates the model result of the vetting operation. Performs the real operation and compares the result with the connector result.
+    /// Generates the result of the vetting operation. Performs the real operation and compares the result with the connector result.
     /// </summary>
-    protected override Task<ModelResult> GenerateModelResult()
+    protected override Task<string> GenerateResultAsync()
     {
         try
         {
@@ -41,7 +40,7 @@ public class ArithmeticVettingStreamingResult : ArithmeticStreamingResultBase
             var isCorrect = correctResult == connectorResult;
             var result = isCorrect.ToString(CultureInfo.InvariantCulture);
 
-            return Task.FromResult(new ModelResult(result));
+            return Task.FromResult(result);
         }
         catch (Exception e)
         {

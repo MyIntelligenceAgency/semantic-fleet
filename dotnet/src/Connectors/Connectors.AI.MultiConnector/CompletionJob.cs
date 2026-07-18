@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Microsoft.SemanticKernel.AI;
+using Microsoft.SemanticKernel;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 
@@ -19,7 +19,7 @@ public readonly struct CompletionJob : System.IEquatable<CompletionJob>
     /// <param name="prompt">The input prompt for the job.</param>
     /// <param name="settings">The request settings for the job.</param>
     /// <exception cref="ArgumentNullException">Thrown when prompt or settings are null.</exception>
-    public CompletionJob(string prompt, AIRequestSettings? settings)
+    public CompletionJob(string prompt, PromptExecutionSettings? settings)
     {
         this.Prompt = prompt ?? throw new ArgumentNullException(nameof(prompt));
         this.RequestSettings = MultiCompletionRequestSettings.FromRequestSettings(settings ?? throw new ArgumentNullException(nameof(settings)));
@@ -90,6 +90,6 @@ public readonly struct CompletionJob : System.IEquatable<CompletionJob>
     public bool Equals(CompletionJob other)
     {
         return this.Prompt == other.Prompt &&
-               EqualityComparer<AIRequestSettings>.Default.Equals(this.RequestSettings, other.RequestSettings);
+               EqualityComparer<MultiCompletionRequestSettings>.Default.Equals(this.RequestSettings, other.RequestSettings);
     }
 }

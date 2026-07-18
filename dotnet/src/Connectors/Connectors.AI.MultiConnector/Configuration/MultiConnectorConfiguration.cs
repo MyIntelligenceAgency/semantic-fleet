@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.TextGeneration;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 using SharpToken;
@@ -75,7 +75,7 @@ public class MultiOobaboogaConnectorConfiguration
             }
 
             var settings = oobaboogaConnector.CreateSettings(this.OobaboogaEndPoint);
-            ITextCompletion oobaboogaCompletion = oobaboogaConnector.UseChatCompletion ? new OobaboogaChatCompletion((OobaboogaChatCompletionSettings)settings) : new OobaboogaTextCompletion((OobaboogaTextCompletionSettings)settings);
+            ITextGenerationService oobaboogaCompletion = oobaboogaConnector.UseChatCompletion ? new OobaboogaChatCompletion((OobaboogaChatCompletionSettings)settings) : new OobaboogaTextCompletion((OobaboogaTextCompletionSettings)settings);
 
             Func<string, int> tokenCountFunc = TokenCountFunctionMap[oobaboogaConnector.TokenCountFunction];
 

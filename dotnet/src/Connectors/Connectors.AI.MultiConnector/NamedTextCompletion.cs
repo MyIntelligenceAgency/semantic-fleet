@@ -3,7 +3,7 @@
 using System;
 using System.Diagnostics;
 using System.Text.Json.Serialization;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.TextGeneration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
@@ -22,7 +22,7 @@ public class NamedTextCompletion
     /// <summary>
     /// text completion provider instance, to be used for prompt answering and testing.
     /// </summary>
-    public ITextCompletion TextCompletion { get; set; }
+    public ITextGenerationService TextCompletion { get; set; }
 
     /// <summary>
     /// The maximum number of tokens to generate in the completion.
@@ -82,7 +82,7 @@ public class NamedTextCompletion
     /// </summary>
     /// <param name="name">The name of the text completion provider.</param>
     /// <param name="textCompletion">The text completion provider.</param>
-    public NamedTextCompletion(string name, ITextCompletion textCompletion)
+    public NamedTextCompletion(string name, ITextGenerationService textCompletion)
     {
         this.Name = name;
         this.TextCompletion = textCompletion;

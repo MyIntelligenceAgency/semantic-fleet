@@ -13,9 +13,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.AI;
-using Microsoft.SemanticKernel.AI.TextCompletion;
-using Microsoft.SemanticKernel.Diagnostics;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Text;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
@@ -187,7 +185,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
     /// <summary>
     /// Request settings for the vetting process
     /// </summary>
-    public AIRequestSettings VettingRequestSettings { get; set; } = DefaultVettingRequestSettings;
+    public PromptExecutionSettings VettingRequestSettings { get; set; } = DefaultVettingRequestSettings;
 
     /// <summary>
     /// Loads the completion analysis file according to settings
@@ -483,7 +481,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
                 this.SuggestionCompleted.Invoke(this, updatedSettings);
             }
         }
-        catch (SKException exception)
+        catch (KernelException exception)
         {
             analysisJob.Logger?.LogError("Analysis pipeline failed with AI exception {0}", exception, exception.ToString());
             completionAnalysis = new();
@@ -498,7 +496,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
             var message = "MultiCompletion analysis pipeline failed";
             analysisJob.Logger?.LogError("{0} with exception {1}", exception, message, exception.Message);
             this.AnalysisTaskCrashed?.Invoke(this, new(new(exception)));
-            throw new SKException(message, exception);
+            throw new KernelException(message, exception);
         }
 
         return completionAnalysis;
@@ -595,8 +593,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
 
                     var completions = await namedTextCompletion.TextCompletion.GetCompletionsAsync(session.CallJob.Prompt, session.CallJob.RequestSettings, analysisJob.CancellationToken).ConfigureAwait(false);
 
-                    var firstResult = completions[0];
-                    string result = await firstResult.GetCompletionAsync(analysisJob.CancellationToken).ConfigureAwait(false) ?? string.Empty;
+                    string result = completions.Count > 0 ? (completions[0] ?? string.Empty) : string.Empty;
 
                     stopWatch.Stop();
                     var duration = stopWatch.Elapsed;
@@ -608,7 +605,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
 
                     analysisJob.Logger?.LogDebug("Generated Test results for connector {0}, temperature: {1} duration: {2}\nTEST_PROMPT:\n{3}\nTEST_RESULT:\n{4}\n", connectorTest.ConnectorName, session.CallJob.RequestSettings.TemperatureMulti, connectorTest.Duration, analysisJob.Settings.GeneratePromptLog(session.CallJob.Prompt), analysisJob.Settings.GeneratePromptLog(connectorTest.Result));
                 }
-                catch (SKException exception)
+                catch (KernelException exception)
                 {
                     analysisJob.Logger?.LogError(exception, "Failed to run test prompt with connector {2}\nException:{0}Prompt:\n{1} ", exception, exception.ToString(), testJob.Prompt, namedTextCompletion.Name);
                 }
@@ -711,7 +708,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
             completionResult = await vettingCompletion.TextCompletion.CompleteAsync(vettingJob.Prompt, vettingJob.RequestSettings, analysisJob.CancellationToken).ConfigureAwait(false) ?? "false";
             stopWatch.Stop();
         }
-        catch (SKException exception)
+        catch (KernelException exception)
         {
             analysisJob.Logger?.LogError(exception, "Failed to evaluate test prompt, exception thrown, with vetting connector {2}\nException:{0}\nVetting Prompt:\n{1}\n", exception, exception.ToString(), vettingJob.Prompt, vettingCompletion.Name);
             return null;
@@ -954,7 +951,7 @@ public class MultiCompletionAnalysisSettings : IDisposable
         {
             var message = "AnalyzeDataAsync task failed";
             currentAnalysisJob.Logger?.LogError("{0} with exception {1}", exception, message, exception.ToString());
-            throw new SKException(message, exception);
+            throw new KernelException(message, exception);
         }
         finally
         {

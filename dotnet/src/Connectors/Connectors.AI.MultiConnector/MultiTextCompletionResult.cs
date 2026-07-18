@@ -2,7 +2,7 @@
 
 using System;
 using System.Collections.Generic;
-using Microsoft.SemanticKernel.Orchestration;
+using Microsoft.SemanticKernel;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
@@ -15,7 +15,7 @@ public class MultiTextCompletionResult
     /// <summary>
     /// Initializes a new instance of the <see cref="MultiTextCompletionResult"/> class.
     /// </summary>
-    public MultiTextCompletionResult(KernelResult result)
+    public MultiTextCompletionResult(FunctionResult result)
     {
         this.Result = result;
     }
@@ -23,7 +23,7 @@ public class MultiTextCompletionResult
     /// <summary>
     /// The result of running a function or a plan
     /// </summary>
-    public KernelResult Result { get; set; }
+    public FunctionResult Result { get; set; }
 
     /// <summary>
     /// The effective cost of the completion according to parameters

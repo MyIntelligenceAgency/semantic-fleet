@@ -9,6 +9,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
 using Microsoft.SemanticKernel.Text;
+using Microsoft.SemanticKernel.TextGeneration;
 
 namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 
@@ -16,7 +17,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 /// Oobabooga chat completion service API.
 /// Adapted from <see href="https://github.com/oobabooga/text-generation-webui/tree/main/api-examples"/>
 /// </summary>
-public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistory, OobaboogaChatCompletionRequestSettings, OobaboogaChatCompletionRequest, ChatCompletionResponse>, IChatCompletionService
+public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistory, OobaboogaChatCompletionRequestSettings, OobaboogaChatCompletionRequest, ChatCompletionResponse>, IChatCompletionService, ITextGenerationService
 {
     private const string ChatHistoryMustContainAtLeastOneUserMessage = "Chat history must contain at least one User message with instructions.";
 
@@ -74,6 +75,42 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
         await foreach (var text in this.GetStreamingCompletionsBaseAsync(chatHistory, executionSettings, cancellationToken))
         {
             yield return new StreamingChatMessageContent(AuthorRole.Assistant, text);
+        }
+    }
+
+    /// <summary>
+    /// Text-generation facade over the chat completion API: wraps the prompt as a single user chat
+    /// message and projects the chat result back to plain text. Restores the legacy Semantic Kernel
+    /// 0.x behavior where the chat connector was also usable as a plain text completion (e.g. inside
+    /// the MultiConnector which only routes text-generation services).
+    /// </summary>
+    public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(
+        string prompt,
+        PromptExecutionSettings? executionSettings,
+        Kernel? kernel,
+        CancellationToken cancellationToken)
+    {
+        var chatHistory = this.CreateNewChat();
+        chatHistory.AddUserMessage(prompt);
+        var chatContents = await this.GetChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken).ConfigureAwait(false);
+        return chatContents.Select(c => new TextContent(c.Content, modelId: null)).ToList();
+    }
+
+    /// <summary>
+    /// Streaming text-generation facade over the chat completion API. See
+    /// <see cref="GetTextContentsAsync"/> for the rationale.
+    /// </summary>
+    public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(
+        string prompt,
+        PromptExecutionSettings? executionSettings,
+        Kernel? kernel,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var chatHistory = this.CreateNewChat();
+        chatHistory.AddUserMessage(prompt);
+        await foreach (var chatContent in this.GetStreamingChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken).ConfigureAwait(false))
+        {
+            yield return new StreamingTextContent(chatContent.Content ?? string.Empty);
         }
     }
 
