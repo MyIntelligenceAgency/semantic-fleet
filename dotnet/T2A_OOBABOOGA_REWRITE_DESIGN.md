@@ -244,3 +244,80 @@ construisait un `HttpClient(handler, disposeHandler)` via la factory, remplacer 
 - [ ] `See #6853` (epic Axe 2 pas résolu par T2a seul).
 
 `See #6853` (epic Axe 2, tranche 2a).
+
+---
+
+## Erratum / Raffinement contrat streaming (c.477, 2026-07-18)
+
+Lecture approfondie du code streaming existant (`ChatCompletionStreamingResult.cs`,
+`TextCompletionStreamingResponse.cs`, `OobaboogaChatHistory.cs`) — la section 1
+ci-dessus **sous-spécifie** l'extraction du texte streaming. Correction du contrat :
+
+### La lacune de la section 1
+
+La section 1 disait « sur `TextStreamEvent`, extraire le text chunk du responseObject
+et `channel.Write(text)` » **uniformément**. C'est **FAUX pour le chat** : la réponse
+streaming chat (`ChatCompletionStreamingResponse`) ne porte pas un chunk texte direct,
+mais un `History.Visible` (liste de listes) contenant le message **cumulatif** complet,
+pas le delta. L'ancien `ChatCompletionStreamingResult.AppendResponse` (lignes 28-43)
+faisait un **suivi de delta stateful** :
+
+```csharp
+// chat : extraction stateful (DELTA, pas chunk direct)
+var newMessage = response.History.Visible.Last().Last(); // message cumulatif
+var newChunk = newMessage.Substring(this._lastSentMessage.Length); // delta seul
+this._lastSentMessage = newMessage; // maj état
+```
+
+Tandis que le text streaming (`TextCompletionStreamingResponse`) porte directement
+`response.Text` (le chunk, pas cumulatif). **Les deux contrats d'extraction diffèrent.**
+
+### Contrat corrigé — `ExtractStreamText` abstraite per-service + stateful
+
+La base **non-générique** ne peut pas appeler une abstraite générique (typing). Donc :
+
+1. **`ProcessWebSocketMessagesAsync` déménage sur la classe GÉNÉRIQUE**
+   (`OobaboogaCompletionBase<TInput, TParams, TRequest, TResponse>`), pas sur la base
+   non-générique. Elle peut alors appeler les 3 méthodes abstraites du service concret.
+2. Nouvelle méthode abstraite sur la classe générique :
+
+   ```csharp
+   /// Extrait le chunk de texte (delta pour chat, direct pour text) d'un message
+   /// streaming. Retourne null si l'event n'est pas un text-stream (ex: stream_end).
+   protected abstract string? ExtractStreamText(CompletionStreamingResponseBase response);
+   ```
+
+3. Le chat service implémente `ExtractStreamText` avec un champ privé
+   `_lastSentMessage` (état d'instance, reset à 0 par call streaming) — la logique
+   de delta est encapsulée dans le service, pas dans la base.
+4. Le text service implémente `ExtractStreamText` → `((TextCompletionStreamingResponse)response).Text`.
+5. `ProcessWebSocketMessagesAsync` (sur la générique) :
+
+   ```csharp
+   switch (responseObject.Event)
+   {
+       case CompletionStreamingResponseBase.ResponseObjectTextStreamEvent:
+           var chunk = this.ExtractStreamText(responseObject);
+           if (chunk is not null) await writer.WriteAsync(chunk, cancellationToken);
+           break;
+       case CompletionStreamingResponseBase.ResponseObjectStreamEndEvent:
+           writer.Complete();
+           // ... close websocket comme avant
+           break;
+   }
+   ```
+
+6. La base non-générique `OobaboogaCompletionBase` ne garde que `OobaboogaSettings` +
+   `Logger` + `LogActionDetails` + l'abstraite `GetResponseObject` (mais
+   `GetResponseObject` peut aussi déménager sur la générique puisqu'elle est
+   implémentée per-service). **Décision : tout déménager sur la générique** sauf
+   settings/logger — la base non-générique devient un simple holder.
+
+### Impact sur l'ordre d'exécution
+
+L'étape 1 (base) est plus lourde qu'estimé : relocation de `ProcessWebSocketMessagesAsync`
++ nouvelle abstraite `ExtractStreamText` + 2 implémentations stateful (chat delta,
+text direct). Renforce la conclusion « atomic multi-hour, pas 30-min » — confirmer
+fenêtre dédiée avant de toucher au code.
+
+`See #6853` (epic Axe 2, tranche 2a — erratum contrat streaming c.477).
