@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.AI.TextCompletion;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.ArithmeticMocks;
 using SemanticKernel.UnitTests;
@@ -94,7 +93,7 @@ public class MultiConnectorTestsBase : IDisposable
             var result = await multiConnector.CompleteAsync(job.Prompt, job.RequestSettings).ConfigureAwait(false);
             stopWatch.Stop();
             var duration = stopWatch.Elapsed;
-            var cost = completionCostFunction(job.Prompt, result);
+            var cost = completionCostFunction(job.Prompt, result ?? string.Empty);
             toReturn.Add((result, duration, cost));
         }
 

@@ -11,13 +11,13 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
-using Microsoft.SemanticKernel.AI.TextCompletion;
-using Microsoft.SemanticKernel.Diagnostics;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Text;
+using Microsoft.SemanticKernel.TextGeneration;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
@@ -25,7 +25,7 @@ using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 using SemanticKernel.UnitTests;
 using Xunit;
 using Xunit.Abstractions;
-using ChatHistory = Microsoft.SemanticKernel.AI.ChatCompletion.ChatHistory;
+using ChatHistory = Microsoft.SemanticKernel.ChatCompletion.ChatHistory;
 
 namespace SemanticKernel.Connectors.UnitTests.Oobabooga.Completion;
 
@@ -122,7 +122,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings());
+        await sut.GetCompletionsAsync(CompletionText, new PromptExecutionSettings());
 
         //Assert
         Assert.True(this._messageHandlerStub.RequestHeaders?.Contains("User-Agent"));
@@ -130,7 +130,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var values = this._messageHandlerStub.RequestHeaders!.GetValues("User-Agent");
 
         var value = values.SingleOrDefault();
-        Assert.Equal(Telemetry.HttpUserAgent, value);
+        Assert.Equal("Semantic-Kernel", value);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings());
+        await sut.GetCompletionsAsync(CompletionText, new PromptExecutionSettings());
 
         //Assert
         Assert.StartsWith(EndPoint, this._messageHandlerStub.RequestUri?.AbsoluteUri, StringComparison.OrdinalIgnoreCase);
@@ -163,7 +163,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings());
+        await sut.GetCompletionsAsync(CompletionText, new PromptExecutionSettings());
         var expectedUri = new UriBuilder(this._endPointUri)
         {
             Path = "/api/v1/generate",
@@ -186,7 +186,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings()).ConfigureAwait(false);
+        await sut.GetCompletionsAsync(CompletionText, new PromptExecutionSettings()).ConfigureAwait(false);
 
         //Assert
         var requestPayload = JsonSerializer.Deserialize<OobaboogaCompletionRequest>(this._messageHandlerStub.RequestContent);
@@ -207,7 +207,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var sut = new OobaboogaTextCompletion(oobaboogaSettings);
 
         //Act
-        var result = await sut.GetCompletionsAsync(CompletionText, new AIRequestSettings());
+        var result = await sut.GetCompletionsAsync(CompletionText, new PromptExecutionSettings());
 
         //Assert
         Assert.NotNull(result);
@@ -215,8 +215,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var completions = result.SingleOrDefault();
         Assert.NotNull(completions);
 
-        var completion = await completions.GetCompletionAsync();
-        Assert.Equal("This is test completion response", completion);
+        Assert.Equal("This is test completion response", completions);
     }
 
     [Fact]
@@ -257,7 +256,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
             // Simulate different responses for each request
             var responseIndex = int.Parse(Encoding.UTF8.GetString(request.ToArray()), CultureInfo.InvariantCulture);
             byte[] bytes = Encoding.UTF8.GetBytes(expectedResponses[responseIndex]);
-            var toReturn = new List<ArraySegment<byte>> { new ArraySegment<byte>(bytes) };
+            var toReturn = new List<ArraySegment<byte>> { new(bytes) };
             return toReturn;
         });
 
@@ -438,7 +437,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    var history = new Microsoft.SemanticKernel.AI.ChatCompletion.ChatHistory();
+                    var history = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory();
                     history.AddUserMessage("What is your name?");
                     return Task.FromResult(this.GetStreamingMessagesAsync((OobaboogaChatCompletion)sut, history, cleanupToken));
                 }, cleanupToken.Token));
@@ -533,13 +532,13 @@ public sealed class OobaboogaCompletionTests : IDisposable
             keepAliveWebSocketsDuration: 100,
             loggerFactory: this._testOutputHelper);
 
-        var builder = new KernelBuilder();
+        var builder = Kernel.CreateBuilder();
 
         // Act
 
-        builder.WithOobaboogaTextCompletionService(settings);
+        builder.AddOobaboogaTextGeneration(settings);
         var kernel = builder.Build();
-        var service = kernel.GetService<ITextCompletion>();
+        var service = kernel.GetRequiredService<ITextGenerationService>();
 
         // Assert
 
@@ -567,19 +566,19 @@ public sealed class OobaboogaCompletionTests : IDisposable
             keepAliveWebSocketsDuration: 100,
             loggerFactory: this._testOutputHelper);
 
-        var builder = new KernelBuilder();
+        var builder = Kernel.CreateBuilder();
 
         // Act
 
-        builder.WithOobaboogaChatCompletionService(settings, alsoAsTextCompletion: false);
+        builder.AddOobaboogaChatCompletion(settings);
         var kernel = builder.Build();
-        var service = kernel.GetService<IChatCompletion>();
+        var service = kernel.GetRequiredService<IChatCompletionService>();
 
         // Assert
         Assert.IsType<OobaboogaChatCompletion>(service);
-        Assert.Throws<SKException>(() =>
+        Assert.Throws<KernelException>(() =>
         {
-            var service2 = kernel.GetService<ITextCompletion>();
+            var service2 = kernel.GetRequiredService<ITextGenerationService>();
         });
     }
 
@@ -604,14 +603,18 @@ public sealed class OobaboogaCompletionTests : IDisposable
             keepAliveWebSocketsDuration: 100,
             loggerFactory: this._testOutputHelper);
 
-        var builder = new KernelBuilder();
+        var builder = Kernel.CreateBuilder();
 
         // Act
-
-        builder.WithOobaboogaChatCompletionService(settings, alsoAsTextCompletion: true);
+        // OobaboogaChatCompletion implements both IChatCompletionService and ITextGenerationService
+        // under SK 1.78 (the legacy alsoAsTextCompletion behavior); register the single instance
+        // under both interfaces.
+        var chat = new OobaboogaChatCompletion(settings);
+        builder.Services.AddKeyedSingleton<IChatCompletionService>(null, (_, _) => chat);
+        builder.Services.AddKeyedSingleton<ITextGenerationService>(null, (_, _) => chat);
         var kernel = builder.Build();
-        var service = kernel.GetService<IChatCompletion>();
-        var service2 = kernel.GetService<ITextCompletion>();
+        var service = kernel.GetRequiredService<IChatCompletionService>();
+        var service2 = kernel.GetRequiredService<ITextGenerationService>();
 
         // Assert
         Assert.IsType<OobaboogaChatCompletion>(service);
@@ -620,24 +623,16 @@ public sealed class OobaboogaCompletionTests : IDisposable
 
     private async IAsyncEnumerable<string> GetStreamingMessagesAsync(OobaboogaChatCompletion sut, ChatHistory history, CancellationTokenSource cleanupToken)
     {
-        IAsyncEnumerable<IChatStreamingResult> tempResponse;
-        tempResponse = sut.GetStreamingChatCompletionsAsync(history, new OobaboogaChatCompletionRequestSettings()
+        var requestSettings = new OobaboogaChatCompletionRequestSettings()
         {
             Temperature = 0.01,
             MaxNewTokens = 7,
             TopP = 0.1,
-        }, cancellationToken: cleanupToken.Token);
+        };
 
-        //localResponse = tempResponse.SelectMany(result => result.GetStreamingChatMessageAsync(cleanupToken.Token))
-        //    .Select(chatMessage => chatMessage.Content);
-
-        var chatMessages = new List<string>();
-        await foreach (var result in tempResponse)
+        await foreach (var chatMessage in sut.GetStreamingChatMessageContentsAsync(history, requestSettings, kernel: null, cleanupToken.Token).ConfigureAwait(false))
         {
-            await foreach (var chatMessage in result.GetStreamingChatMessageAsync(cleanupToken.Token))
-            {
-                yield return chatMessage.Content;
-            }
+            yield return chatMessage.Content ?? string.Empty;
         }
     }
 

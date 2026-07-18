@@ -1,6 +1,7 @@
 ﻿// Copyright (c) MyIA. All rights reserved.
 
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
@@ -15,7 +16,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 /// were removed in 1.78: services return <see cref="TextContent"/> directly, so these helpers
 /// project that materialized content back to the plain strings the legacy logic reasons in.
 /// </summary>
-internal static class TextGenerationServiceMultiExtensions
+public static class TextGenerationServiceMultiExtensions
 {
     /// <summary>
     /// Requests completions and projects every result to its text content.
@@ -26,7 +27,7 @@ internal static class TextGenerationServiceMultiExtensions
         this ITextGenerationService service,
         string prompt,
         PromptExecutionSettings? requestSettings,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         var contents = await service.GetTextContentsAsync(prompt, requestSettings, kernel: null, cancellationToken).ConfigureAwait(false);
         var results = new List<string>(contents.Count);
@@ -46,9 +47,26 @@ internal static class TextGenerationServiceMultiExtensions
         this ITextGenerationService service,
         string prompt,
         PromptExecutionSettings? requestSettings,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         var contents = await service.GetTextContentsAsync(prompt, requestSettings, kernel: null, cancellationToken).ConfigureAwait(false);
         return contents.Count > 0 ? contents[0].Text : null;
+    }
+
+    /// <summary>
+    /// Streams completion chunks projected to their text content. Replaces the legacy
+    /// <c>CompleteStreamAsync</c> extension on <c>ITextCompletion</c> that returned
+    /// <c>IAsyncEnumerable&lt;string&gt;</c>.
+    /// </summary>
+    public static async IAsyncEnumerable<string> CompleteStreamAsync(
+        this ITextGenerationService service,
+        string prompt,
+        PromptExecutionSettings? requestSettings,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var chunk in service.GetStreamingTextContentsAsync(prompt, requestSettings, kernel: null, cancellationToken).ConfigureAwait(false))
+        {
+            yield return chunk.Text ?? string.Empty;
+        }
     }
 }
