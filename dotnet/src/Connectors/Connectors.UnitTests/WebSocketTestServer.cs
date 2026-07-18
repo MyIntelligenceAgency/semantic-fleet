@@ -66,7 +66,22 @@ internal class WebSocketTestServer : IDisposable
     {
         while (!this._mainCancellationTokenSource.IsCancellationRequested)
         {
-            var context = await this._httpListener.GetContextAsync().ConfigureAwait(false);
+            HttpListenerContext context;
+            try
+            {
+                context = await this._httpListener.GetContextAsync().ConfigureAwait(false);
+            }
+            catch (HttpListenerException) when (!this._serverIsRunning)
+            {
+                // Listener was stopped during shutdown (DisposeAsync stops it before
+                // awaiting this task). The blocking accept is unblocked; exit the loop.
+                break;
+            }
+            catch (ObjectDisposedException) when (!this._serverIsRunning)
+            {
+                // Listener was closed during shutdown; exit the accept loop.
+                break;
+            }
 
             if (this._serverIsRunning)
             {
@@ -206,9 +221,18 @@ internal class WebSocketTestServer : IDisposable
         {
             this._serverIsRunning = false;
             await this.CloseAllSocketsAsync(); // Close all sockets before finishing the tasks
-            await Task.WhenAll(this._runningTasks).ConfigureAwait(false);
+
+            // Stop the listener and cancel BEFORE awaiting the running tasks. GetContextAsync
+            // (in HandleRequestsAsync) has no CancellationToken overload and only unblocks when
+            // the listener is stopped; awaiting _runningTasks first deadlocks it, and delays
+            // releasing the HttpListener prefix. That delay causes "Failed to listen on prefix
+            // ... because it conflicts with an existing registration" failures when tests run
+            // in parallel (they share the fixed StreamingPort 2345). See #7270.
+            this._httpListener.Stop();
             this._socketCancellationTokenSource.Cancel();
             this._mainCancellationTokenSource.Cancel();
+
+            await Task.WhenAll(this._runningTasks).ConfigureAwait(false);
         }
         catch (OperationCanceledException exception)
         {
@@ -216,7 +240,6 @@ internal class WebSocketTestServer : IDisposable
         }
         finally
         {
-            this._httpListener.Stop();
             this._httpListener.Close();
             this._socketCancellationTokenSource.Dispose();
             this._mainCancellationTokenSource.Dispose();
