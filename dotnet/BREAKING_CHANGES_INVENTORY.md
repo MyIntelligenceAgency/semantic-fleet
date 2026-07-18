@@ -115,6 +115,70 @@ est faisable en focus (~250-300 lignes diff estimées pour 6 projets).
 - `IDelegatingHandlerFactory` : API interne supprimée, **recoder**
   (pas un simple remplacement) — risque non-trivial.
 
+## Diagnostic tranche 2 (c.475, 2026-07-18) — **CORRECTION de l'estimation c.616**
+
+> **Correction de mon estimation c.616 ci-dessus** (« pattern mécanique,
+> pas une réécriture architecturale ») : **FAUX**. Le diagnostic firsthand
+> post-bump (`dotnet build` + vérification de la surface API SK 1.78 contre
+> l'assembly `Microsoft.SemanticKernel.Abstractions.dll` 1.78.0) montre que
+> c'est **bien une réécriture architecturale**, pas un remplacement mécanique.
+> La tranche 2 est donc multi-cycle, pas un focus unique.
+
+### Vérification des cibles de migration contre l'assembly SK 1.78.0
+
+Les cibles du tableau ci-dessus sont **confirmées** par lecture du XML doc
+`Microsoft.SemanticKernel.Abstractions.xml` (net8.0) :
+
+| Symbole 0.x (obsolète)        | Cible 1.78 (namespace vérifié)                          |
+|-------------------------------|---------------------------------------------------------|
+| `AIRequestSettings`           | `Microsoft.SemanticKernel.PromptExecutionSettings`      |
+| `ChatHistory`                 | `Microsoft.SemanticKernel.ChatCompletion.ChatHistory`   |
+| `ChatMessageBase`             | `Microsoft.SemanticKernel.ChatMessageContent`           |
+| `IChatResult`/`ITextResult`   | **SUPPRIMÉS** — les services retournent `ChatMessageContent`/`TextContent` directement |
+| `IChatStreamingResult`/`ITextStreamingResult` | **SUPPRIMÉS** — `IAsyncEnumerable<StreamingChatMessageContent>`/`<StreamingTextContent>` |
+| `IChatCompletion`/`ITextCompletion` | `IChatCompletionService` (`.ChatCompletion`) / `ITextGenerationService` (`.TextGeneration`) |
+| `ModelResult`                 | **SUPPRIMÉ** (le contenu est sur l'objet résultat direct) |
+| `ParameterView`               | `Microsoft.SemanticKernel.KernelArguments`              |
+| `KernelBuilder`               | `Kernel.CreateBuilder()` / type `IKernelBuilder`        |
+
+### Le point architectural bloquant (pourquoi ce n'est PAS mécanique)
+
+Le connecteur Oobabooga (83 erreurs) est bâti sur le **modèle result-wrapper
+de SK 0.x** qui n'existe plus en 1.78 :
+
+- `Completion/ChatCompletion/ChatCompletionResult.cs` — wrappe `IChatResult`/
+  `ITextResult`, expose `ModelResult` + `ChatMessageBase`. Les 3 types sont
+  supprimés en 1.78 → **la classe entière est obsolete**.
+- `Completion/CompletionStreamingResultBase.cs` + `ChatCompletionStreamingResult.cs`
+  + `TextCompletionStreamingResult.cs` — implémentent `IChatStreamingResult`/
+  `ITextStreamingResult` (supprimés) → **obsolete**.
+- `OobaboogaChatCompletion.cs`/`OobaboogaTextCompletion.cs` — implémentent
+  `IChatCompletion`/`ITextCompletion` (renommés en `*Service`) et retournent
+  les wrappers ci-dessus. En 1.78, `IChatCompletionService.GetChatMessageContentsAsync`
+  retourne `Task<IReadOnlyList<ChatMessageContent>>` directement (pas de wrapper).
+
+→ **La réécriture supprime les classes result-wrapper** (`ChatCompletionResult`,
+`CompletionStreamingResultBase`, `Completion{Streaming}Result`, les classes
+`*StreamingResult`) et **réécrit les classes de service** pour implémenter
+`IChatCompletionService`/`ITextGenerationService` avec retour direct de
+`ChatMessageContent`/`TextContent` (+ `IAsyncEnumerable<Streaming*>` pour le
+streaming). Le `OobaboogaKernelBuilderExtensions.cs` migre vers le pattern DI
+SK 1.x (`IKernelBuilder` + `Services.AddSingleton<IChatCompletionService>`),
+et la factory `IDelegatingHandlerFactory` (API interne supprimée) est à recoder
+ou à court-circuiter (`HttpClient` direct).
+
+### Plan tranche 2 (multi-cycle, ordre suggéré)
+
+1. **T2a — Oobabooga service layer rewrite** (~6 fichiers : supprimer les
+   wrappers obsolete, réécrire `OobaboogaChatCompletion`/`OobaboogaTextCompletion`
+   contre `*Service`, migrer les extensions DI). Débloque le build de la solution.
+2. **T2b — MultiConnector rewrite** (mêmes patterns, 51 occ.).
+3. **T2c — UnitTests/IntegrationTests** (23 occ., suit la migration).
+4. **T2d — bump du pointeur submodule CoursIA** (acceptance #5, une fois la
+   solution verte).
+
+Chaque sous-tranche = un commit dédié sur `upgrade-sk`, build mesuré avant/après.
+
 ## Acceptance tranche 1 (déjà livré par `560feb0`)
 
 - [x] Branche `upgrade-sk` poussée sur MyIntelligenceAgency/semantic-fleet (additive, pas de force push)
