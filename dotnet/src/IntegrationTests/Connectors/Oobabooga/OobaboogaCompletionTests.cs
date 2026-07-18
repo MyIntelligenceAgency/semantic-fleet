@@ -6,17 +6,17 @@ using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 using Xunit;
-using ChatHistory = Microsoft.SemanticKernel.AI.ChatCompletion.ChatHistory;
+using ChatHistory = Microsoft.SemanticKernel.ChatCompletion.ChatHistory;
 
 namespace SemanticKernel.IntegrationTests.Connectors.Oobabooga;
 
@@ -115,14 +115,14 @@ public sealed class OobaboogaCompletionTests : IDisposable
         var history = new ChatHistory();
         history.AddUserMessage("What is your name?");
         // Act
-        var localResponse = await oobaboogaLocal.GetChatCompletionsAsync(history, new OobaboogaChatCompletionRequestSettings()
+        var localResponse = await oobaboogaLocal.GetChatMessageContentsAsync(history, new OobaboogaChatCompletionRequestSettings()
         {
             Temperature = 0.01,
             MaxNewTokens = 20,
             TopP = 0.1,
         });
 
-        var chatMessage = await localResponse[^1].GetChatMessageAsync(CancellationToken.None).ConfigureAwait(false);
+        var chatMessage = localResponse[^1];
         this.AssertAcceptableChatResponse(chatMessage);
     }
 
@@ -142,32 +142,24 @@ public sealed class OobaboogaCompletionTests : IDisposable
         history.AddUserMessage("What is your name?");
 
         // Act
-        var localResponse = oobaboogaLocal.GetStreamingChatCompletionsAsync(history, new OobaboogaChatCompletionRequestSettings()
+        var localResponse = oobaboogaLocal.GetStreamingChatMessageContentsAsync(history, new OobaboogaChatCompletionRequestSettings()
         {
             Temperature = 0.01,
             MaxNewTokens = 7,
             TopP = 0.1,
         });
 
-        StringBuilder stringBuilder = new();
-        ChatMessageBase? chatMessage = null;
-        await foreach (var result in localResponse)
+        StringBuilder logBuilder = new();
+        StringBuilder contentBuilder = new();
+        AuthorRole? role = null;
+        await foreach (var message in localResponse)
         {
-            await foreach (var message in result.GetStreamingChatMessageAsync())
-            {
-                stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"{message.Role}: {message.Content}");
-                if (chatMessage is null)
-                {
-                    chatMessage = message;
-                }
-                else
-                {
-                    chatMessage.Content += message.Content;
-                }
-            }
+            logBuilder.AppendLine(CultureInfo.InvariantCulture, $"{message.Role}: {message.Content}");
+            role ??= message.Role;
+            contentBuilder.Append(message.Content ?? string.Empty);
         }
 
-        var resultsMerged = stringBuilder.ToString();
+        var chatMessage = new ChatMessageContent(role ?? AuthorRole.Assistant, contentBuilder.ToString());
         this.AssertAcceptableChatResponse(chatMessage);
     }
 
@@ -182,7 +174,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         Assert.Matches(expectedRegex, localResponse);
     }
 
-    private void AssertAcceptableChatResponse(ChatMessageBase? chatMessage)
+    private void AssertAcceptableChatResponse(ChatMessageContent? chatMessage)
     {
         Assert.NotNull(chatMessage);
         Assert.NotNull(chatMessage.Content);

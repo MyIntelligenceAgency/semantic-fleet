@@ -30,8 +30,8 @@ public sealed class OobaboogaTextCompletion : OobaboogaCompletionBase<string, Oo
     public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(
         string prompt,
         PromptExecutionSettings? executionSettings,
-        Kernel? kernel,
-        CancellationToken cancellationToken)
+        Kernel? kernel = null,
+        CancellationToken cancellationToken = default)
     {
         this.LogActionDetails();
         var texts = await this.GetCompletionsBaseAsync(prompt, executionSettings, cancellationToken).ConfigureAwait(false);
@@ -42,8 +42,8 @@ public sealed class OobaboogaTextCompletion : OobaboogaCompletionBase<string, Oo
     public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(
         string prompt,
         PromptExecutionSettings? executionSettings,
-        Kernel? kernel,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        Kernel? kernel = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         this.LogActionDetails();
         await foreach (var text in this.GetStreamingCompletionsBaseAsync(prompt, executionSettings, cancellationToken))

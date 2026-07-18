@@ -12,9 +12,9 @@ namespace SemanticKernel.IntegrationTests;
 
 internal static class TestHelpers
 {
-    internal static void ImportSampleSkills(IKernel target)
+    internal static void ImportSampleSkills(Kernel target)
     {
-        var chatSkill = GetSkills(target,
+        GetSkills(target,
             "ChatSkill",
             "SummarizeSkill",
             "WriterSkill",
@@ -28,7 +28,7 @@ internal static class TestHelpers
             "QASkill");
     }
 
-    internal static IDictionary<string, ISKFunction> GetSkills(IKernel target, params string[] skillNames)
+    internal static IDictionary<string, KernelFunction> GetSkills(Kernel target, params string[] skillNames)
     {
         string? currentAssemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         if (string.IsNullOrWhiteSpace(currentAssemblyDirectory))
@@ -38,6 +38,26 @@ internal static class TestHelpers
 
         string skillParentDirectory = Path.GetFullPath(Path.Combine(currentAssemblyDirectory, "../../../../../../samples/skills"));
 
-        return target.ImportSemanticFunctionsFromDirectory(skillParentDirectory, skillNames);
+        // SK 1.78: ImportSemanticFunctionsFromDirectory(parentDir, names) was replaced by
+        // Kernel.ImportPluginFromPromptDirectory(pluginDir, pluginName) which loads a single
+        // plugin directory. We import each requested skill as its own plugin and flatten the
+        // functions into the legacy name->function dictionary contract.
+        var functions = new Dictionary<string, KernelFunction>(StringComparer.OrdinalIgnoreCase);
+        foreach (var skillName in skillNames)
+        {
+            string pluginDirectory = Path.Combine(skillParentDirectory, skillName);
+            if (!Directory.Exists(pluginDirectory))
+            {
+                continue;
+            }
+
+            KernelPlugin plugin = target.ImportPluginFromPromptDirectory(pluginDirectory, skillName);
+            foreach (KernelFunction function in plugin)
+            {
+                functions[function.Name] = function;
+            }
+        }
+
+        return functions;
     }
 }

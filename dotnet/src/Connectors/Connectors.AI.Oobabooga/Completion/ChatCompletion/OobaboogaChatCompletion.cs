@@ -52,8 +52,8 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
     public async Task<IReadOnlyList<ChatMessageContent>> GetChatMessageContentsAsync(
         ChatHistory chatHistory,
         PromptExecutionSettings? executionSettings,
-        Kernel? kernel,
-        CancellationToken cancellationToken)
+        Kernel? kernel = null,
+        CancellationToken cancellationToken = default)
     {
         Verify.NotEmptyList(chatHistory, ChatHistoryMustContainAtLeastOneUserMessage, nameof(chatHistory));
 
@@ -66,8 +66,8 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
     public async IAsyncEnumerable<StreamingChatMessageContent> GetStreamingChatMessageContentsAsync(
         ChatHistory chatHistory,
         PromptExecutionSettings? executionSettings,
-        Kernel? kernel,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        Kernel? kernel = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         Verify.NotEmptyList(chatHistory, ChatHistoryMustContainAtLeastOneUserMessage, nameof(chatHistory));
 
@@ -87,8 +87,8 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
     public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(
         string prompt,
         PromptExecutionSettings? executionSettings,
-        Kernel? kernel,
-        CancellationToken cancellationToken)
+        Kernel? kernel = null,
+        CancellationToken cancellationToken = default)
     {
         var chatHistory = this.CreateNewChat();
         chatHistory.AddUserMessage(prompt);
@@ -103,8 +103,8 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
     public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(
         string prompt,
         PromptExecutionSettings? executionSettings,
-        Kernel? kernel,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        Kernel? kernel = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var chatHistory = this.CreateNewChat();
         chatHistory.AddUserMessage(prompt);
