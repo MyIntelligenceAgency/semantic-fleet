@@ -82,40 +82,6 @@ internal static class Verify
     }
 
     /// <summary>
-    /// Make sure every function parameter name is unique
-    /// </summary>
-    /// <param name="parameters">List of parameters</param>
-    internal static void ParametersUniqueness(IList<ParameterView> parameters)
-    {
-        int count = parameters.Count;
-        if (count > 0)
-        {
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < count; i++)
-            {
-                ParameterView p = parameters[i];
-                if (string.IsNullOrWhiteSpace(p.Name))
-                {
-                    string paramName = $"{nameof(parameters)}[{i}].{p.Name}";
-                    if (p.Name is null)
-                    {
-                        ThrowArgumentNullException(paramName);
-                    }
-                    else
-                    {
-                        ThrowArgumentWhiteSpaceException(paramName);
-                    }
-                }
-
-                if (!seen.Add(p.Name))
-                {
-                    throw new SKException($"The function has two or more parameters with the same name '{p.Name}'");
-                }
-            }
-        }
-    }
-
-    /// <summary>
     /// Verifies that the provided list is not empty.
     /// </summary>
     /// <typeparam name="T">Type of items in the list.</typeparam>
@@ -134,7 +100,7 @@ internal static class Verify
 
     [DoesNotReturn]
     private static void ThrowInvalidName(string kind, string name) =>
-        throw new SKException($"A {kind} can contain only ASCII letters, digits, and underscores: '{name}' is not a valid name.");
+        throw new KernelException($"A {kind} can contain only ASCII letters, digits, and underscores: '{name}' is not a valid name.");
 
     [DoesNotReturn]
     internal static void ThrowArgumentNullException(string? paramName) =>

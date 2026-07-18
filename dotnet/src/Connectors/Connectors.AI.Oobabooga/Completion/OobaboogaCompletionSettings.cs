@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.SemanticKernel.Diagnostics;
 
 namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 
@@ -184,7 +183,7 @@ public class OobaboogaCompletionSettings
     /// </summary>
     private void SetWebSocketOptions(ClientWebSocket clientWebSocket)
     {
-        clientWebSocket.Options.SetRequestHeader("User-Agent", Telemetry.HttpUserAgent);
+        clientWebSocket.Options.SetRequestHeader("User-Agent", "Semantic-Kernel");
     }
 
     private void StartCleanupTask(CancellationToken cancellationToken)

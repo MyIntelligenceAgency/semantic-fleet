@@ -2,7 +2,7 @@
 
 using System;
 using System.Text.Json.Serialization;
-using Microsoft.SemanticKernel.AI;
+using Microsoft.SemanticKernel;
 
 namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 
@@ -22,7 +22,7 @@ public class OobaboogaCompletionRequest : OobaboogaCompletionRequestSettings
     /// <summary>
     /// Creates a new CompletionRequest with the given prompt, oobabooga settings and semantic-kernel settings.
     /// </summary>
-    public static OobaboogaCompletionRequest Create(string prompt, OobaboogaCompletionSettings<OobaboogaCompletionRequestSettings> settings, AIRequestSettings requestSettings)
+    public static OobaboogaCompletionRequest Create(string prompt, OobaboogaCompletionSettings<OobaboogaCompletionRequestSettings> settings, PromptExecutionSettings executionSettings)
     {
         var toReturn = new OobaboogaCompletionRequest()
         {
@@ -31,7 +31,7 @@ public class OobaboogaCompletionRequest : OobaboogaCompletionRequestSettings
         toReturn.Apply(settings.OobaboogaParameters);
         if (!settings.OverrideRequestSettings)
         {
-            var tempSettings = OobaboogaCompletionRequestSettings.FromRequestSettings(requestSettings, toReturn.MaxNewTokens);
+            var tempSettings = OobaboogaCompletionRequestSettings.FromPromptExecutionSettings(executionSettings, toReturn.MaxNewTokens);
             toReturn.Apply(tempSettings);
         }
 

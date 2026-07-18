@@ -4,7 +4,6 @@
 
 using System.Net.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.Http;
 
 /// <summary>
 /// Provides functionality for retrieving instances of HttpClient.
@@ -14,17 +13,17 @@ internal static class HttpClientProvider
     /// <summary>
     /// Retrieves an instance of HttpClient.
     /// </summary>
-    /// <param name="httpHandlerFactory">The <see cref="IDelegatingHandlerFactory"/> to be used when the HttpClient is not provided already</param>
     /// <param name="httpClient">An optional pre-existing instance of HttpClient.</param>
     /// <param name="loggerFactory">The <see cref="ILoggerFactory"/> to use for logging. If null, no logging will be performed.</param>
     /// <returns>An instance of HttpClient.</returns>
-    public static HttpClient GetHttpClient(IDelegatingHandlerFactory httpHandlerFactory, HttpClient? httpClient, ILoggerFactory? loggerFactory)
+#pragma warning disable IDE0060 // Remove unused parameter (loggerFactory kept for caller API stability)
+    public static HttpClient GetHttpClient(HttpClient? httpClient, ILoggerFactory? loggerFactory)
+#pragma warning restore IDE0060
     {
         if (httpClient is null)
         {
-            var providedHttpHandler = httpHandlerFactory.Create(loggerFactory);
-            providedHttpHandler.InnerHandler = NonDisposableHttpClientHandler.Instance;
-            return new HttpClient(providedHttpHandler, false); // We should refrain from disposing the underlying SK default HttpClient handler as it would impact other HTTP clients that utilize the same handler.
+            // We refrain from disposing the underlying SK default HttpClient handler as it would impact other HTTP clients that utilize the same handler.
+            return new HttpClient(NonDisposableHttpClientHandler.Instance, disposeHandler: false);
         }
 
         return httpClient;

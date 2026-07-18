@@ -7,15 +7,14 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.SemanticKernel.AI;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
+using Microsoft.SemanticKernel;
 
 namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion;
 
 /// <summary>
 /// HTTP schema to perform oobabooga completion request, without the user input.
 /// </summary>
-public class OobaboogaCompletionRequestSettings : AIRequestSettings
+public class OobaboogaCompletionRequestSettings : PromptExecutionSettings
 {
     /// <summary>
     /// The maximum number of tokens to generate, ignoring the number of tokens in the prompt.
@@ -253,13 +252,13 @@ public class OobaboogaCompletionRequestSettings : AIRequestSettings
     /// <summary>
     /// Create a new settings object with the values from another settings object.
     /// </summary>
-    /// <param name="requestSettings">generic request settings</param>
+    /// <param name="executionSettings">generic execution settings</param>
     /// <param name="defaultMaxTokens">Default max tokens</param>
     /// <returns>An instance of <see cref="OobaboogaCompletionRequestSettings"/></returns>
-    public static OobaboogaCompletionRequestSettings FromRequestSettings(AIRequestSettings? requestSettings, int? defaultMaxTokens = null)
+    public static OobaboogaCompletionRequestSettings FromPromptExecutionSettings(PromptExecutionSettings? executionSettings, int? defaultMaxTokens = null)
     {
-        // No request settings provided
-        if (requestSettings is null)
+        // No execution settings provided
+        if (executionSettings is null)
         {
             var newSettings = new OobaboogaCompletionRequestSettings();
             if (defaultMaxTokens != null)
@@ -270,33 +269,21 @@ public class OobaboogaCompletionRequestSettings : AIRequestSettings
             return newSettings;
         }
 
-        //Request settings are Oobabooga Completion or ChatCompletion parameters
-        if (requestSettings is OobaboogaCompletionRequestSettings requestSettingsOobaboogaCompletionParameters)
+        //Execution settings are Oobabooga Completion or ChatCompletion parameters
+        if (executionSettings is OobaboogaCompletionRequestSettings requestSettingsOobaboogaCompletionParameters)
         {
             return requestSettingsOobaboogaCompletionParameters;
         }
 
-        //Request settings are OpenAI request settings
-        if (requestSettings is OpenAIRequestSettings requestSettingsOpenAIRequestSettings)
-        {
-            var fromOpenAI = new OobaboogaCompletionRequestSettings();
-            fromOpenAI.MaxNewTokens = requestSettingsOpenAIRequestSettings.MaxTokens;
-            fromOpenAI.Temperature = requestSettingsOpenAIRequestSettings.Temperature;
-            fromOpenAI.TopP = requestSettingsOpenAIRequestSettings.TopP;
-            fromOpenAI.RepetitionPenalty = GetRepetitionPenalty(requestSettingsOpenAIRequestSettings.PresencePenalty);
-            fromOpenAI.StoppingStrings = requestSettingsOpenAIRequestSettings.StopSequences.ToList();
-            return fromOpenAI;
-        }
-
-        //Request settings are an unknown format. Trying to leverage ExtensionData property 
+        //Execution settings are an unknown format. Trying to leverage ExtensionData property
 
         var toReturn = new OobaboogaCompletionRequestSettings
         {
-            ServiceId = requestSettings.ServiceId,
-            ModelId = requestSettings.ModelId
+            ServiceId = executionSettings.ServiceId,
+            ModelId = executionSettings.ModelId
         };
 
-        foreach (KeyValuePair<string, object> extendedProperty in requestSettings.ExtensionData)
+        foreach (KeyValuePair<string, object> extendedProperty in executionSettings.ExtensionData)
         {
             if (extendedProperty.Value != null)
             {

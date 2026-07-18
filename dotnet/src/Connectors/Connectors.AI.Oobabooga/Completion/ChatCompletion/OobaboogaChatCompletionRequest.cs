@@ -2,8 +2,8 @@
 
 using System.Linq;
 using System.Text.Json.Serialization;
-using Microsoft.SemanticKernel.AI;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 
@@ -27,12 +27,12 @@ public sealed class OobaboogaChatCompletionRequest : OobaboogaChatCompletionRequ
     /// <summary>
     /// Creates a new ChatCompletionRequest with the given Chat history, oobabooga settings and semantic-kernel settings.
     /// </summary>
-    public static OobaboogaChatCompletionRequest Create(ChatHistory chat, OobaboogaCompletionSettings<OobaboogaChatCompletionRequestSettings> settings, AIRequestSettings requestSettings)
+    public static OobaboogaChatCompletionRequest Create(ChatHistory chat, OobaboogaCompletionSettings<OobaboogaChatCompletionRequestSettings> settings, PromptExecutionSettings executionSettings)
     {
-        var chatMessages = chat.Messages.Take(chat.Messages.Count - 1).Select(@base => @base.Content).ToList();
+        var chatMessages = chat.Take(chat.Count - 1).Select(message => message.Content).ToList();
         var toReturn = new OobaboogaChatCompletionRequest()
         {
-            UserInput = chat.Messages.Last().Content,
+            UserInput = chat.Last().Content,
             History = new OobaboogaChatHistory()
             {
                 Internal = chatMessages.Count > 1 ? new() { chatMessages } : new(),
@@ -42,7 +42,7 @@ public sealed class OobaboogaChatCompletionRequest : OobaboogaChatCompletionRequ
         toReturn.Apply(settings.OobaboogaParameters);
         if (!settings.OverrideRequestSettings)
         {
-            var tempSettings = OobaboogaCompletionRequestSettings.FromRequestSettings(requestSettings, toReturn.MaxNewTokens);
+            var tempSettings = OobaboogaCompletionRequestSettings.FromPromptExecutionSettings(executionSettings, toReturn.MaxNewTokens);
             toReturn.Apply(tempSettings);
         }
 

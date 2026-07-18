@@ -5,9 +5,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.AI;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
 using Microsoft.SemanticKernel.Text;
 
@@ -17,9 +16,13 @@ namespace MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.ChatCompletion;
 /// Oobabooga chat completion service API.
 /// Adapted from <see href="https://github.com/oobabooga/text-generation-webui/tree/main/api-examples"/>
 /// </summary>
-public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistory, OobaboogaChatCompletionRequestSettings, OobaboogaChatCompletionRequest, ChatCompletionResponse, ChatCompletionResult, ChatCompletionStreamingResult>, IChatCompletion, ITextCompletion
+public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistory, OobaboogaChatCompletionRequestSettings, OobaboogaChatCompletionRequest, ChatCompletionResponse>, IChatCompletionService
 {
     private const string ChatHistoryMustContainAtLeastOneUserMessage = "Chat history must contain at least one User message with instructions.";
+
+    // Tracks the cumulative streamed message so that only the delta chunk is yielded.
+    // Reset on the first chunk (MessageNum == 0) of every stream, so the service is safe to reuse across calls.
+    private string _lastSentMessage = string.Empty;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OobaboogaChatCompletion"/> class.
@@ -29,7 +32,9 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
     {
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Creates a new <see cref="ChatHistory"/> optionally seeded with a system instruction.
+    /// </summary>
     public ChatHistory CreateNewChat(string? instructions = null)
     {
         this.LogActionDetails();
@@ -43,47 +48,32 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<IChatResult>> GetChatCompletionsAsync(
-        ChatHistory chat,
-        AIRequestSettings? requestSettings = null,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ChatMessageContent>> GetChatMessageContentsAsync(
+        ChatHistory chatHistory,
+        PromptExecutionSettings? executionSettings,
+        Kernel? kernel,
+        CancellationToken cancellationToken)
     {
+        Verify.NotEmptyList(chatHistory, ChatHistoryMustContainAtLeastOneUserMessage, nameof(chatHistory));
+
         this.LogActionDetails();
-        return await this.InternalGetChatCompletionsAsync(chat, requestSettings, cancellationToken).ConfigureAwait(false);
+        var texts = await this.GetCompletionsBaseAsync(chatHistory, executionSettings, cancellationToken).ConfigureAwait(false);
+        return texts.Select(t => new ChatMessageContent(AuthorRole.Assistant, t)).ToList();
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<IChatStreamingResult> GetStreamingChatCompletionsAsync(
-        ChatHistory chat,
-        AIRequestSettings? requestSettings = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<StreamingChatMessageContent> GetStreamingChatMessageContentsAsync(
+        ChatHistory chatHistory,
+        PromptExecutionSettings? executionSettings,
+        Kernel? kernel,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        Verify.NotEmptyList(chatHistory, ChatHistoryMustContainAtLeastOneUserMessage, nameof(chatHistory));
+
         this.LogActionDetails();
-        await foreach (var chatCompletionStreamingResult in this.InternalGetStreamingChatCompletionsAsync(chat, requestSettings, cancellationToken))
+        await foreach (var text in this.GetStreamingCompletionsBaseAsync(chatHistory, executionSettings, cancellationToken))
         {
-            yield return chatCompletionStreamingResult;
-        }
-    }
-
-    /// <inheritdoc/>
-    public async Task<IReadOnlyList<ITextResult>> GetCompletionsAsync(string text, AIRequestSettings? requestSettings, CancellationToken cancellationToken = default)
-    {
-        this.LogActionDetails();
-        ChatHistory chat = this.PrepareChatHistory(text, requestSettings, out AIRequestSettings chatSettings);
-        return (await this.InternalGetChatCompletionsAsync(chat, chatSettings, cancellationToken).ConfigureAwait(false))
-            .OfType<ITextResult>()
-            .ToList();
-    }
-
-    /// <inheritdoc/>
-    public async IAsyncEnumerable<ITextStreamingResult> GetStreamingCompletionsAsync(string text, AIRequestSettings? requestSettings, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        this.LogActionDetails();
-        ChatHistory chat = this.PrepareChatHistory(text, requestSettings, out AIRequestSettings chatSettings);
-
-        await foreach (var chatCompletionStreamingResult in this.InternalGetStreamingChatCompletionsAsync(chat, chatSettings, cancellationToken))
-        {
-            yield return (ITextStreamingResult)chatCompletionStreamingResult;
+            yield return new StreamingChatMessageContent(AuthorRole.Assistant, text);
         }
     }
 
@@ -95,61 +85,42 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
         return Json.Deserialize<ChatCompletionStreamingResponse>(messageText);
     }
 
-    private async Task<IReadOnlyList<IChatResult>> InternalGetChatCompletionsAsync(
-        ChatHistory chat,
-        AIRequestSettings? requestSettings = null,
-        CancellationToken cancellationToken = default)
+    /// <inheritdoc/>
+    protected override IReadOnlyList<string> ExtractCompletionTexts(ChatCompletionResponse completionResponse)
     {
-        Verify.NotEmptyList(chat, ChatHistoryMustContainAtLeastOneUserMessage, nameof(chat));
-        return await this.GetCompletionsBaseAsync(chat, requestSettings, cancellationToken).ConfigureAwait(false);
+        return completionResponse.Results.ConvertAll(result =>
+            result.History.Visible.Count > 0 ? result.History.Visible.Last().Last() : string.Empty);
     }
 
-    private async IAsyncEnumerable<IChatStreamingResult> InternalGetStreamingChatCompletionsAsync(
-        ChatHistory chat,
-        AIRequestSettings? requestSettings = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    /// <inheritdoc/>
+    protected override string? ExtractStreamText(CompletionStreamingResponseBase response)
     {
-        Verify.NotEmptyList(chat, ChatHistoryMustContainAtLeastOneUserMessage, nameof(chat));
-
-        await foreach (var chatCompletionStreamingResult in this.GetStreamingCompletionsBaseAsync(chat, requestSettings, cancellationToken))
+        var chatResponse = (ChatCompletionStreamingResponse)response;
+        // Reset delta state at the start of every stream (service instances may be reused).
+        if (response.MessageNum == 0)
         {
-            yield return chatCompletionStreamingResult;
+            this._lastSentMessage = string.Empty;
         }
+
+        if (chatResponse.History.Visible.Count == 0)
+        {
+            return null;
+        }
+
+        var newMessage = chatResponse.History.Visible.Last().Last();
+        var newChunk = newMessage.Substring(this._lastSentMessage.Length);
+        this._lastSentMessage = newMessage;
+        return newChunk;
     }
 
-    private ChatHistory PrepareChatHistory(string text, AIRequestSettings? requestSettings, out AIRequestSettings settings)
+    /// <inheritdoc/>
+    protected override OobaboogaChatCompletionRequest CreateCompletionRequest(ChatHistory input, PromptExecutionSettings? executionSettings)
     {
-        if (requestSettings is OobaboogaChatCompletionRequestSettings requestSettingsChatCompletionParameters)
-        {
-            settings = requestSettingsChatCompletionParameters;
-        }
-        else
-        {
-            var oobaboogaParams = OobaboogaCompletionRequestSettings.FromRequestSettings(requestSettings, null);
-            var chatSettings = new OobaboogaChatCompletionRequestSettings();
-            chatSettings.Apply(oobaboogaParams);
-            settings = chatSettings;
-        }
+        executionSettings ??= new();
 
-        var chat = this.CreateNewChat(((OobaboogaChatCompletionRequestSettings)settings).ChatSystemPrompt);
-        chat.AddUserMessage(text);
-        return chat;
+        var completionRequest = OobaboogaChatCompletionRequest.Create(input, (OobaboogaCompletionSettings<OobaboogaChatCompletionRequestSettings>)this.OobaboogaSettings, executionSettings);
+        return completionRequest;
     }
 
     #endregion
-
-    /// <inheritdoc/>
-    protected override IReadOnlyList<ChatCompletionResult> GetCompletionResults(ChatCompletionResponse completionResponse)
-    {
-        return completionResponse.Results.ConvertAll(result => new ChatCompletionResult(result));
-    }
-
-    /// <inheritdoc/>
-    protected override OobaboogaChatCompletionRequest CreateCompletionRequest(ChatHistory input, AIRequestSettings? requestSettings)
-    {
-        requestSettings ??= new();
-
-        var completionRequest = OobaboogaChatCompletionRequest.Create(input, (OobaboogaCompletionSettings<OobaboogaChatCompletionRequestSettings>)this.OobaboogaSettings, requestSettings);
-        return completionRequest;
-    }
 }
