@@ -1,6 +1,7 @@
 ﻿// Copyright (c) MyIA. All rights reserved.
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -13,6 +14,20 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 /// </summary>
 public class MultiCompletionRequestSettings : PromptExecutionSettings
 {
+    /// <summary>
+    /// Initializes a new instance. SK 1.78: <see cref="PromptExecutionSettings.ExtensionData"/> is no longer
+    /// lazy-initialized at construction (it is null on a <c>new</c>-constructed object, populated by the JSON
+    /// deserializer instead). We ensure a non-null dictionary here. Without this, the
+    /// <see cref="TemperatureMulti"/>/<see cref="MaxTokensMulti"/> setters and the
+    /// <see cref="FromRequestSettings"/>/<see cref="CloneRequestSettings"/> factories (which both do
+    /// <c>new MultiCompletionRequestSettings()</c>) throw <see cref="NullReferenceException"/>. Idempotent
+    /// (<c>??=</c> preserves any data a deserializer may have already populated).
+    /// </summary>
+    public MultiCompletionRequestSettings()
+    {
+        this.ExtensionData ??= new Dictionary<string, object?>();
+    }
+
     /// <summary>
     /// Modulates the next token probabilities. A value of 0 implies deterministic output (only the most likely token is used). Higher values increase randomness.
     /// </summary>
@@ -89,7 +104,7 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
 
             if (deserialized != null)
             {
-                foreach (var pair in deserialized.ExtensionData)
+                foreach (var pair in deserialized.ExtensionData ?? new Dictionary<string, object?>())
                 {
                     var upperKey = pair.Key.ToUpperInvariant();
                     var pairValue = pair.Value;
@@ -117,7 +132,7 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
         var toReturn = new MultiCompletionRequestSettings();
         toReturn.ModelId = requestSettings.ModelId;
         toReturn.ServiceId = requestSettings.ServiceId;
-        foreach (var pair in requestSettings.ExtensionData)
+        foreach (var pair in requestSettings.ExtensionData ?? new Dictionary<string, object?>())
         {
             toReturn.ExtensionData[pair.Key] = pair.Value;
         }
