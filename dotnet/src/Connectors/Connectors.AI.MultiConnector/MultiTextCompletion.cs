@@ -115,7 +115,14 @@ public class MultiTextCompletion : ITextGenerationService
 
         session.ResultProducer = resultLazy;
 
-        this.ProcessTextCompletionResultsAsync(session, cancellationToken).ConfigureAwait(false);
+        // Await costing/analysis rather than fire-and-forgetting it. The buffer is already
+        // fully materialized above (the child stream was consumed into `buffered`/`sb`), so
+        // awaiting here is safe (no deadlock, no data race) and makes the streaming path
+        // consistent with the non-streaming GetTextContentsAsync (which awaits the same call).
+        // Previously this was un-awaited, which meant: creditor cost was debited on a race
+        // (non-deterministic for cost assertions), and any exception in costing/analysis was
+        // swallowed as an unobserved task exception.
+        await this.ProcessTextCompletionResultsAsync(session, cancellationToken).ConfigureAwait(false);
 
         this._logger?.LogTrace("\n## Ending MultiTextCompletion.GetStreamingTextContentsAsync\n");
 
