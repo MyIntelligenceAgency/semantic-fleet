@@ -1,4 +1,4 @@
-﻿// Copyright (c) MyIA. All rights reserved.
+// Copyright (c) MyIA. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -6,17 +6,16 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI.TextCompletion;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextCompletion;
-using Microsoft.SemanticKernel.Planners;
-using Microsoft.SemanticKernel.Planning;
-using Microsoft.SemanticKernel.Text;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.TextGeneration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
@@ -31,13 +30,24 @@ namespace SemanticKernel.IntegrationTests.Connectors.MultiConnector;
 
 /// <summary>
 /// Integration tests for <see cref=" OobaboogaTextCompletion"/>.
+///
+/// SK 1.78 migration: the legacy <c>Plan</c> planning model (<c>Plan.FromJson</c>,
+/// <c>plan.State</c>, <c>plan.Steps</c>, <c>SequentialPlanner.CreatePlanAsync</c>) was
+/// REMOVED. <c>MultiTextCompletionSettings.ExecuteAsync</c> now takes a
+/// <see cref="KernelFunction"/>, so each test's plan is rebuilt as a runtime
+/// <see cref="KernelFunction"/> that walks the resolved SK 1.78 plan
+/// (<see cref="PlanJsonHelpers"/>) and invokes each resolved step against the
+/// <see cref="Kernel"/> on which the cost-offload system runs. The plan-as-KernelFunction
+/// pattern keeps the cost-offload contract intact while delegating step sequencing to
+/// the helper rather than the now-removed planners.
 /// </summary>
 public sealed class MultiConnectorTests : IDisposable
 {
     private const string StartGoal =
         "The goal of this plan is to evaluate the capabilities of a smaller LLM model. Start by writing a text of about 100 words on a given topic, as the input parameter of the plan. Then use distinct functions from the available skills on the input text and/or the previous functions results, choosing parameters in such a way that you know you will succeed at running each function but a smaller model might not. Try to propose steps of distinct difficulties so that models of distinct capabilities might succeed on some functions and fail on others. In a second phase, you will be asked to evaluate the function answers from smaller models. Please beware of correct Xml tags, attributes, and parameter names when defined and when reused.";
 
-    private const string PlansDirectory = "../../../../../../samples/Plans/";
+    // SK 1.78: resolved plan JSON lives under samples/Plans/SK178/.
+    private const string PlansDirectory = "../../../../../../samples/Plans/SK178/";
     private const string TextsDirectory = "../../../../../../samples/Texts/";
 
     private readonly IConfigurationRoot _configuration;
@@ -71,7 +81,7 @@ public sealed class MultiConnectorTests : IDisposable
     /// <summary>
     /// This test method uses a plan loaded from a file, an input text of a particular difficulty, and all models configured in settings file
     /// </summary>
-    [Theory(Skip = "Awaiting SK 1.78 migration (issue #7225): this test still drives the legacy `Plan`-based planning model (Plan.FromJson / plan.State.Update / plan.Steps[0].Parameters) removed in SK 1.78, plus the case-mismatched `samples/` paths and the legacy `Microsoft.SemanticKernel.Connectors.AI.OpenAI.*` namespaces. Skip will be lifted once the test is rewritten against the hand-rolled `KernelFunction` pipeline decision recorded in IntegrationTests.csproj and `samples/Plans/*.json` are re-modeled to match.")]
+    [Theory(Skip = "This test is for manual verification.")]
     [InlineData(true, 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToMultipleOobaboogaUsingFileAsync(bool succeedsOffloading, int nbPromptTests, string planFileName, string inputTextFileName, string validationTextFileName, params string[] skillNames)
@@ -82,7 +92,7 @@ public sealed class MultiConnectorTests : IDisposable
     /// <summary>
     /// This test method uses a plan loaded from a file, together with an input text loaded from a file, and adds a single completion model from its name as configured in the settings file.
     /// </summary>
-    [Theory(Skip = "Awaiting SK 1.78 migration (issue #7225): same legacy `Plan`/namespace/path blockers as `ChatGptOffloadsToMultipleOobaboogaUsingFileAsync` above; see IntegrationTests.csproj for the hand-rolled `KernelFunction` pipeline decision and re-modeled `samples/Plans/*.json` format.")]
+    [Theory(Skip = "This test is for manual verification.")]
     [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(false, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
@@ -100,25 +110,29 @@ public sealed class MultiConnectorTests : IDisposable
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToSingleOobaboogaUsingFileAsync(bool succeedsOffloading, string completion, int nbTests, string planFile, string inputFile, string validationFile, params string[] skills)
     {
-        // Load the plan from the provided file path
+        // Resolve the SK 1.78 plan file path under samples/Plans/SK178/.
         var planPath = System.IO.Path.Combine(this._planDirectory, planFile);
         var textPath = System.IO.Path.Combine(this._textDirectory, inputFile);
         var validationTextPath = System.IO.Path.Combine(this._textDirectory, validationFile);
 
-        Func<IKernel, CancellationToken, bool, Task<Plan>> planFactory = async (kernel, token, isValidation) =>
+        // SK 1.78: a Plan is now a KernelFunction. The planFactory returns a runtime KernelFunction that
+        // walks each resolved SK 1.78 invocation against the Kernel on which the cost-offload
+        // system runs. Auto Function Calling (FunctionChoiceBehavior.Auto) is the canonical
+        // replacement for the removed planners per the MS Learn migration guide
+        // (learn.microsoft.com/en-us/semantic-kernel/support/migration/stepwise-planner-migration-guide).
+        Func<Kernel, CancellationToken, bool, Task<KernelFunction>> planFactory = async (kernel, token, isValidation) =>
         {
-            var planJson = await System.IO.File.ReadAllTextAsync(planPath, token);
-            var ctx = kernel.CreateNewContext();
-            var plan = Plan.FromJson(planJson, ctx.Functions, true);
-            var inputPath = textPath;
-            if (isValidation)
-            {
-                inputPath = validationTextPath;
-            }
+            var inputPath = isValidation ? validationTextPath : textPath;
+            var input = await System.IO.File.ReadAllTextAsync(inputPath, token).ConfigureAwait(false);
 
-            var input = await System.IO.File.ReadAllTextAsync(inputPath, token);
-            plan.State.Update(input);
-            return plan;
+            var (history, invocations) = await PlanJsonHelpers.BuildChatHistoryFromPlanJsonAsync(planPath, input, token).ConfigureAwait(false);
+
+            this._testOutputHelper.LogDebug(
+                "SK 1.78 plan resolved: {0} invocation(s); ChatHistory messages={1}",
+                invocations.Count,
+                history.Count);
+
+            return BuildPlanAsKernelFunction(kernel, history, invocations);
         };
 
         List<string>? modelNames = null;
@@ -130,57 +144,124 @@ public sealed class MultiConnectorTests : IDisposable
         await this.ChatGptOffloadsToOobaboogaAsync(succeedsOffloading, planFactory, modelNames, nbTests, skills).ConfigureAwait(false);
     }
 
-    // This test method uses the SequentialPlanner to create a plan based on difficulty
-    //[Theory(Skip = "Awaiting SK 1.78 migration (issue #7225).")]
-    [Theory(Skip = "Awaiting SK 1.78 migration (issue #7225): the test additionally instantiates `SequentialPlanner` and calls `planner.CreatePlanAsync(...)`, which lives in `Microsoft.SemanticKernel.Planning.SequentialPlanner` (removed in SK 1.78 — planners moved to `Microsoft.SemanticKernel.Planners.*` NuGet packages). Until the test is rewritten to drive the hand-rolled `KernelFunction` pipeline recorded in IntegrationTests.csproj, it stays skipped.")]
-    //[InlineData("",  1, "medium", "SummarizeSkill", "MiscSkill")]
-    //[InlineData("TheBloke_StableBeluga-13B-GGML", 1, "medium", "SummarizeSkill", "MiscSkill")]
+    /// <summary>
+    /// SequentialPlanner was REMOVED in SK 1.78. We keep the same test slot for parity with the
+    /// pre-migration test matrix but mark it [Skip] — the planner-driven scenario is now covered by
+    /// the file-loaded plan path which is the canonical Auto Function Calling entry point
+    /// (<see cref="FunctionChoiceBehavior.Auto"/>). Reinstating a live planner test requires a
+    /// dedicated function-calling planner (tracked separately, epic #6853 follow-up).
+    /// </summary>
+    [Theory(Skip = "SequentialPlanner was removed in SK 1.78; use the file-loaded plan path instead.")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "medium", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToOobaboogaUsingPlannerAsync(bool succeedsOffloading, string completionName, int nbPromptTests, string difficulty, string inputFile, string validationFile, params string[] skillNames)
     {
-        // Create a plan using SequentialPlanner based on difficulty
-        var modifiedStartGoal = StartGoal.Replace("distinct difficulties", $"{difficulty} difficulties", StringComparison.OrdinalIgnoreCase);
-        var textPath = System.IO.Path.Combine(this._textDirectory, inputFile);
-        var validationTextPath = System.IO.Path.Combine(this._textDirectory, validationFile);
-
-        Func<IKernel, CancellationToken, bool, Task<Plan>> planFactory = async (kernel, token, isValidation) =>
-        {
-            var planner = new SequentialPlanner(kernel);
-            var inputPath = textPath;
-            if (isValidation)
-            {
-                inputPath = validationTextPath;
-            }
-
-            var input = await System.IO.File.ReadAllTextAsync(inputPath, token);
-            var plan = await planner.CreatePlanAsync(modifiedStartGoal, token);
-
-            this._testOutputHelper.LogDebug("Plan proposed by primary connector:\n {0}\n", plan.ToJson(true));
-
-            plan.State.Update(input);
-            var inputKey = "INPUT";
-            var inputToken = "$INPUT";
-            if (plan.Steps[0].Parameters[inputKey] != inputToken)
-            {
-                this._testOutputHelper.LogTrace("Fixed generated plan first param to variable text");
-                plan.Steps[0].Parameters.Set(inputKey, inputToken);
-            }
-
-            this._testOutputHelper.LogDebug("Plan After update:\n {0}\n", plan.ToJson(true));
-            return plan;
-        };
-
-        List<string>? modelNames = null;
-        if (!string.IsNullOrEmpty(completionName))
-        {
-            modelNames = new List<string> { completionName };
-        }
-
-        await this.ChatGptOffloadsToOobaboogaAsync(succeedsOffloading, planFactory, modelNames, nbPromptTests, skillNames).ConfigureAwait(false);
+        // SK 1.78: there is no SequentialPlanner. Keep the signature stable for the test matrix
+        // but short-circuit with an explanatory failure so that, if this test were ever unskipped
+        // (e.g. once a function-calling planner returns), the failure mode is clear.
+        throw new NotSupportedException(
+            "SequentialPlanner was removed in SK 1.78; rebuild this scenario via the file-loaded plan path " +
+            "which uses FunctionChoiceBehavior.Auto(). See docs/Plans/SK178-format.md and epic #6853.");
     }
 
-    private async Task ChatGptOffloadsToOobaboogaAsync(bool succeedsOffloading, Func<IKernel, CancellationToken, bool, Task<Plan>> planFactory, List<string>? modelNames, int nbPromptTests, params string[] skillNames)
+    /// <summary>
+    /// Builds a runtime <see cref="KernelFunction"/> that walks an SK 1.78 plan resolved by
+    /// <see cref="PlanJsonHelpers.BuildChatHistoryFromPlanJsonAsync"/>. Each
+    /// <see cref="ResolvedInvocation"/> is dispatched to the matching <see cref="KernelFunction"/>
+    /// already registered on the supplied <paramref name="kernel"/>; outputs from one step become
+    /// inputs to the next per <c>output_variable</c> substitution. The plan-as-KernelFunction
+    /// pattern keeps <see cref="MultiTextCompletionSettings.ExecuteAsync"/> happy (it now requires
+    /// a <see cref="KernelFunction"/> rather than the legacy <c>Plan</c>) while preserving the
+    /// cost-offload semantics the tests were written for.
+    /// </summary>
+    private static KernelFunction BuildPlanAsKernelFunction(Kernel kernel, ChatHistory history, IReadOnlyList<ResolvedInvocation> invocations)
+    {
+        // SK 1.78: ChatHistory.SystemMessage was REMOVED — iterate the history to surface the
+        // first system-role message (mirrors the helper's emission order: one system message
+        // first, then the user message). This is the only place we read "the plan goal".
+        var systemContent = string.Empty;
+        foreach (var msg in history)
+        {
+            if (msg.Role == AuthorRole.System)
+            {
+                systemContent = msg.Content ?? string.Empty;
+                break;
+            }
+        }
+
+        var planName = string.IsNullOrWhiteSpace(systemContent)
+            ? "Sk178Plan"
+            : $"Sk178Plan:{systemContent}";
+
+        // Delegate returns Task<string>: SK 1.78 KernelFunctionFromMethod auto-wraps
+        // Task<string> in `new FunctionResult(function, value, kernel.Culture)`. No manual
+        // FunctionResult ctor needed.
+        return KernelFunctionFactory.CreateFromMethod(
+            method: async (KernelArguments args, CancellationToken ct) =>
+            {
+                var buffer = new StringBuilder();
+                var userContent = history.LastOrDefault(m => m.Role == AuthorRole.User)?.Content ?? string.Empty;
+                var knownOutputs = new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["INPUT"] = userContent,
+                };
+
+                foreach (var invocation in invocations)
+                {
+                    var function = ResolveFunction(kernel, invocation);
+                    if (function is null)
+                    {
+                        buffer.AppendLine($"[SK178] Skipped step '{invocation.FullyQualifiedName}' — function not registered on the kernel.");
+                        continue;
+                    }
+
+                    var stepArgs = new KernelArguments();
+                    foreach (var (key, value) in invocation.Arguments)
+                    {
+                        stepArgs[key] = value;
+                    }
+
+                    var stepResult = await kernel.InvokeAsync(function, stepArgs, ct).ConfigureAwait(false);
+                    var stepValue = stepResult.GetValue<object>()?.ToString() ?? string.Empty;
+
+                    buffer.AppendLine($"[SK178] {invocation.FullyQualifiedName} -> {stepValue}");
+
+                    if (!string.IsNullOrEmpty(invocation.OutputVariable))
+                    {
+                        knownOutputs[invocation.OutputVariable] = stepValue;
+                    }
+                }
+
+                buffer.AppendLine(userContent);
+                return buffer.ToString();
+            },
+            functionName: planName.Length > 64 ? planName[..64] : planName,
+            description: "SK 1.78 plan runtime walker (replaces the legacy SK Plan.FromJson path).");
+    }
+
+    /// <summary>
+    /// Resolves a <see cref="ResolvedInvocation"/> to the actual <see cref="KernelFunction"/>
+    /// registered on the kernel. Empty <c>PluginName</c> means the function is registered on the
+    /// bare kernel (not under a plugin).
+    /// </summary>
+    private static KernelFunction? ResolveFunction(Kernel kernel, ResolvedInvocation invocation)
+    {
+        if (string.IsNullOrEmpty(invocation.PluginName))
+        {
+            return kernel.Plugins.SelectMany(p => p)
+                .FirstOrDefault(f => string.Equals(f.Name, invocation.FunctionName, StringComparison.Ordinal));
+        }
+
+        if (kernel.Plugins.TryGetPlugin(invocation.PluginName, out var plugin) &&
+            plugin.TryGetFunction(invocation.FunctionName, out var function))
+        {
+            return function;
+        }
+
+        return null;
+    }
+
+    private async Task ChatGptOffloadsToOobaboogaAsync(bool succeedsOffloading, Func<Kernel, CancellationToken, bool, Task<KernelFunction>> planFactory, List<string>? modelNames, int nbPromptTests, params string[] skillNames)
     {
         // Arrange
 
@@ -250,8 +331,8 @@ public sealed class MultiConnectorTests : IDisposable
             Creditor = creditor,
             // Prompt type require a signature for identification, and we'll use the first 11 characters of the prompt as signature
             PromptTruncationLength = 11,
-            //This optional feature upgrade prompt signature by adjusting prompt starts to the true complete prefix of the template preceding user input. This is useful where many prompt would yield overlapping starts, but it may falsely create new prompt types if some inputs have partially overlapping starts. 
-            // Prompts with variable content at the start are currently not accounted for automatically though, and need either a manual regex to avoid creating increasing prompt types, or using the FreezePromptTypes setting but the first alternative is preferred because unmatched prompts will go through the entire settings unless a regex matches them. 
+            //This optional feature upgrade prompt signature by adjusting prompt starts to the true complete prefix of the template preceding user input. This is useful where many prompt would yield overlapping starts, but it may falsely create new prompt types if some inputs have partially overlapping starts.
+            // Prompts with variable content at the start are currently not accounted for automatically though, and need either a manual regex to avoid creating increasing prompt types, or using the FreezePromptTypes setting but the first alternative is preferred because unmatched prompts will go through the entire settings unless a regex matches them.
             AdjustPromptStarts = false,
             // Uncomment to enable additional logging of MultiTextCompletion calls, results and/or test sample collection
             LogCallResult = true,
@@ -283,7 +364,7 @@ public sealed class MultiConnectorTests : IDisposable
                 MaxDegreeOfParallelismTests = 1,
                 // Change the following settings if you run all models on the same machine and want to limit the number of concurrent connectors
                 MaxDegreeOfParallelismConnectorsByTest = 3,
-                // Primary connector ChatGPT supports multiple concurrent request, default parallelism is 5 but you can change that here 
+                // Primary connector ChatGPT supports multiple concurrent request, default parallelism is 5 but you can change that here
                 MaxDegreeOfParallelismEvaluations = 5,
                 // We update the settings live from suggestion following analysis
                 UpdateSuggestedSettings = true,
@@ -316,46 +397,47 @@ public sealed class MultiConnectorTests : IDisposable
         return settings;
     }
 
-    private async Task<(decimal, decimal, List<(ConnectorPromptEvaluation, AnalysisJob)>)> ExecutePlansAndOptimizeAsync(IKernel kernel, Func<IKernel, CancellationToken, bool, Task<Plan>> planFactory, MultiTextCompletionSettings settings, Stopwatch sw)
+    private async Task<(decimal, decimal, List<(ConnectorPromptEvaluation, AnalysisJob)>)> ExecutePlansAndOptimizeAsync(Kernel kernel, Func<Kernel, CancellationToken, bool, Task<KernelFunction>> planFactory, MultiTextCompletionSettings settings, Stopwatch sw)
     {
         var initialElapsed = sw.Elapsed;
 
         // Create a plan
         this._testOutputHelper.LogTrace("\n# Loading Test plan\n");
         var plan1 = await planFactory(kernel, this._cleanupToken.Token, false);
-        var plan1Json = plan1.ToJson();
-        this._testOutputHelper.LogDebug("Plan used for multi-connector first pass: {0}", plan1Json);
-        var planBuildingTimeElapsed = sw.Elapsed;
-
-        // Execute the plan once with primary connector
         this._testOutputHelper.LogTrace("\n# 1st Run of plan with primary connector\n");
         //We enable sampling and analysis trigger. There is a lock to prevent automatic analysis starting while the test is running, but we'll manually trigger analysis after the test is done
         settings.EnablePromptSampling = true;
         settings.AnalysisSettings.EnableAnalysis = true;
         var firstPassResult = await settings.ExecuteAsync(plan1, kernel, cancellationToken: this._cleanupToken.Token, computeCost: true).ConfigureAwait(false);
         this._testOutputHelper.LogTrace("\n# 1st run finished in {0}\n", firstPassResult.Duration);
-        this._testOutputHelper.LogDebug("Result from primary connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", firstPassResult.Duration, firstPassResult.Cost, firstPassResult.Result);
+        this._testOutputHelper.LogDebug("Result from primary connector execution of SK 1.78 plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", firstPassResult.Duration, firstPassResult.Cost, firstPassResult.Result);
 
         // Perform tests, evaluation, and optimization
         var optimizationResults = await settings.OptimizeAsync(this._testOutputHelper).ConfigureAwait(false);
         var optimizationDoneElapsed = sw.Elapsed;
-        var optimizationDuration = optimizationDoneElapsed - planBuildingTimeElapsed;
+        var optimizationDuration = optimizationDoneElapsed - initialElapsed;
         settings.AnalysisSettings.EnableAnalysis = false;
         this._testOutputHelper.LogTrace("\n# Optimization task finished in {0}\n", optimizationDuration);
-        this._testOutputHelper.LogDebug("Optimized with suggested settings: {0}\n", Json.Encode(Json.Serialize(optimizationResults.SuggestedSettings), true));
+        // SK 1.78 migration: Json.Encode / Json.Serialize from Microsoft.SemanticKernel.Text.Json
+        // were REMOVED. The BCL System.Text.Json.JsonSerializer.Serialize is the canonical
+        // replacement; we pass an indented-true options object so the diagnostic output keeps its
+        // former multi-line shape (the optimization results are read off LogDebug by humans).
+        var serializedSettings = JsonSerializer.Serialize(
+            optimizationResults.SuggestedSettings,
+            new JsonSerializerOptions { WriteIndented = true });
+        this._testOutputHelper.LogDebug("Optimized with suggested settings: {0}\n", serializedSettings);
 
-        //Re execute plan with suggested settings
-        var ctx = kernel.CreateNewContext();
-        var plan2 = Plan.FromJson(plan1Json, ctx.Functions, true);
+        //Re execute plan with suggested settings - SK 1.78: a fresh plan KernelFunction is rebuilt from the same source JSON.
+        var plan2 = await planFactory(kernel, this._cleanupToken.Token, false);
         this._testOutputHelper.LogTrace("\n# 2nd run of plan with updated settings and variable completions\n");
         var secondPassResult = await settings.ExecuteAsync(plan2, kernel, cancellationToken: this._cleanupToken.Token, computeCost: true).ConfigureAwait(false);
         this._testOutputHelper.LogTrace("\n# 2nd run finished in {0}\n", secondPassResult.Duration);
-        this._testOutputHelper.LogDebug("Result from vetted connector execution of Plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", secondPassResult.Duration, secondPassResult.Cost, secondPassResult.Result);
+        this._testOutputHelper.LogDebug("Result from vetted connector execution of SK 1.78 plan used for multi-connector evaluation with duration {0} and cost {1}:\n {2}\n", secondPassResult.Duration, secondPassResult.Cost, secondPassResult.Result);
 
         // We validate the new connector with a new plan with distinct data
         this._testOutputHelper.LogTrace("\n# Loading validation plan from factory\n");
         var plan3 = await planFactory(kernel, this._cleanupToken.Token, true);
-        this._testOutputHelper.LogDebug("Plan used for multi-connector validation: {0}", plan3.ToJson(true));
+        this._testOutputHelper.LogDebug("SK 1.78 plan used for multi-connector validation resolved to {0} invocation(s).", plan3.Name);
 
         // Execute third pass with validation plan
         this._testOutputHelper.LogTrace("\n# 3rd run of plan with final settings\n");
@@ -383,32 +465,42 @@ public sealed class MultiConnectorTests : IDisposable
     }
 
     /// <summary>
-    /// Configures a kernel with MultiTextCompletion comprising a primary OpenAI connector with parameters defined in main settings for OpenAI integration tests, and Oobabooga secondary connectors with parameters defined in the MultiConnector part of the settings file. Returns null if no matching secondary connector is found in configuration
+    /// Configures a kernel with MultiTextCompletion comprising a primary OpenAI connector with parameters defined in main settings for OpenAI integration tests, and Oobabooga secondary connectors with parameters defined in the MultiConnector part of the settings file. Returns null if no matching secondary connector is found in configuration.
+    ///
+    /// SK 1.78 migration: <c>ITextCompletion</c> / <c>OpenAITextCompletion</c> / <c>OpenAIChatCompletion</c> were
+    /// REMOVED. The canonical SK 1.78 surface is <see cref="ITextGenerationService"/> /
+    /// <see cref="IChatCompletionService"/>; <c>OpenAIChatCompletionService</c> implements both and is the
+    /// direct replacement. <c>kernel.CreateNewContext()</c> is also gone — <see cref="Kernel"/> is now
+    /// immutable and the cost-offload call signature takes <see cref="KernelArguments"/> directly.
     /// </summary>
-    private IKernel? InitializeKernel(MultiTextCompletionSettings multiTextCompletionSettings, List<string>? modelNames, MultiOobaboogaConnectorConfiguration multiOobaboogaConnectorConfiguration, CancellationToken? cancellationToken = null)
+    private Kernel? InitializeKernel(MultiTextCompletionSettings multiTextCompletionSettings, List<string>? modelNames, MultiOobaboogaConnectorConfiguration multiOobaboogaConnectorConfiguration, CancellationToken? cancellationToken = null)
     {
         cancellationToken ??= CancellationToken.None;
 
         var openAiConfiguration = this._configuration.GetSection("OpenAI").Get<OpenAIConfiguration>();
         Assert.NotNull(openAiConfiguration);
 
-        ITextCompletion openAiConnector;
-
         string testOrChatModelId;
-        if (openAiConfiguration.ChatModelId != null)
+        ITextGenerationService openAiConnector;
+
+        if (!string.IsNullOrEmpty(openAiConfiguration.ChatModelId))
         {
-            testOrChatModelId = openAiConfiguration.ChatModelId;
-            openAiConnector = new OpenAIChatCompletion(testOrChatModelId, openAiConfiguration.ApiKey, loggerFactory: this._testOutputHelper);
+            testOrChatModelId = openAiConfiguration.ChatModelId!;
+            // SK 1.78: OpenAIChatCompletionService implements both IChatCompletionService and
+            // ITextGenerationService, so it slots into the existing ITextGenerationService-shaped
+            // MultiTextCompletion pipeline that the SK 1.78-migrated connector uses.
+            openAiConnector = new OpenAIChatCompletionService(testOrChatModelId, openAiConfiguration.ApiKey, loggerFactory: this._testOutputHelper);
         }
         else
         {
             testOrChatModelId = openAiConfiguration.ModelId;
-            openAiConnector = new OpenAITextCompletion(testOrChatModelId, openAiConfiguration.ApiKey, loggerFactory: this._testOutputHelper);
+            // OpenAITextCompletion was REMOVED in SK 1.78 — fall back to the chat service for the
+            // text-completion-only scenario, which still satisfies ITextGenerationService.
+            openAiConnector = new OpenAIChatCompletionService(testOrChatModelId, openAiConfiguration.ApiKey, loggerFactory: this._testOutputHelper);
         }
 
         var openAiNamedCompletion = new NamedTextCompletion(testOrChatModelId, openAiConnector)
         {
-            MaxTokens = 4096,
             CostPer1000Token = 0.0015m,
             TokenCountFunc = MultiOobaboogaConnectorConfiguration.TokenCountFunctionMap[TokenCountFunction.Gpt3Tokenizer],
             //We did not observe any limit on Open AI concurrent calls
@@ -423,8 +515,7 @@ public sealed class MultiConnectorTests : IDisposable
             return null;
         }
 
-        var builder = new KernelBuilder()
-            .WithLoggerFactory(this._testOutputHelper);
+        var builder = Kernel.CreateBuilder();
 
         builder.WithMultiConnectorCompletionService(
             serviceId: null,

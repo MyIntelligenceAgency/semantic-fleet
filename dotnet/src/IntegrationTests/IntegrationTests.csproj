@@ -14,31 +14,6 @@
   <ItemGroup>
     <Compile Remove="Plugins\**" />
     <Compile Remove="TemplateLanguage\**" />
-    <!--
-      MultiConnectorTests.cs exercises the legacy `Plan` planning model
-      (Plan.FromJson / plan.State / plan.Steps / SequentialPlanner.CreatePlanAsync
-      returning a Plan) which was REMOVED in SK 1.78. The tests now carry
-      an explicit `Skip` with a current, post-SK-1.78 reason (see the
-      `Skip` attribute on each [Theory]); the `<Compile Remove>` below is
-      kept because the file also references legacy `Microsoft.SemanticKernel.
-      Connectors.AI.OpenAI.*` namespaces (split into `.Connectors.OpenAI.*`
-      in SK 1.78) and `samples/`-case paths that do not match the on-disk
-      `Samples/` directory. Full migration (1.78 paradigm choice +
-      `KernelFunction`-based rewrite + namespace update) is tracked under
-      issue #7225 and epic #6853 T2c-p2.
-
-      Decision (issue #7225 acceptance #1, recorded 2026-07-20):
-      - Planning paradigm = hand-rolled `KernelFunction` pipeline (no
-        external planner NuGet). Justification: tests are end-to-end
-        integration probes, not unit tests of a planner; a hand-rolled
-        chain lets the assertion target (offloading cost, secondary
-        connector vetting) stay isolated from planner-quality noise.
-      - Companion change: `samples/Plans/*.json` re-modeled to a minimal
-        `KernelFunction`-shaped schema (`schema_version`, `description`,
-        `input_variable`, `steps[]`) so a future rewrite can consume them
-        without re-parsing the legacy `Plan` JSON shape.
-    -->
-    <Compile Remove="Connectors\MultiConnector\MultiConnectorTests.cs" />
     <EmbeddedResource Remove="Plugins\**" />
     <EmbeddedResource Remove="TemplateLanguage\**" />
     <None Remove="Plugins\**" />
@@ -75,10 +50,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- SK 1.78 plan format (epic #6853) - samples live under Samples/Plans/SK178/ but are
+         copied to bin via the standard <None> + <CopyToOutputDirectory> pattern. The legacy
+         Summarize*.json files are kept on disk for side-by-side diff with the new format. -->
     <None Update="Connectors\MultiConnector\Plans\Summarize.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Connectors\MultiConnector\Plans\Summarize_Topics_ElementAt.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Connectors\MultiConnector\Plans\SK178\Summarize.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Connectors\MultiConnector\Plans\SK178\Summarize_Topics_ElementAt.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Connectors\MultiConnector\Texts\Comm_hard.txt">
