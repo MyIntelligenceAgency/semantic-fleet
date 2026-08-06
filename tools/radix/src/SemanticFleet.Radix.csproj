@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Targets net9.0 only. Earlier draft also targeted netstandard2.0, but
+      record types + `init`-only setters require IsExternalInit which is not
+      present on netstandard2.0 — adding a polyfill assembly purely to
+      satisfy an old TFM is wasted surface for a drop-in matcher. Consumers
+      on older TFMs can multi-target their own adapters.
+    -->
+    <TargetFrameworks>net9.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <RootNamespace>SemanticFleet.Radix</RootNamespace>
+    <AssemblyName>SemanticFleet.Radix</AssemblyName>
+    <Description>
+      Standalone .NET module extracted from semantic-fleet v0.34.3 (TODO MultiTextCompletionSettings.cs:266-273).
+      Provides a radix-tree-based PromptMatcher that can replace SimpleMatchPromptSettings (linear O(n)) with a
+      trie-based dispatcher when the catalog of PromptMultiConnectorSettings grows large.
+      Drop-in via Func&lt;CompletionJob, IEnumerable&lt;PromptMultiConnectorSettings&gt;, PromptMultiConnectorSettings?&gt; —
+      does NOT require a fork of semantic-fleet; consumers wire it through the existing PromptMatcher hook.
+    </Description>
+  </PropertyGroup>
+
+</Project>
