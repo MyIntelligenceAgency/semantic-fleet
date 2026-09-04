@@ -8,7 +8,7 @@ name: dotnet-build-and-test
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["main", "feature*"]
+    branches: ["main", "feature*", "upgrade-sk"]
   merge_group:
     branches: ["main"]
 
