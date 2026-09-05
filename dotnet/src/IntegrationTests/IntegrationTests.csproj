@@ -14,19 +14,6 @@
   <ItemGroup>
     <Compile Remove="Plugins\**" />
     <Compile Remove="TemplateLanguage\**" />
-    <!--
-      DEFERRED to a dedicated design PR (epic #6853, SK 1.78 migration).
-      MultiConnectorTests.cs exercises the legacy `Plan` planning model
-      (Plan.FromJson / plan.State / plan.Steps / SequentialPlanner.CreatePlanAsync
-      returning a Plan) which was REMOVED in SK 1.78 — a plan is now a
-      KernelFunction and planners live in separate NuGet packages
-      (Microsoft.SemanticKernel.Planners.*). Migrating it is a test-design
-      rewrite (choose a 1.78 planning paradigm, re-model samples/Plans/*.json
-      to the new format), not a mechanical port. Excluded from compilation
-      here so the rest of the IntegrationTests project builds; the file is
-      preserved on the branch for that follow-up work. See #6853 T2c-p2.
-    -->
-    <Compile Remove="Connectors\MultiConnector\MultiConnectorTests.cs" />
     <EmbeddedResource Remove="Plugins\**" />
     <EmbeddedResource Remove="TemplateLanguage\**" />
     <None Remove="Plugins\**" />
@@ -63,10 +50,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- SK 1.78 plan format (epic #6853) - samples live under Samples/Plans/SK178/ but are
+         copied to bin via the standard <None> + <CopyToOutputDirectory> pattern. The legacy
+         Summarize*.json files are kept on disk for side-by-side diff with the new format. -->
     <None Update="Connectors\MultiConnector\Plans\Summarize.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Connectors\MultiConnector\Plans\Summarize_Topics_ElementAt.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Connectors\MultiConnector\Plans\SK178\Summarize.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Connectors\MultiConnector\Plans\SK178\Summarize_Topics_ElementAt.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Connectors\MultiConnector\Texts\Comm_hard.txt">
