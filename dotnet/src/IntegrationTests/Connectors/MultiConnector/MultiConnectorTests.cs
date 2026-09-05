@@ -71,7 +71,7 @@ public sealed class MultiConnectorTests : IDisposable
     /// <summary>
     /// This test method uses a plan loaded from a file, an input text of a particular difficulty, and all models configured in settings file
     /// </summary>
-    [Theory(Skip = "This test is for manual verification.")]
+    [Theory(Skip = "Awaiting SK 1.78 migration (issue #7225): this test still drives the legacy `Plan`-based planning model (Plan.FromJson / plan.State.Update / plan.Steps[0].Parameters) removed in SK 1.78, plus the case-mismatched `samples/` paths and the legacy `Microsoft.SemanticKernel.Connectors.AI.OpenAI.*` namespaces. Skip will be lifted once the test is rewritten against the hand-rolled `KernelFunction` pipeline decision recorded in IntegrationTests.csproj and `samples/Plans/*.json` are re-modeled to match.")]
     [InlineData(true, 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     public async Task ChatGptOffloadsToMultipleOobaboogaUsingFileAsync(bool succeedsOffloading, int nbPromptTests, string planFileName, string inputTextFileName, string validationTextFileName, params string[] skillNames)
@@ -82,7 +82,7 @@ public sealed class MultiConnectorTests : IDisposable
     /// <summary>
     /// This test method uses a plan loaded from a file, together with an input text loaded from a file, and adds a single completion model from its name as configured in the settings file.
     /// </summary>
-    [Theory(Skip = "This test is for manual verification.")]
+    [Theory(Skip = "Awaiting SK 1.78 migration (issue #7225): same legacy `Plan`/namespace/path blockers as `ChatGptOffloadsToMultipleOobaboogaUsingFileAsync` above; see IntegrationTests.csproj for the hand-rolled `KernelFunction` pipeline decision and re-modeled `samples/Plans/*.json` format.")]
     [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(false, "microsoft_phi-1_5", 1, "Summarize.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
@@ -131,8 +131,8 @@ public sealed class MultiConnectorTests : IDisposable
     }
 
     // This test method uses the SequentialPlanner to create a plan based on difficulty
-    //[Theory(Skip = "This test is for manual verification.")]
-    [Theory(Skip = "This test is for manual verification.")]
+    //[Theory(Skip = "Awaiting SK 1.78 migration (issue #7225).")]
+    [Theory(Skip = "Awaiting SK 1.78 migration (issue #7225): the test additionally instantiates `SequentialPlanner` and calls `planner.CreatePlanAsync(...)`, which lives in `Microsoft.SemanticKernel.Planning.SequentialPlanner` (removed in SK 1.78 — planners moved to `Microsoft.SemanticKernel.Planners.*` NuGet packages). Until the test is rewritten to drive the hand-rolled `KernelFunction` pipeline recorded in IntegrationTests.csproj, it stays skipped.")]
     //[InlineData("",  1, "medium", "SummarizeSkill", "MiscSkill")]
     //[InlineData("TheBloke_StableBeluga-13B-GGML", 1, "medium", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]

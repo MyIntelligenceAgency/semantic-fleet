@@ -2,7 +2,7 @@ name: Merge Gatekeeper
 
 on:
   pull_request:
-    branches: [ "main", "feature*", "upgrade-sk" ]
+    branches: [ "main", "feature*" ]
   merge_group:
     branches: ["main"]
 
