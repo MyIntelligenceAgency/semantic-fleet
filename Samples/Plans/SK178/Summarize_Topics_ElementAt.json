@@ -1,0 +1,38 @@
+{
+  "$comment": "Rewritten in SK 1.78 ChatHistory-style format. See docs/Plans/SK178-format.md for the full spec. The legacy 'state/steps/parameters/outputs' Plan shape was REMOVED in SK 1.78; this file replaces it for the MultiConnector integration tests, and is consumed by PlanJsonHelpers.BuildChatHistoryFromPlanJson to produce a ChatHistory that FunctionChoiceBehavior.Auto() can drive.",
+  "name": "Summarize Topics Elements plan",
+  "description": "Evaluates the capabilities of a smaller LLM model. Starting with an input text on a given topic, several functions will be called on the text and/or the previous functions results.",
+  "input_variable": "INPUT",
+  "user_input_template": "{{$INPUT}}",
+  "invocations": [
+    {
+      "name": "Summarize",
+      "plugin_name": "SummarizeSkill",
+      "description": "Summarize given text or any text document",
+      "arguments": {
+        "INPUT": "$INPUT"
+      },
+      "output_variable": "RESULT__SUMMARY"
+    },
+    {
+      "name": "Topics",
+      "plugin_name": "SummarizeSkill",
+      "description": "Analyze given text or document and extract key topics worth remembering",
+      "arguments": {
+        "input": "$INPUT"
+      },
+      "output_variable": "RESULT__TOPICS"
+    },
+    {
+      "name": "ElementAtIndex",
+      "plugin_name": "MiscSkill",
+      "description": "Get an element from an array at a specified index",
+      "arguments": {
+        "index": "2",
+        "INPUT": "$RESULT__TOPICS",
+        "count": "1"
+      },
+      "output_variable": "RESULT__THIRD_TOPIC"
+    }
+  ]
+}
