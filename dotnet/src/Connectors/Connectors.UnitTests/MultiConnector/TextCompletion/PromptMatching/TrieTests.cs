@@ -283,11 +283,13 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             Assert.Equal(2, trie.Count);
             Assert.False(trie.TryGetValue("help", out _));
 
-            // Prefix matching
-            Assert.True(trie.TryGetValueByPrefix("hel", out int prefixValue));
-            Assert.Equal(10, prefixValue); // Should match "hello"
-            Assert.True(trie.TryGetValueByPrefix("wor", out int prefixValue2));
-            Assert.Equal(3, prefixValue2); // Should match "world"
+            // Prefix matching: longest stored key that is a prefix of the input (ITrie contract)
+            Assert.False(trie.TryGetValueByPrefix("hel", out _));
+            Assert.True(trie.TryGetValueByPrefix("hello world", out int prefixValue));
+            Assert.Equal(10, prefixValue); // "hello"
+            Assert.True(trie.TryGetValueByPrefix("worldwide", out int prefixValue2));
+            Assert.Equal(3, prefixValue2); // "world"
+            Assert.False(trie.TryGetValueByPrefix("helper", out _)); // "help" was removed
         }
 
         [Fact]

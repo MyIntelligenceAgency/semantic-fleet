@@ -267,11 +267,16 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             Assert.True(radixTree.TryGetValue("rubicundus", out int value7));
             Assert.Equal(7, value7);
 
-            // Verify prefix matching
-            Assert.True(radixTree.TryGetValueByPrefix("rom", out int prefixValue1));
-            Assert.True(radixTree.TryGetValueByPrefix("rub", out int prefixValue2));
-            Assert.True(radixTree.TryGetValueByPrefix("rubic", out int prefixValue3));
-            Assert.Equal(6, prefixValue3); // Should match "rubicon"
+            // Verify prefix matching. ITrie.TryGetValueByPrefix returns the value of the longest stored key
+            // that is a prefix of the input, so an input shorter than every stored key matches nothing.
+            Assert.False(radixTree.TryGetValueByPrefix("rom", out _));
+            Assert.False(radixTree.TryGetValueByPrefix("rubic", out _));
+            Assert.True(radixTree.TryGetValueByPrefix("romanesque", out int prefixValue1));
+            Assert.Equal(1, prefixValue1); // "romane"
+            Assert.True(radixTree.TryGetValueByPrefix("rubiconian", out int prefixValue2));
+            Assert.Equal(6, prefixValue2); // "rubicon"
+            Assert.True(radixTree.TryGetValueByPrefix("rubicundus est", out int prefixValue3));
+            Assert.Equal(7, prefixValue3); // "rubicundus"
         }
 
         [Fact]
@@ -291,10 +296,12 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             Assert.True(radixTree.TryGetValue("team", out int value2));
             Assert.Equal(2, value2);
 
-            // Verify prefix matching
-            Assert.True(radixTree.TryGetValueByPrefix("te", out int prefixValue));
-            // The value returned should be from either "test" or "team", depending on which was inserted last
-            Assert.True(prefixValue == 1 || prefixValue == 2);
+            // Verify prefix matching after the split: "te" is only an internal node, no stored key is a prefix of it
+            Assert.False(radixTree.TryGetValueByPrefix("te", out _));
+            Assert.True(radixTree.TryGetValueByPrefix("testing", out int prefixValue1));
+            Assert.Equal(1, prefixValue1);
+            Assert.True(radixTree.TryGetValueByPrefix("teammate", out int prefixValue2));
+            Assert.Equal(2, prefixValue2);
         }
 
         [Fact]
