@@ -1,95 +1,94 @@
-// Copyright (c) MyIA. All rights reserved.
+﻿// Copyright (c) MyIA. All rights reserved.
 
-using System;
 using System.Collections.Generic;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
-namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
+namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector;
+
+/// <summary>
+/// Transformateur de prompts spécifique à chaque modèle.
+/// </summary>
+public class ModelSpecificPromptTransformer
 {
+    private readonly Dictionary<string, PromptTransform> _modelTransforms;
+
     /// <summary>
-    /// Transformateur de prompts spécifique à chaque modèle.
+    /// Initialise une nouvelle instance de la classe <see cref="ModelSpecificPromptTransformer"/>.
     /// </summary>
-    public class ModelSpecificPromptTransformer
+    public ModelSpecificPromptTransformer()
     {
-        private readonly Dictionary<string, PromptTransform> _modelTransforms;
+        this._modelTransforms = this.InitializeModelTransforms();
+    }
 
-        /// <summary>
-        /// Initialise une nouvelle instance de la classe <see cref="ModelSpecificPromptTransformer"/>.
-        /// </summary>
-        public ModelSpecificPromptTransformer()
+    /// <summary>
+    /// Transforme un prompt en fonction du modèle spécifié.
+    /// </summary>
+    /// <param name="originalPrompt">Prompt original</param>
+    /// <param name="modelId">Identifiant du modèle</param>
+    /// <param name="context">Contexte pour la transformation</param>
+    /// <returns>Prompt transformé</returns>
+    public string TransformPrompt(string originalPrompt, string modelId, Dictionary<string, object>? context = null)
+    {
+        if (string.IsNullOrEmpty(originalPrompt))
         {
-            _modelTransforms = InitializeModelTransforms();
-        }
-
-        /// <summary>
-        /// Transforme un prompt en fonction du modèle spécifié.
-        /// </summary>
-        /// <param name="originalPrompt">Prompt original</param>
-        /// <param name="modelId">Identifiant du modèle</param>
-        /// <param name="context">Contexte pour la transformation</param>
-        /// <returns>Prompt transformé</returns>
-        public string TransformPrompt(string originalPrompt, string modelId, Dictionary<string, object>? context = null)
-        {
-            if (string.IsNullOrEmpty(originalPrompt))
-            {
-                return originalPrompt;
-            }
-
-            // Normaliser l'ID du modèle
-            string normalizedModelId = NormalizeModelId(modelId);
-
-            // Vérifier si une transformation spécifique existe pour ce modèle
-            if (_modelTransforms.TryGetValue(normalizedModelId, out var transform))
-            {
-                return transform.DefaultTransform(originalPrompt, context);
-            }
-
-            // Si aucune transformation spécifique n'est trouvée, retourner le prompt original
             return originalPrompt;
         }
 
-        /// <summary>
-        /// Normalise l'ID du modèle pour la recherche de transformation.
-        /// </summary>
-        /// <param name="modelId">Identifiant du modèle</param>
-        /// <returns>Identifiant normalisé</returns>
-        private string NormalizeModelId(string modelId)
+        // Normaliser l'ID du modèle
+        string normalizedModelId = this.NormalizeModelId(modelId);
+
+        // Vérifier si une transformation spécifique existe pour ce modèle
+        if (this._modelTransforms.TryGetValue(normalizedModelId, out var transform))
         {
-            if (modelId.StartsWith("gpt-"))
-            {
-                return "gpt";
-            }
-            else if (modelId.Contains("claude"))
-            {
-                return "claude";
-            }
-            else if (modelId.Contains("gemini"))
-            {
-                return "gemini";
-            }
-            else if (modelId.Contains("qwen"))
-            {
-                return "qwen";
-            }
-            else
-            {
-                return modelId;
-            }
+            return transform.DefaultTransform(originalPrompt, context);
         }
 
-        /// <summary>
-        /// Initialise les transformations spécifiques à chaque modèle.
-        /// </summary>
-        /// <returns>Dictionnaire des transformations par modèle</returns>
-        private Dictionary<string, PromptTransform> InitializeModelTransforms()
+        // Si aucune transformation spécifique n'est trouvée, retourner le prompt original
+        return originalPrompt;
+    }
+
+    /// <summary>
+    /// Normalise l'ID du modèle pour la recherche de transformation.
+    /// </summary>
+    /// <param name="modelId">Identifiant du modèle</param>
+    /// <returns>Identifiant normalisé</returns>
+    private string NormalizeModelId(string modelId)
+    {
+        if (modelId.StartsWith("gpt-"))
         {
-            return new Dictionary<string, PromptTransform>
+            return "gpt";
+        }
+        else if (modelId.Contains("claude"))
+        {
+            return "claude";
+        }
+        else if (modelId.Contains("gemini"))
+        {
+            return "gemini";
+        }
+        else if (modelId.Contains("qwen"))
+        {
+            return "qwen";
+        }
+        else
+        {
+            return modelId;
+        }
+    }
+
+    /// <summary>
+    /// Initialise les transformations spécifiques à chaque modèle.
+    /// </summary>
+    /// <returns>Dictionnaire des transformations par modèle</returns>
+    private Dictionary<string, PromptTransform> InitializeModelTransforms()
+    {
+        return new Dictionary<string, PromptTransform>
+        {
+            // Transformation pour les modèles GPT (OpenAI)
             {
-                // Transformation pour les modèles GPT (OpenAI)
+                "gpt", new PromptTransform
                 {
-                    "gpt", new PromptTransform
-                    {
-                        Template = @"
+                    Template = @"
 Je vais vous donner une tâche à accomplir. Veuillez suivre ces instructions précisément.
 
 Contexte: {context}
@@ -102,15 +101,15 @@ Instructions détaillées:
 Format de sortie attendu:
 {output_format}
 ",
-                        InterpolationType = PromptInterpolationType.InterpolateKeys
-                    }
-                },
+                    InterpolationType = PromptInterpolationType.InterpolateKeys
+                }
+            },
 
-                // Transformation pour les modèles Claude (Anthropic)
+            // Transformation pour les modèles Claude (Anthropic)
+            {
+                "claude", new PromptTransform
                 {
-                    "claude", new PromptTransform
-                    {
-                        Template = @"
+                    Template = @"
 <instructions>
 {0}
 </instructions>
@@ -123,28 +122,28 @@ Format de sortie attendu:
 {examples}
 </examples>
 ",
-                        InterpolationType = PromptInterpolationType.InterpolateKeys
-                    }
-                },
+                    InterpolationType = PromptInterpolationType.InterpolateKeys
+                }
+            },
 
-                // Transformation pour les modèles Gemini (Google)
+            // Transformation pour les modèles Gemini (Google)
+            {
+                "gemini", new PromptTransform
                 {
-                    "gemini", new PromptTransform
-                    {
-                        Template = @"
+                    Template = @"
 {0}
 
 Assurez-vous de fournir une réponse concise et directe.
 ",
-                        InterpolationType = PromptInterpolationType.InterpolateKeys
-                    }
-                },
+                    InterpolationType = PromptInterpolationType.InterpolateKeys
+                }
+            },
 
-                // Transformation pour les modèles Qwen (Alibaba)
+            // Transformation pour les modèles Qwen (Alibaba)
+            {
+                "qwen", new PromptTransform
                 {
-                    "qwen", new PromptTransform
-                    {
-                        Template = @"
+                    Template = @"
 Voici la tâche à accomplir:
 {0}
 
@@ -153,29 +152,29 @@ Voici quelques exemples pour vous guider:
 
 Veuillez suivre un raisonnement étape par étape pour résoudre cette tâche.
 ",
-                        InterpolationType = PromptInterpolationType.InterpolateKeys
-                    }
+                    InterpolationType = PromptInterpolationType.InterpolateKeys
                 }
-            };
-        }
+            }
+        };
+    }
 
-        /// <summary>
-        /// Obtient les exemples few-shot pour un modèle spécifique.
-        /// </summary>
-        /// <param name="modelId">Identifiant du modèle</param>
-        /// <param name="taskType">Type de tâche</param>
-        /// <returns>Exemples few-shot</returns>
-        public string GetFewShotExamples(string modelId, string taskType)
+    /// <summary>
+    /// Obtient les exemples few-shot pour un modèle spécifique.
+    /// </summary>
+    /// <param name="modelId">Identifiant du modèle</param>
+    /// <param name="taskType">Type de tâche</param>
+    /// <returns>Exemples few-shot</returns>
+    public string GetFewShotExamples(string modelId, string taskType)
+    {
+        string normalizedModelId = this.NormalizeModelId(modelId);
+
+        // Exemples few-shot pour les tâches de code
+        if (taskType == "code")
         {
-            string normalizedModelId = NormalizeModelId(modelId);
-
-            // Exemples few-shot pour les tâches de code
-            if (taskType == "code")
+            switch (normalizedModelId)
             {
-                switch (normalizedModelId)
-                {
-                    case "gpt":
-                        return @"
+                case "gpt":
+                    return @"
 Exemple 1:
 Entrée: Écrivez une fonction Python qui calcule la somme des nombres pairs dans une liste.
 Sortie:
@@ -199,8 +198,8 @@ function reverseString(str) {
 }
 ```";
 
-                    case "claude":
-                        return @"
+                case "claude":
+                    return @"
 Exemple 1:
 Entrée: Écrivez une fonction Python qui calcule la somme des nombres pairs dans une liste.
 Sortie:
@@ -300,8 +299,8 @@ public class BankAccount
 }
 ```";
 
-                    case "gemini":
-                        return @"
+                case "gemini":
+                    return @"
 Exemple:
 Entrée: Écrivez une fonction Python qui calcule la somme des nombres pairs dans une liste.
 Sortie:
@@ -310,8 +309,8 @@ def sum_even_numbers(numbers):
     return sum(num for num in numbers if num % 2 == 0)
 ```";
 
-                    case "qwen":
-                        return @"
+                case "qwen":
+                    return @"
 Exemple 1:
 Entrée: Écrivez une fonction Python qui calcule la somme des nombres pairs dans une liste.
 Analyse:
@@ -340,38 +339,37 @@ function reverseString(str) {
 }
 ```";
 
-                    default:
-                        return "";
-                }
+                default:
+                    return "";
             }
-            // Exemples few-shot pour les tâches de résumé
-            else if (taskType == "summarization")
-            {
-                // Implémentation similaire pour les tâches de résumé
-                return "";
-            }
-            // Exemples few-shot pour les tâches de raisonnement
-            else if (taskType == "reasoning")
-            {
-                // Implémentation similaire pour les tâches de raisonnement
-                return "";
-            }
-            // Exemples few-shot pour les tâches d'écriture
-            else if (taskType == "writing")
-            {
-                // Implémentation similaire pour les tâches d'écriture
-                return "";
-            }
-            // Exemples few-shot pour les tâches de classification
-            else if (taskType == "classification")
-            {
-                // Implémentation similaire pour les tâches de classification
-                return "";
-            }
-            else
-            {
-                return "";
-            }
+        }
+        // Exemples few-shot pour les tâches de résumé
+        else if (taskType == "summarization")
+        {
+            // Implémentation similaire pour les tâches de résumé
+            return "";
+        }
+        // Exemples few-shot pour les tâches de raisonnement
+        else if (taskType == "reasoning")
+        {
+            // Implémentation similaire pour les tâches de raisonnement
+            return "";
+        }
+        // Exemples few-shot pour les tâches d'écriture
+        else if (taskType == "writing")
+        {
+            // Implémentation similaire pour les tâches d'écriture
+            return "";
+        }
+        // Exemples few-shot pour les tâches de classification
+        else if (taskType == "classification")
+        {
+            // Implémentation similaire pour les tâches de classification
+            return "";
+        }
+        else
+        {
+            return "";
         }
     }
 }

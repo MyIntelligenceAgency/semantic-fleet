@@ -1,249 +1,248 @@
-// Copyright (c) MyIA. All rights reserved.
+﻿// Copyright (c) MyIA. All rights reserved.
 
 using System;
 using System.Collections.Generic;
 
-namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
+namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching;
+
+/// <summary>
+/// Implémentation générique d'un arbre à préfixe (Trie)
+/// </summary>
+/// <typeparam name="K">Type de clé (typiquement string)</typeparam>
+/// <typeparam name="C">Type de caractère (typiquement char)</typeparam>
+/// <typeparam name="V">Type de valeur associée</typeparam>
+public class Trie<K, C, V> : ITrie<K, C, V> where K : IEnumerable<C>
 {
     /// <summary>
-    /// Implémentation générique d'un arbre à préfixe (Trie)
+    /// Nœud interne de l'arbre à préfixe
     /// </summary>
-    /// <typeparam name="K">Type de clé (typiquement string)</typeparam>
-    /// <typeparam name="C">Type de caractère (typiquement char)</typeparam>
-    /// <typeparam name="V">Type de valeur associée</typeparam>
-    public class Trie<K, C, V> : ITrie<K, C, V> where K : IEnumerable<C>
+    protected class TrieNode
     {
         /// <summary>
-        /// Nœud interne de l'arbre à préfixe
+        /// Enfants du nœud, indexés par caractère
         /// </summary>
-        protected class TrieNode
+        public HybridDictionary<C, TrieNode> Children { get; } = new HybridDictionary<C, TrieNode>();
+
+        /// <summary>
+        /// Indique si ce nœud est la fin d'une clé
+        /// </summary>
+        public bool IsEndOfKey { get; set; }
+
+        /// <summary>
+        /// Valeur associée à la clé se terminant à ce nœud
+        /// </summary>
+        public V? Value { get; set; }
+    }
+
+    /// <summary>
+    /// Racine de l'arbre
+    /// </summary>
+    protected readonly TrieNode Root = new();
+
+    /// <summary>
+    /// Nombre d'éléments dans l'arbre
+    /// </summary>
+    public int Count { get; protected set; }
+
+    /// <summary>
+    /// Ajoute ou met à jour une valeur associée à une clé
+    /// </summary>
+    /// <param name="key">Clé à ajouter</param>
+    /// <param name="value">Valeur à associer à la clé</param>
+    public virtual void Add(K key, V value)
+    {
+        if (key == null)
         {
-            /// <summary>
-            /// Enfants du nœud, indexés par caractère
-            /// </summary>
-            public HybridDictionary<C, TrieNode> Children { get; } = new HybridDictionary<C, TrieNode>();
-
-            /// <summary>
-            /// Indique si ce nœud est la fin d'une clé
-            /// </summary>
-            public bool IsEndOfKey { get; set; }
-
-            /// <summary>
-            /// Valeur associée à la clé se terminant à ce nœud
-            /// </summary>
-            public V? Value { get; set; }
+            throw new ArgumentNullException(nameof(key));
         }
 
-        /// <summary>
-        /// Racine de l'arbre
-        /// </summary>
-        protected readonly TrieNode Root = new TrieNode();
+        TrieNode current = this.Root;
+        bool isNewKey = false;
 
-        /// <summary>
-        /// Nombre d'éléments dans l'arbre
-        /// </summary>
-        public int Count { get; protected set; }
-
-        /// <summary>
-        /// Ajoute ou met à jour une valeur associée à une clé
-        /// </summary>
-        /// <param name="key">Clé à ajouter</param>
-        /// <param name="value">Valeur à associer à la clé</param>
-        public virtual void Add(K key, V value)
+        foreach (C c in key)
         {
-            if (key == null)
+            if (!current.Children.TryGetValue(c, out TrieNode? child))
             {
-                throw new ArgumentNullException(nameof(key));
+                child = new TrieNode();
+                current.Children.Add(c, child);
             }
 
-            TrieNode current = Root;
-            bool isNewKey = false;
+            current = child;
+        }
 
-            foreach (C c in key)
+        isNewKey = !current.IsEndOfKey;
+        current.IsEndOfKey = true;
+        current.Value = value;
+
+        if (isNewKey)
+        {
+            this.Count++;
+        }
+    }
+
+    /// <summary>
+    /// Recherche une valeur associée à une clé exacte
+    /// </summary>
+    /// <param name="key">Clé à rechercher</param>
+    /// <param name="value">Valeur associée à la clé si trouvée</param>
+    /// <returns>True si la clé existe, false sinon</returns>
+    public virtual bool TryGetValue(K key, out V value)
+    {
+        if (key == null)
+        {
+            throw new ArgumentNullException(nameof(key));
+        }
+
+        TrieNode? node = this.FindNode(key);
+
+        if (node != null && node.IsEndOfKey)
+        {
+            value = node.Value!;
+            return true;
+        }
+
+        value = default!;
+        return false;
+    }
+
+    /// <summary>
+    /// Recherche une valeur associée à un préfixe
+    /// </summary>
+    /// <param name="prefix">Préfixe à rechercher</param>
+    /// <param name="value">Valeur associée au préfixe le plus long correspondant</param>
+    /// <returns>True si un préfixe correspondant existe, false sinon</returns>
+    public virtual bool TryGetValueByPrefix(K prefix, out V value)
+    {
+        if (prefix == null)
+        {
+            throw new ArgumentNullException(nameof(prefix));
+        }
+
+        TrieNode current = this.Root;
+        TrieNode? lastMatchingNode = null;
+
+        foreach (C c in prefix)
+        {
+            if (!current.Children.TryGetValue(c, out TrieNode? child))
             {
-                if (!current.Children.TryGetValue(c, out TrieNode? child))
-                {
-                    child = new TrieNode();
-                    current.Children.Add(c, child);
-                }
-
-                current = child;
+                break;
             }
 
-            isNewKey = !current.IsEndOfKey;
-            current.IsEndOfKey = true;
-            current.Value = value;
+            current = child;
 
-            if (isNewKey)
+            if (current.IsEndOfKey)
             {
-                Count++;
+                lastMatchingNode = current;
             }
         }
 
-        /// <summary>
-        /// Recherche une valeur associée à une clé exacte
-        /// </summary>
-        /// <param name="key">Clé à rechercher</param>
-        /// <param name="value">Valeur associée à la clé si trouvée</param>
-        /// <returns>True si la clé existe, false sinon</returns>
-        public virtual bool TryGetValue(K key, out V value)
+        if (lastMatchingNode != null)
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            TrieNode? node = FindNode(key);
-
-            if (node != null && node.IsEndOfKey)
-            {
-                value = node.Value!;
-                return true;
-            }
-
-            value = default!;
-            return false;
+            value = lastMatchingNode.Value!;
+            return true;
         }
 
-        /// <summary>
-        /// Recherche une valeur associée à un préfixe
-        /// </summary>
-        /// <param name="prefix">Préfixe à rechercher</param>
-        /// <param name="value">Valeur associée au préfixe le plus long correspondant</param>
-        /// <returns>True si un préfixe correspondant existe, false sinon</returns>
-        public virtual bool TryGetValueByPrefix(K prefix, out V value)
+        value = default!;
+        return false;
+    }
+
+    /// <summary>
+    /// Supprime une clé et sa valeur associée
+    /// </summary>
+    /// <param name="key">Clé à supprimer</param>
+    /// <returns>True si la clé a été supprimée, false si elle n'existait pas</returns>
+    public virtual bool Remove(K key)
+    {
+        if (key == null)
         {
-            if (prefix == null)
-            {
-                throw new ArgumentNullException(nameof(prefix));
-            }
-
-            TrieNode current = Root;
-            TrieNode? lastMatchingNode = null;
-
-            foreach (C c in prefix)
-            {
-                if (!current.Children.TryGetValue(c, out TrieNode? child))
-                {
-                    break;
-                }
-
-                current = child;
-
-                if (current.IsEndOfKey)
-                {
-                    lastMatchingNode = current;
-                }
-            }
-
-            if (lastMatchingNode != null)
-            {
-                value = lastMatchingNode.Value!;
-                return true;
-            }
-
-            value = default!;
-            return false;
+            throw new ArgumentNullException(nameof(key));
         }
 
-        /// <summary>
-        /// Supprime une clé et sa valeur associée
-        /// </summary>
-        /// <param name="key">Clé à supprimer</param>
-        /// <returns>True si la clé a été supprimée, false si elle n'existait pas</returns>
-        public virtual bool Remove(K key)
+        bool removed = false;
+        this.RemoveRecursive(this.Root, key.GetEnumerator(), 0, ref removed);
+
+        if (removed)
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            bool removed = false;
-            RemoveRecursive(Root, key.GetEnumerator(), 0, ref removed);
-
-            if (removed)
-            {
-                Count--;
-            }
-
-            return removed;
+            this.Count--;
         }
 
-        /// <summary>
-        /// Efface toutes les entrées de l'arbre
-        /// </summary>
-        public virtual void Clear()
-        {
-            Root.Children.Clear();
-            Count = 0;
-        }
+        return removed;
+    }
 
-        /// <summary>
-        /// Recherche un nœud correspondant à une clé
-        /// </summary>
-        /// <param name="key">Clé à rechercher</param>
-        /// <returns>Nœud correspondant à la clé, ou null si non trouvé</returns>
-        protected TrieNode? FindNode(K key)
-        {
-            TrieNode current = Root;
+    /// <summary>
+    /// Efface toutes les entrées de l'arbre
+    /// </summary>
+    public virtual void Clear()
+    {
+        this.Root.Children.Clear();
+        this.Count = 0;
+    }
 
-            foreach (C c in key)
+    /// <summary>
+    /// Recherche un nœud correspondant à une clé
+    /// </summary>
+    /// <param name="key">Clé à rechercher</param>
+    /// <returns>Nœud correspondant à la clé, ou null si non trouvé</returns>
+    protected TrieNode? FindNode(K key)
+    {
+        TrieNode current = this.Root;
+
+        foreach (C c in key)
+        {
+            if (!current.Children.TryGetValue(c, out TrieNode? child))
             {
-                if (!current.Children.TryGetValue(c, out TrieNode? child))
-                {
-                    return null;
-                }
-
-                current = child;
+                return null;
             }
 
-            return current;
+            current = child;
         }
 
-        /// <summary>
-        /// Supprime récursivement une clé de l'arbre
-        /// </summary>
-        /// <param name="node">Nœud courant</param>
-        /// <param name="keyEnumerator">Énumérateur de la clé</param>
-        /// <param name="depth">Profondeur actuelle dans l'arbre</param>
-        /// <param name="removed">Mis à true si la clé existait et a été supprimée</param>
-        /// <returns>True si le nœud courant n'a plus de raison d'être et peut être élagué par son parent</returns>
-        protected bool RemoveRecursive(TrieNode node, IEnumerator<C> keyEnumerator, int depth, ref bool removed)
+        return current;
+    }
+
+    /// <summary>
+    /// Supprime récursivement une clé de l'arbre
+    /// </summary>
+    /// <param name="node">Nœud courant</param>
+    /// <param name="keyEnumerator">Énumérateur de la clé</param>
+    /// <param name="depth">Profondeur actuelle dans l'arbre</param>
+    /// <param name="removed">Mis à true si la clé existait et a été supprimée</param>
+    /// <returns>True si le nœud courant n'a plus de raison d'être et peut être élagué par son parent</returns>
+    protected bool RemoveRecursive(TrieNode node, IEnumerator<C> keyEnumerator, int depth, ref bool removed)
+    {
+        if (!keyEnumerator.MoveNext())
         {
-            if (!keyEnumerator.MoveNext())
-            {
-                // Fin de la clé, vérifier si c'est une clé valide
-                if (!node.IsEndOfKey)
-                {
-                    return false;
-                }
-
-                node.IsEndOfKey = false;
-                node.Value = default;
-                removed = true;
-
-                // Si le nœud n'a pas d'enfants, il peut être supprimé
-                return node.Children.Count == 0;
-            }
-
-            C currentChar = keyEnumerator.Current;
-
-            if (!node.Children.TryGetValue(currentChar, out TrieNode? child))
+            // Fin de la clé, vérifier si c'est une clé valide
+            if (!node.IsEndOfKey)
             {
                 return false;
             }
 
-            bool shouldRemoveChild = RemoveRecursive(child, keyEnumerator, depth + 1, ref removed);
+            node.IsEndOfKey = false;
+            node.Value = default;
+            removed = true;
 
-            if (shouldRemoveChild)
-            {
-                node.Children.Remove(currentChar);
+            // Si le nœud n'a pas d'enfants, il peut être supprimé
+            return node.Children.Count == 0;
+        }
 
-                // Si ce nœud n'est pas la fin d'une clé et n'a pas d'autres enfants, il peut être supprimé
-                return !node.IsEndOfKey && node.Children.Count == 0;
-            }
+        C currentChar = keyEnumerator.Current;
 
+        if (!node.Children.TryGetValue(currentChar, out TrieNode? child))
+        {
             return false;
         }
+
+        bool shouldRemoveChild = this.RemoveRecursive(child, keyEnumerator, depth + 1, ref removed);
+
+        if (shouldRemoveChild)
+        {
+            node.Children.Remove(currentChar);
+
+            // Si ce nœud n'est pas la fin d'une clé et n'a pas d'autres enfants, il peut être supprimé
+            return !node.IsEndOfKey && node.Children.Count == 0;
+        }
+
+        return false;
     }
 }
