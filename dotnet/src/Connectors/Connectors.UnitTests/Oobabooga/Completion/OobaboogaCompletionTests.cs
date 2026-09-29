@@ -426,63 +426,71 @@ public sealed class OobaboogaCompletionTests : IDisposable
             };
         }
 
-        var sw = Stopwatch.StartNew();
-        var tasks = new List<Task<IAsyncEnumerable<string>>>();
-
-        for (int i = 0; i < nbConcurrentCalls; i++)
+        List<string>[] allResults;
+        long elapsed;
+        try
         {
-            IAsyncEnumerable<string> localResponse;
+            var sw = Stopwatch.StartNew();
+            var tasks = new List<Task<IAsyncEnumerable<string>>>();
 
-            if (isChat)
+            for (int i = 0; i < nbConcurrentCalls; i++)
             {
-                tasks.Add(Task.Run(() =>
+                IAsyncEnumerable<string> localResponse;
+
+                if (isChat)
                 {
-                    var history = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory();
-                    history.AddUserMessage("What is your name?");
-                    return Task.FromResult(this.GetStreamingMessagesAsync((OobaboogaChatCompletion)sut, history, cleanupToken));
-                }, cleanupToken.Token));
-            }
-            else
-            {
-                tasks.Add(Task.Run(() =>
-                {
-                    localResponse = ((OobaboogaTextCompletion)sut).CompleteStreamAsync(requestMessage, new OobaboogaCompletionRequestSettings()
+                    tasks.Add(Task.Run(() =>
                     {
-                        Temperature = 0.01,
-                        MaxNewTokens = 7,
-                        TopP = 0.1,
-                    }, cancellationToken: cleanupToken.Token);
-                    return localResponse;
-                }, cleanupToken.Token));
-            }
-        }
-
-        var callEnumerationTasks = new List<Task<List<string>>>();
-        await Task.WhenAll(tasks).ConfigureAwait(false);
-
-        foreach (var callTask in tasks)
-        {
-            callEnumerationTasks.AddRange(Enumerable.Range(0, nbConcurrentEnumeration).Select(_ => Task.Run(async () =>
-            {
-                var completion = await callTask.ConfigureAwait(false);
-                var result = new List<string>();
-                await foreach (var chunk in completion)
-                {
-                    result.Add(chunk);
+                        var history = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory();
+                        history.AddUserMessage("What is your name?");
+                        return Task.FromResult(this.GetStreamingMessagesAsync((OobaboogaChatCompletion)sut, history, cleanupToken));
+                    }, cleanupToken.Token));
                 }
+                else
+                {
+                    tasks.Add(Task.Run(() =>
+                    {
+                        localResponse = ((OobaboogaTextCompletion)sut).CompleteStreamAsync(requestMessage, new OobaboogaCompletionRequestSettings()
+                        {
+                            Temperature = 0.01,
+                            MaxNewTokens = 7,
+                            TopP = 0.1,
+                        }, cancellationToken: cleanupToken.Token);
+                        return localResponse;
+                    }, cleanupToken.Token));
+                }
+            }
 
-                return result;
-            })));
+            var callEnumerationTasks = new List<Task<List<string>>>();
+            await Task.WhenAll(tasks).ConfigureAwait(false);
 
-            // Introduce a delay between creating each WebSocket client
-            await Task.Delay(delayTimeSpan).ConfigureAwait(false);
+            foreach (var callTask in tasks)
+            {
+                callEnumerationTasks.AddRange(Enumerable.Range(0, nbConcurrentEnumeration).Select(_ => Task.Run(async () =>
+                {
+                    var completion = await callTask.ConfigureAwait(false);
+                    var result = new List<string>();
+                    await foreach (var chunk in completion)
+                    {
+                        result.Add(chunk);
+                    }
+
+                    return result;
+                })));
+
+                // Introduce a delay between creating each WebSocket client
+                await Task.Delay(delayTimeSpan).ConfigureAwait(false);
+            }
+
+            allResults = await Task.WhenAll(callEnumerationTasks).ConfigureAwait(false);
+
+            elapsed = sw.ElapsedMilliseconds;
         }
-
-        var allResults = await Task.WhenAll(callEnumerationTasks).ConfigureAwait(false);
-
-        var elapsed = sw.ElapsedMilliseconds;
-
-        await server.DisposeAsync().ConfigureAwait(false);
+        finally
+        {
+            // Release the listener prefix even when a call fails, so that the next tests can bind the port.
+            await server.DisposeAsync().ConfigureAwait(false);
+        }
 
         if (maxExpectedNbClients > 0)
         {

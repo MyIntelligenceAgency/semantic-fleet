@@ -100,7 +100,11 @@ public static class Example02_MultiConnectorHelloWorld
             Console.WriteLine($"Name of Secondary Completion #{i}: {oobaboogaCompletions[i].Name}");
         }
 
+        // This sample references the published 0.34.3 packages, written for a Semantic Kernel beta;
+        // it moves to Kernel.CreateBuilder() once 0.35.0 is on NuGet.
+#pragma warning disable CS0618 // Kernel.Builder is obsolete
         var builder = Microsoft.SemanticKernel.Kernel.Builder;
+#pragma warning restore CS0618
 
         builder.WithMultiConnectorCompletionService(
             serviceId: null,

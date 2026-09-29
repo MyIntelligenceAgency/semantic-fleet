@@ -229,8 +229,8 @@ internal class WebSocketTestServer : IDisposable
             // ... because it conflicts with an existing registration" failures when tests run
             // in parallel (they share the fixed StreamingPort 2345). See #7270.
             this._httpListener.Stop();
-            this._socketCancellationTokenSource.Cancel();
-            this._mainCancellationTokenSource.Cancel();
+            await this._socketCancellationTokenSource.CancelAsync().ConfigureAwait(false);
+            await this._mainCancellationTokenSource.CancelAsync().ConfigureAwait(false);
 
             await Task.WhenAll(this._runningTasks).ConfigureAwait(false);
         }
