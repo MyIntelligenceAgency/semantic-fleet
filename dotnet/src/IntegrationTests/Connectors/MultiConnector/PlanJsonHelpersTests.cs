@@ -19,7 +19,7 @@ namespace SemanticKernel.IntegrationTests.Connectors.MultiConnector;
 /// </summary>
 public sealed class PlanJsonHelpersTests : IDisposable
 {
-    private const string Sk178PlansDirectory = "../../../../../../samples/Plans/SK178/";
+    private const string Sk178PlansDirectory = "../../../../../../Samples/Plans/SK178/";
 
     private readonly string _sk178PlansDirectory = Path.Combine(Environment.CurrentDirectory, Sk178PlansDirectory);
 
