@@ -158,7 +158,8 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
                 throw new ArgumentNullException(nameof(key));
             }
 
-            bool removed = RemoveRecursive(Root, key.GetEnumerator(), 0);
+            bool removed = false;
+            RemoveRecursive(Root, key.GetEnumerator(), 0, ref removed);
 
             if (removed)
             {
@@ -205,8 +206,9 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
         /// <param name="node">Nœud courant</param>
         /// <param name="keyEnumerator">Énumérateur de la clé</param>
         /// <param name="depth">Profondeur actuelle dans l'arbre</param>
-        /// <returns>True si la clé a été supprimée, false sinon</returns>
-        protected bool RemoveRecursive(TrieNode node, IEnumerator<C> keyEnumerator, int depth)
+        /// <param name="removed">Mis à true si la clé existait et a été supprimée</param>
+        /// <returns>True si le nœud courant n'a plus de raison d'être et peut être élagué par son parent</returns>
+        protected bool RemoveRecursive(TrieNode node, IEnumerator<C> keyEnumerator, int depth, ref bool removed)
         {
             if (!keyEnumerator.MoveNext())
             {
@@ -218,6 +220,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
 
                 node.IsEndOfKey = false;
                 node.Value = default;
+                removed = true;
 
                 // Si le nœud n'a pas d'enfants, il peut être supprimé
                 return node.Children.Count == 0;
@@ -230,7 +233,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
                 return false;
             }
 
-            bool shouldRemoveChild = RemoveRecursive(child, keyEnumerator, depth + 1);
+            bool shouldRemoveChild = RemoveRecursive(child, keyEnumerator, depth + 1, ref removed);
 
             if (shouldRemoveChild)
             {

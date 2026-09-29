@@ -208,7 +208,8 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
             }
 
             List<C> keyChars = _keyToList(key);
-            bool removed = RemoveRecursive(Root, keyChars, 0);
+            bool removed = false;
+            RemoveRecursive(Root, keyChars, 0, ref removed);
 
             if (removed)
             {
@@ -359,8 +360,9 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
         /// <param name="node">Nœud courant</param>
         /// <param name="keyChars">Caractères de la clé</param>
         /// <param name="startIndex">Index de départ dans la clé</param>
-        /// <returns>True si le nœud peut être supprimé, false sinon</returns>
-        protected bool RemoveRecursive(RadixNode node, List<C> keyChars, int startIndex)
+        /// <param name="removed">Mis à true si la clé existait et a été supprimée</param>
+        /// <returns>True si le nœud courant n'a plus de raison d'être et peut être élagué par son parent</returns>
+        protected bool RemoveRecursive(RadixNode node, List<C> keyChars, int startIndex, ref bool removed)
         {
             if (startIndex == keyChars.Count)
             {
@@ -371,6 +373,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
 
                 node.IsEndOfKey = false;
                 node.Value = default;
+                removed = true;
 
                 return node.Children.Count == 0;
             }
@@ -391,7 +394,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
 
             int newStartIndex = startIndex + matchLength;
 
-            bool shouldRemoveChild = RemoveRecursive(child, keyChars, newStartIndex);
+            bool shouldRemoveChild = RemoveRecursive(child, keyChars, newStartIndex, ref removed);
 
             if (shouldRemoveChild)
             {
