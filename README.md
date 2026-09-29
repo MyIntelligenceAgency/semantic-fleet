@@ -152,6 +152,16 @@ Le projet comprend plusieurs outils pour tester et évaluer les performances des
 - [Tests comparatifs des modèles](./model_tester/README.md) - Scripts pour comparer les performances des différents modèles
 - [Campagne de tests avancés](./campaign_tests/README.md) - Outils pour exécuter des campagnes de tests complètes
 
+## Développement
+
+```bash
+dotnet build dotnet/Semantic-Fleet-dotnet.sln
+dotnet test dotnet/src/Connectors/Connectors.UnitTests/Connectors.UnitTests.csproj
+dotnet test dotnet/src/IntegrationTests/IntegrationTests.csproj
+```
+
+Les tests d'intégration appellent de vrais services (instances Oobabooga locales, API distantes) : ceux dont le service ou la clé manque sont ignorés. Les clés passent exclusivement par des variables d'environnement (voir `.env.example`), jamais par un littéral dans le code ou la documentation.
+
 ## Orientations futures
 
 - **API Open AI** : Oobabooga offre une extension dédiée imitant l'API Open AI. Elle étend le support aux modèles d'embeddings et de génération d'images. Cela sera disponible en tant que package séparé.
