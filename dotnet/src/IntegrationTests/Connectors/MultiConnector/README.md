@@ -1,6 +1,13 @@
-﻿# MultiConnector Integration Tests
+# MultiConnector Integration Tests
 
 This directory houses integration tests for the MultiConnector, which are tailored to ensure the MultiConnector's accurate operation comprehensively.
+
+## Directory Structure
+
+- `MultiConnectorTests.cs` — the integration test cases for the MultiConnector (rewritten for SK 1.78, #7225)
+- `PlanJsonHelpers.cs` / `PlanJsonHelpersTests.cs` — plan JSON intermediate-format helpers and their xUnit suite (#7225)
+
+A more detailed legacy guide (GPU sizing, model downloads, multi-start scripts, legacy settings format) is preserved by [Semantic Kernel PR #2323](https://github.com/microsoft/semantic-kernel/pull/2323) on the upstream fork; the current setup steps live in [docs/OOBABOOGA.md](../../../../../docs/OOBABOOGA.md).
 
 ## What is the MultiConnector?
 

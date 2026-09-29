@@ -1,163 +1,86 @@
-﻿# Semantic-Fleet 🚀
+# Semantic-Fleet
 
 [![Oobabooga Connector Nuget package](https://img.shields.io/nuget/vpre/MyIA.SemanticKernel.Connectors.AI.Oobabooga?label=nuget%20Oobabooga%20Connector)](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Oobabooga/)
 [![Multiconnector Nuget package](https://img.shields.io/nuget/vpre/MyIA.SemanticKernel.Connectors.AI.MultiConnector?label=nuget%20MultiConnector)](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.MultiConnector/)
 
 ## Vue d'ensemble
 
-Semantic-Fleet est un dépôt conçu pour étendre les capacités de [Semantic Kernel](https://github.com/microsoft/semantic-kernel). Il se concentre sur la fourniture de connecteurs pour les petits modèles de langage (par exemple, Llamas) et d'outils pour distribuer le travail à une flotte de modèles, avec ChatGPT servant de capitaine de la flotte. Ce dépôt est plus qu'une simple collection de connecteurs existants ; c'est une plateforme pour les innovations futures dans l'écosystème .NET pour l'IA.
+Semantic-Fleet étend [Semantic Kernel](https://github.com/microsoft/semantic-kernel) (référencé en **1.78.0**, gestion centralisée des packages dans `dotnet/Directory.Packages.props`) pour orchestrer une flotte de modèles de langage : des connecteurs pour les petits modèles auto-hébergés, et le MultiConnector, qui route chaque prompt vers le connecteur le plus adapté en coût et en performance.
 
-### 🚨 Important : Changement de compatibilité avec Oobabooga
+## Historique du dépôt (mai 2025 — restauration)
 
-Nous souhaitons informer nos utilisateurs qu'en raison de récents changements dans l'API Oobabooga (voir [commit 454fcf3 du 13/11/2023](https://github.com/oobabooga/text-generation-webui/commit/454fcf39a95691f5e375c48fbc6fe6aa96f0c738)), **toutes les versions d'Oobabooga au-delà de ce commit ne seront plus prises en charge par `semantic-fleet`**.
+En mai 2025, un incident a coûté à ce dépôt la parenté d'origine de ses commits de développement. La restauration (septembre 2026) croise plusieurs sources vérifiées :
 
-Le concepteur d'Oobabooga a remplacé l'API traditionnelle par une nouvelle API modelée sur celle d'OpenAI. Malheureusement, nous n'avons pas encore eu l'occasion de mettre à jour notre pont pour être compatible avec ces changements.
+- la branche `stable-from-v0343` — le tag v0.34.3 de 2023, la migration Semantic Kernel 1.78 et le module radix ;
+- la branche `cleanup-orphaned-files` — les 17 commits pré-incident les plus complets, fusionnés en retour par la [PR #79](https://github.com/MyIntelligenceAgency/semantic-fleet/pull/79) ;
+- le fork [MyIntelligenceAgency/semantic-kernel](https://github.com/MyIntelligenceAgency/semantic-kernel) (branches `feature/multiconnector`, `feature/oobabooga`, `AsynchronousStreaming`) et la PR Semantic Kernel [#2323](https://github.com/microsoft/semantic-kernel/pull/2323), qui portent la documentation la plus détaillée du MultiConnector ;
+- les paquets NuGet 0.34.3 (dernière version publiée), qui embarquent leur documentation XML.
 
-Nous travaillons activement pour assurer la compatibilité dans les futures versions, mais pour l'instant, nous recommandons à nos utilisateurs de :
+Vraiment perdu : la parenté d'origine des commits d'avant l'incident. Le contenu, lui, survit. Une partie du code C# restauré, écrite contre l'API pré-1.0 de Semantic Kernel, n'est **pas** réintégrée dans l'arbre compilé : elle reste intégrale sur `cleanup-orphaned-files` et constitue le matériau du chantier de migration SK 1.78 (`docs/Plans/SK178-format.md`, #7225/#7618/#7621).
 
-1. **Éviter de mettre à jour Oobabooga au-delà du commit spécifié** si vous souhaitez continuer à utiliser `semantic-fleet` sans interruption.
-2. Restez à l'écoute de nos futures mises à jour pour le support de la nouvelle API Oobabooga.
+## Composants
 
-Nous apprécions votre compréhension et votre patience pendant que nous travaillons sur ces changements.
+### MultiConnector
 
-## Composants principaux
+Le composant central : intégration de plusieurs LLM avec routage intelligent — signature du prompt, niveau de validation (vetting) par type de prompt, coût et durée. Il décharge les tâches d'un connecteur principal vers des connecteurs secondaires plus économiques, sans sacrifier la fiabilité.
 
-### 🤖 Connecteur Oobabooga
+📖 **Documentation restaurée** :
 
-Un connecteur robuste qui couvre actuellement les principales API de complétion et de chat spécifiques à Oobabooga, en mode bloquant et streaming.
-
-📖 **En savoir plus** : 
-- [Installation d'Oobabooga et configuration des scripts Multi-Start](./docs/OOBABOOGA.md)
-- [Guide du connecteur Oobabooga](./dotnet/src/Connectors/Connectors.AI.Oobabooga/README.md)
-- N'oubliez pas de consulter les [notebooks](./dotnet/notebooks/README.md). Ils fournissent un excellent aperçu de ce qui est possible avec nos connecteurs publiés.
-
-#### Installation
-
-Installez le package via NuGet :
-
-```bash
-dotnet add package MyIA.SemanticKernel.Connectors.AI.Oobabooga
-```
-
-Dans .Net interactive :
-
-```csharp
-#r "nuget: MyIA.SemanticKernel.Connectors.AI.Oobabooga"
-```
-
-#### Démarrage rapide
-
-Des paramètres différents sont utilisés pour la complétion de texte et de chat, à la fois en mode bloquant et en streaming. Voici un exemple rapide pour la complétion de texte :
-
-```csharp
-var settings = new OobaboogaTextCompletionSettings(endpoint: new Uri("http://localhost/"),  blockingPort: 5000, streamingPort: 5005);
-var oobabooga = new OobaboogaTextCompletion(settings);
-
-// Obtenir des complétions de texte
-var completions = await oobabooga.GetCompletionsAsync("Hello, world!", new OobaboogaCompletionRequestSettings());
-```
-
-### 🌐 MultiConnector
- 
-Pourquoi se limiter à un seul modèle quand on peut en avoir plusieurs ? MultiConnector vous permet d'intégrer plusieurs LLMs de manière transparente, en optimisant la vitesse et le coût. Il décharge intelligemment les tâches d'un connecteur principal, plus coûteux, vers un connecteur secondaire, plus économique, sans sacrifier la fiabilité ni les performances.
-
-📖 **En savoir plus** : 
 - [Guide du MultiConnector](./dotnet/src/Connectors/Connectors.AI.MultiConnector/README.md)
 - [Cartographie des fonctionnalités](./docs/MultiConnector_Cartographie.md)
-- [Optimisations récentes](./docs/MultiConnector_Optimizations.md)
-- [Guide d'intégration des petits modèles](./docs/SMALL_MODELS_INTEGRATION.md)
+- [Optimisations](./docs/MultiConnector_Optimizations.md)
+- [Intégration des petits modèles](./docs/SMALL_MODELS_INTEGRATION.md)
+- [Configuration des modèles](./docs/MODEL_CONFIG.md)
+- [Système de détection de signatures des prompts](./docs/systeme_detection_signatures_prompts.md)
 - [Tests d'intégration](./dotnet/src/IntegrationTests/Connectors/MultiConnector/README.md)
 
-#### Documentation des composants du MultiConnector
+Le cœur compile proprement sous SK 1.78 ; l'oracle de test déterministe est en cours (#72/#73).
 
-Le MultiConnector est composé de plusieurs sous-systèmes, chacun documenté en détail :
+### PromptMatcher radix
 
-- [Système d'analyse](./dotnet/src/Connectors/Connectors.AI.MultiConnector/Analysis/README.md) - Évaluation automatique des performances des modèles
-- [Système de gestion des prompts](./dotnet/src/Connectors/Connectors.AI.MultiConnector/PromptSettings/README.md) - Transformation et adaptation des prompts
-- [Système de détection de signatures des prompts](./docs/systeme_detection_signatures_prompts.md) - Identification efficace des patterns dans les prompts
-- [Mocks arithmétiques](./dotnet/src/Connectors/Connectors.AI.MultiConnector/ArithmeticMocks/README.md) - Simulations pour les tests
-- [Configuration](./dotnet/src/Connectors/Connectors.AI.MultiConnector/Configuration/README.md) - Gestion des paramètres des connecteurs
+Module autonome [`tools/radix`](./tools/radix/README.md) : matching de signatures de prompts par arbre radix hybride, sans dépendance à l'assemblage MultiConnector, avec sa propre suite de tests. C'est l'implémentation de référence du pattern-matching des prompts.
 
-#### Installation
+### Connecteur Oobabooga — statut legacy
 
-Installez le package via NuGet :
+Le connecteur couvre les API de complétion et de chat d'Oobabooga (modes bloquant et streaming), **telles qu'elles existaient avant le commit `454fcf3` du 13/11/2023** de text-generation-webui, qui a remplacé l'API traditionnelle par une API modelée sur celle d'OpenAI. Les versions d'Oobabooga postérieures à ce commit ne sont **pas supportées** ; le connecteur n'est pas maintenu activement. La voie de modernisation prévue est un client générique compatible OpenAI, dans la continuité du re-basing sur `IChatClient`.
+
+📖 [Installation d'Oobabooga et scripts Multi-Start](./docs/OOBABOOGA.md) · [Guide du connecteur](./dotnet/src/Connectors/Connectors.AI.Oobabooga/README.md)
+
+## Notebooks
+
+Les notebooks .NET Interactive restent le meilleur aperçu des connecteurs :
+[guide des notebooks](./dotnet/notebooks/README.md).
+
+## Tests et évaluation
+
+- [Tests d'intégration](./dotnet/src/IntegrationTests/) — état courant : 4 réussis, 7 ignorés (besoin d'instances locales), 0 échec
+- [Tests unitaires](./dotnet/src/Connectors/Connectors.UnitTests/) — l'oracle déterministe (#72/#73) remplace progressivement les tests dépendants du minutage
+- [Comparatif de modèles](./model_tester/README.md) — scripts OpenAI/OpenRouter pilotés par variables d'environnement
+- [Campagne de tests](./campaign_tests/README.md) — outils et résultats de campagnes complètes
+
+## Développement
 
 ```bash
-dotnet add package MyIA.SemanticKernel.Connectors.AI.MultiConnector
+dotnet build semantic-fleet.sln
+dotnet test dotnet/src/IntegrationTests/IntegrationTests.csproj
+dotnet test dotnet/src/Connectors/Connectors.UnitTests/Connectors.UnitTests.csproj
 ```
 
-Dans .Net interactive :
+Les credentials passent exclusivement par des variables d'environnement (voir `.env.example`) — jamais de littéral dans le code ni la documentation.
 
-```csharp
-#r "nuget: MyIA.SemanticKernel.Connectors.AI.MultiConnector"
-```
+## Packages NuGet
 
-#### Démarrage rapide
+- [MyIA.SemanticKernel.Connectors.AI.Oobabooga](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Oobabooga/)
+- [MyIA.SemanticKernel.Connectors.AI.MultiConnector](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.MultiConnector/)
 
-Le MultiConnector dispose de nombreux paramètres contrôlant la façon de router les appels de complétion de texte, et comment échantillonner automatiquement les complétions d'un connecteur principal, tester, évaluer et mettre à jour les paramètres de routage pour utiliser des connecteurs secondaires.
-
-```csharp
-var settings = new MultiTextCompletionSettings();
-
-// (...) Création d'un openAiNamedCompletion principal et de oobaboogaCompletions secondaires
-
-var builder = Microsoft.SemanticKernel.Kernel.Builder;
-
-builder.WithMultiConnectorCompletionService(
-    serviceId: null,
-    settings: settings,
-    mainTextCompletion: openAiNamedCompletion,
-    setAsDefault: true,
-    analysisTaskCancellationToken: cleanupToken.Token,
-    otherCompletions: oobaboogaCompletions.ToArray());
-
-var kernel = builder.Build();
-
-// Obtenir une complétion de texte du connecteur principal d'abord
-var result = await kernel.RunAsync(semanticFunctionOrPlan, contextVariables, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
-
-// (...) Effectuer une analyse manuellement ou automatiquement selon les paramètres
-
-// Obtenir une complétion de texte des connecteurs secondaires
-var optimizedResult = await kernel.RunAsync(semanticFunctionOrPlan, contextVariables, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
-```
-
-Pour un aperçu détaillé de la façon de combler les lacunes, veuillez vous référer aux notebooks et aux tests d'intégration.
-
-## 📚 Notebooks
-
-Vous voulez un aperçu de ce qui est possible avec nos connecteurs publiés ? 
-Nos notebooks .Net interactive sont un excellent point de départ.
-
-📖 **En savoir plus** : [Guide des notebooks](./dotnet/notebooks/README.md)
-
-## 🧪 Tests et évaluation
-
-Le projet comprend plusieurs outils pour tester et évaluer les performances des modèles :
-
-- [Tests comparatifs des modèles](./model_tester/README.md) - Scripts pour comparer les performances des différents modèles
-- [Campagne de tests avancés](./campaign_tests/README.md) - Outils pour exécuter des campagnes de tests complètes
+Dernière version publiée : 0.34.3.
 
 ## Orientations futures
 
-- **API Open AI** : Oobabooga offre une extension dédiée imitant l'API Open AI. Elle étend le support aux modèles d'embeddings et de génération d'images. Cela sera disponible en tant que package séparé.
-- **MultiConnector probabiliste** : Nous ajouterons de la magie Infer.Net pour rendre MultiConnector encore plus intelligent. Plus précisément, les exemples suivants seront fusionnés et intégrés dans le processus de validation des modèles.
-   - [Student Skills](https://dotnet.github.io/infer/userguide/Student%20skills.html)
-   - [Assessing People's Skills](https://mbmlbook.com/LearningSkills.html)
-   - [Difficulty vs Ability](https://dotnet.github.io/infer/userguide/Difficulty%20versus%20ability.html)
-   - [Calibrating reviews](https://dotnet.github.io/infer/userguide/Calibrating%20reviews%20of%20conference%20submissions.html)  
-- **Intégration Spark.Net** : Préparez-vous à héberger un cluster de mini LLMs locaux.
+- **Oracle de test déterministe** (#72/#73) — supprimer la dépendance au minutage des tests MultiConnector
+- **Migration SK 1.78 du code pré-1.0 restauré** (#7225/#7618/#7621)
+- **Re-basing sur `IChatClient`** (`Microsoft.Extensions.AI`) puis Agent Framework : le MultiConnector comme middleware `DelegatingChatClient`, Oobabooga en client générique compatible OpenAI, façade SK mince conservée
 
-## Packages NuGet 
+## Contribuer
 
-Nous fournissons des packages NuGet pour le connecteur Oobabooga et le MultiConnector pour une intégration plus facile dans vos projets.
-
-Voici le [package Nuget pour le connecteur Oobabooga](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Oobabooga/)
-
-Et voici le [package Nuget pour le Multiconnector](https://www.nuget.org/packages/MyIA.SemanticKernel.Connectors.AI.Multiconnector/)
-
-## 🤝 Contribuer
-
-Vous avez quelque chose à ajouter ? Nous serions ravis de le voir. Consultez nos [directives de contribution](./CONTRIBUTING.md).
-
-Vous avez quelque chose que vous aimeriez voir ajouté ? Vous voulez déjà ces fonctionnalités futures ? Nous serions ravis que vous [nous contactiez](https://github.com/MyIntelligenceAgency) !
+Consultez nos [directives de contribution](./CONTRIBUTING.md). Vous voulez voir une fonctionnalité atterrir ? [Contactez-nous](https://github.com/MyIntelligenceAgency).
