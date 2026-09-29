@@ -1,6 +1,8 @@
 // Copyright (c) MyIA. All rights reserved.
 
 using System;
+using System.ClientModel;
+using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
@@ -10,11 +12,10 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI.TextCompletion;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Diagnostics;
+using Microsoft.SemanticKernel.TextGeneration;
+using OpenAI;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
 {
@@ -67,16 +68,16 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
         /// </summary>
         /// <param name="modelConfig">Configuration du modèle</param>
         /// <returns>Service de complétion de texte</returns>
-        public ITextCompletion GetTextCompletion(ModelConfig modelConfig)
+        /// <remarks>
+        /// SK 1.x n'a plus de service de complétion « texte » OpenAI : OpenRouter expose l'API chat,
+        /// dont le service implémente aussi <see cref="ITextGenerationService"/>.
+        /// </remarks>
+        public ITextGenerationService GetTextCompletion(ModelConfig modelConfig)
         {
             Verify.NotNull(modelConfig, nameof(modelConfig));
 
             // Utiliser l'implémentation OpenAI avec l'URL de base d'OpenRouter
-            return new OpenAITextCompletion(
-                modelConfig.ModelId,
-                _configuration.ApiKey,
-                _configuration.BaseUrl,
-                _httpClient);
+            return CreateService(modelConfig.ModelId);
         }
 
         /// <summary>
@@ -84,16 +85,26 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
         /// </summary>
         /// <param name="modelConfig">Configuration du modèle</param>
         /// <returns>Service de complétion de chat</returns>
-        public OpenAIChatCompletion GetChatCompletion(ModelConfig modelConfig)
+        public OpenAIChatCompletionService GetChatCompletion(ModelConfig modelConfig)
         {
             Verify.NotNull(modelConfig, nameof(modelConfig));
 
             // Utiliser l'implémentation OpenAI avec l'URL de base d'OpenRouter
-            return new OpenAIChatCompletion(
-                modelConfig.ChatModelId,
-                _configuration.ApiKey,
-                _configuration.BaseUrl,
-                _httpClient);
+            return CreateService(modelConfig.ChatModelId);
+        }
+
+        private OpenAIChatCompletionService CreateService(string modelId)
+        {
+            // Client OpenAI pointé sur OpenRouter, qui réutilise le HttpClient et ses en-têtes (HTTP-Referer, X-Title)
+            var client = new OpenAIClient(
+                new ApiKeyCredential(_configuration.ApiKey),
+                new OpenAIClientOptions
+                {
+                    Endpoint = new Uri(_configuration.BaseUrl),
+                    Transport = new HttpClientPipelineTransport(_httpClient)
+                });
+
+            return new OpenAIChatCompletionService(modelId, client);
         }
 
         /// <summary>
