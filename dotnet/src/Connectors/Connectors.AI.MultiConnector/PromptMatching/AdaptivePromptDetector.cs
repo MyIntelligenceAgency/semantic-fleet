@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Microsoft.SemanticKernel.AI;
+using Microsoft.SemanticKernel;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
@@ -583,7 +583,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
             /// <summary>
             /// Paramètres de requête associés au prompt
             /// </summary>
-            public AIRequestSettings RequestSettings { get; set; } = new();
+            public PromptExecutionSettings RequestSettings { get; set; } = new();
         }
 
         /// <summary>
@@ -599,7 +599,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
             /// <summary>
             /// Paramètres de requête associés au pattern
             /// </summary>
-            public AIRequestSettings RequestSettings { get; set; } = new();
+            public PromptExecutionSettings RequestSettings { get; set; } = new();
         }
     }
 }

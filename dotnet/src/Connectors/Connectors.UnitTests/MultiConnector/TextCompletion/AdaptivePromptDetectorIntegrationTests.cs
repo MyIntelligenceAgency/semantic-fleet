@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.SemanticKernel.AI;
+using Microsoft.SemanticKernel;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
@@ -64,7 +64,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
 
             // Vérifier que le matcher est bien configuré pour utiliser AdaptivePromptDetector
             // en testant son comportement
-            var job = new CompletionJob("Test prompt", new AIRequestSettings());
+            var job = new CompletionJob("Test prompt", new PromptExecutionSettings());
             var result = settings.PromptMatcher(job, new List<PromptMultiConnectorSettings>());
             Assert.Null(result); // Aucun prompt n'a été ajouté, donc le résultat devrait être null
         }
@@ -80,7 +80,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
             var knownSignature = new PromptSignature
             {
                 PromptStart = "Known pattern",
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
 
             var knownSettings = new PromptMultiConnectorSettings
@@ -93,17 +93,18 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
                 }
             };
 
-            // Ajouter manuellement le prompt connu aux settings
-            settings.PromptMultiConnectorSettings.Add(knownSettings);
+            // Ajouter manuellement le prompt connu aux settings. Le getter rend une copie de la collection
+            // interne : un Add sur cette copie serait perdu, il faut affecter la liste.
+            settings.PromptMultiConnectorSettings = new List<PromptMultiConnectorSettings> { knownSettings };
 
             // Act & Assert
             // 1. Vérifier que le prompt connu est bien reconnu
-            var knownJob = new CompletionJob("Known pattern test", new AIRequestSettings());
+            var knownJob = new CompletionJob("Known pattern test", new PromptExecutionSettings());
             var knownResult = settings.PromptMatcher(knownJob, settings.PromptMultiConnectorSettings);
             Assert.Equal(knownSettings, knownResult);
 
             // 2. Envoyer plusieurs prompts similaires non reconnus
-            var requestSettings = new AIRequestSettings();
+            var requestSettings = new PromptExecutionSettings();
 
             // Ces prompts ont un préfixe commun mais ne correspondent à aucun pattern connu
             var job1 = new CompletionJob("Nouveau pattern de test avec des variations 1", requestSettings);
@@ -148,7 +149,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
             var signature = new PromptSignature
             {
                 PromptStart = "Test pattern",
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
 
             var settings = new PromptMultiConnectorSettings
@@ -164,7 +165,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
             detector.AddPrompt(signature, settings);
 
             // Vérifier que le prompt a bien été ajouté
-            var job = new CompletionJob("Test pattern example", new AIRequestSettings());
+            var job = new CompletionJob("Test pattern example", new PromptExecutionSettings());
             var result = detector.MatchPromptSettings(job, new List<PromptMultiConnectorSettings>());
             Assert.Equal(settings, result);
         }
@@ -180,7 +181,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
             var signature = new PromptSignature
             {
                 PromptStart = "Hello World",
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
 
             // Créer les paramètres pour le prompt
@@ -198,7 +199,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
             detector.AddPrompt(signature, settings);
 
             // Act
-            var job = new CompletionJob("Hello World Test", new AIRequestSettings());
+            var job = new CompletionJob("Hello World Test", new PromptExecutionSettings());
             var result = detector.MatchPromptSettings(job, new List<PromptMultiConnectorSettings>());
 
             // Assert

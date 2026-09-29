@@ -56,10 +56,8 @@
 
   <!-- Tests restored from cleanup-orphaned-files (05/2025) for the components above. Excluded until ported to SK 1.78. -->
   <ItemGroup>
-    <Compile Remove="MultiConnector\TextCompletion\AdaptivePromptDetectorIntegrationTests.cs" />
     <Compile Remove="MultiConnector\TextCompletion\OptimizedMultiConnectorTests.cs" />
     <Compile Remove="MultiConnector\TextCompletion\OptimizedPromptMatcherIntegrationTests.cs" />
-    <Compile Remove="MultiConnector\TextCompletion\PromptMatching\AdaptivePromptDetectorTests.cs" />
     <Compile Remove="MultiConnector\TextCompletion\PromptMatching\OptimizedHybridPromptMatcherTests.cs" />
     <Compile Remove="MultiConnector\TextCompletion\PromptMatching\OptimizedPromptMatcherTests.cs" />
     <Compile Remove="MultiConnector\TextCompletion\PromptMatching\PromptMatcherPerformanceTests.cs" />

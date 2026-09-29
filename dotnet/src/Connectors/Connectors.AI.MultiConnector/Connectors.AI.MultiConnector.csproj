@@ -31,7 +31,5 @@
   <ItemGroup>
     <Compile Remove="ModelCascadeStrategy.cs" />
     <Compile Remove="OptimizedMultiConnectorRouter.cs" />
-    <Compile Remove="PromptMatching\AdaptivePromptDetector.cs" />
-    <Compile Remove="PromptMatching\AdaptivePromptDetectorExtensions.cs" />
   </ItemGroup>
 </Project>
