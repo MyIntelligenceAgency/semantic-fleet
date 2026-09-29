@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Microsoft.SemanticKernel.AI;
+using Microsoft.SemanticKernel;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
@@ -27,7 +27,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             var signature = new PromptSignature
             {
                 PromptStart = promptStart,
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
 
             var settings = new PromptMultiConnectorSettings
@@ -46,7 +46,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
         // Méthode utilitaire pour créer un job de complétion
         private CompletionJob CreateCompletionJob(string prompt)
         {
-            return new CompletionJob(prompt, new AIRequestSettings());
+            return new CompletionJob(prompt, new PromptExecutionSettings());
         }
 
         #region SequentialPromptMatcher Tests
@@ -330,7 +330,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             var signature = new PromptSignature
             {
                 PromptStart = "Hello.*world",
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
 
             var settings = new PromptMultiConnectorSettings
@@ -367,7 +367,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             var signature2 = new PromptSignature
             {
                 PromptStart = "H.*o",
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
             var settings2 = new PromptMultiConnectorSettings
             {
@@ -402,7 +402,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             var signature2 = new PromptSignature
             {
                 PromptStart = "H.*o",
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
             var settings2 = new PromptMultiConnectorSettings
             {

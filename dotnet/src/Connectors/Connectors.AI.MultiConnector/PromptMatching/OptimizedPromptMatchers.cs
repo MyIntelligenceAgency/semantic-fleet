@@ -24,6 +24,9 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
         // Regex combinés par groupe de compatibilité
         private readonly List<(Regex CombinedRegex, Dictionary<string, PromptMultiConnectorSettings> GroupSettings)> _combinedRegexGroups = new();
 
+        // Regex dont le groupe n'a pas pu être combiné : ce sont les seuls à tester individuellement
+        private readonly List<(Regex Regex, PromptMultiConnectorSettings Settings)> _uncombinedRegexPrompts = new();
+
         // Nombre maximum de regex à combiner dans un seul groupe
         private const int MaxRegexPerGroup = 10;
 
@@ -81,18 +84,23 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
                     }
                 }
 
-                // 3. Recherche dans les regex individuels (en parallèle si nécessaire)
-                if (_regexPrompts.Count > 0)
+                // 3. Recherche dans les regex qu'aucun groupe combiné ne couvre (en parallèle si nécessaire).
+                // Les autres ont déjà été testés à l'étape 2 : les re-tester doublerait le coût d'un échec.
+                if (_uncombinedRegexPrompts.Count > 0)
                 {
-                    if (_regexPrompts.Count >= ParallelThreshold)
+                    if (_uncombinedRegexPrompts.Count >= ParallelThreshold)
                     {
                         // Traitement parallèle pour un grand nombre de regex
-                        return MatchRegexInParallel(completionJob.Prompt);
+                        var match = MatchRegexInParallel(completionJob.Prompt);
+                        if (match != null)
+                        {
+                            return match;
+                        }
                     }
                     else
                     {
                         // Traitement séquentiel pour un petit nombre de regex
-                        foreach (var (regex, regexSettings) in _regexPrompts)
+                        foreach (var (regex, regexSettings) in _uncombinedRegexPrompts)
                         {
                             if (regex.IsMatch(completionJob.Prompt))
                             {
@@ -119,11 +127,14 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
         private PromptMultiConnectorSettings? MatchRegexInParallel(string prompt)
         {
             // Copier la liste pour éviter les problèmes de concurrence
-            var regexPrompts = _regexPrompts.ToArray();
+            var regexPrompts = _uncombinedRegexPrompts.ToArray();
 
-            // Utiliser PLINQ pour tester les regex en parallèle
+            // Utiliser PLINQ pour tester les regex en parallèle. AsOrdered garantit que le premier
+            // pattern enregistré l'emporte, comme en séquentiel : sans lui, FirstOrDefault rend
+            // n'importe quel élément qui matche.
             var match = regexPrompts
                 .AsParallel()
+                .AsOrdered()
                 .FirstOrDefault(item => item.Regex.IsMatch(prompt));
 
             return match.Settings;
@@ -200,8 +211,9 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
                         }
                     }
 
-                    // Reconstruire les groupes de regex combinés si nécessaire
-                    if (removed && _regexPrompts.Count > 0)
+                    // Reconstruire les groupes combinés, y compris quand la liste devient vide :
+                    // sinon le groupe périmé continue de matcher le pattern supprimé.
+                    if (removed)
                     {
                         RebuildCombinedRegexGroups();
                     }
@@ -264,13 +276,11 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
             {
                 // Ajouter une nouvelle entrée
                 _regexPrompts.Add((regex, settings));
-
-                // Reconstruire les groupes de regex combinés si nécessaire
-                if (_regexPrompts.Count % MaxRegexPerGroup == 1)
-                {
-                    RebuildCombinedRegexGroups();
-                }
             }
+
+            // Reconstruire à chaque mutation : un groupe combiné qui ne reflète pas la liste
+            // rend des paramètres périmés (mise à jour) ou ignore les derniers patterns ajoutés.
+            RebuildCombinedRegexGroups();
         }
 
         /// <summary>
@@ -279,6 +289,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
         private void RebuildCombinedRegexGroups()
         {
             _combinedRegexGroups.Clear();
+            _uncombinedRegexPrompts.Clear();
 
             // Regrouper les regex par lots de MaxRegexPerGroup
             for (int i = 0; i < _regexPrompts.Count; i += MaxRegexPerGroup)
@@ -314,15 +325,18 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
                         patternBuilder.Append('|');
                     }
 
-                    // Ajouter le pattern avec un groupe nommé
-                    patternBuilder.Append($"(?<{groupName}>{regex})");
+                    // Ajouter le pattern avec un groupe nommé. Le préfixe paresseux, ancré en tête par le
+                    // ^ global, fait tester chaque alternative sur toute la chaîne avant de passer à la
+                    // suivante : le premier pattern enregistré l'emporte, comme en séquentiel. Sans lui,
+                    // l'alternance rend le pattern qui matche le plus à gauche, pas le premier enregistré.
+                    patternBuilder.Append($@"(?<{groupName}>[\s\S]*?(?:{regex}))");
 
                     // Stocker les paramètres associés au groupe
                     groupSettings.Add(groupName, settings);
                 }
 
                 // Compiler le regex combiné
-                var combinedRegex = new Regex(patternBuilder.ToString(), RegexOptions.Compiled);
+                var combinedRegex = new Regex($"^(?:{patternBuilder})", RegexOptions.Compiled);
 
                 // Ajouter le groupe combiné
                 _combinedRegexGroups.Add((combinedRegex, groupSettings));
@@ -330,7 +344,8 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching
             catch (ArgumentException)
             {
                 // Si la combinaison échoue (par exemple, en raison de regex incompatibles),
-                // on laisse les regex individuels tels quels
+                // les regex du groupe sont testés individuellement à l'étape 3
+                _uncombinedRegexPrompts.AddRange(regexGroup);
             }
         }
 

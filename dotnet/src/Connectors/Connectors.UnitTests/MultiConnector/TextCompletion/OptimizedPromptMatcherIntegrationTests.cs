@@ -2,11 +2,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.SemanticKernel.AI;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.TextGeneration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching;
@@ -42,19 +43,19 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
             var regexSignature1 = new PromptSignature
             {
                 PromptStart = "Hello.*World",
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
 
             var regexSignature2 = new PromptSignature
             {
                 PromptStart = "Test.*Pattern",
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
 
             var prefixSignature = new PromptSignature
             {
                 PromptStart = "Simple prefix",
-                RequestSettings = new AIRequestSettings()
+                RequestSettings = new PromptExecutionSettings()
             };
 
             // Créer les paramètres pour chaque type de prompt
@@ -122,26 +123,26 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
 
             // Act & Assert
             // Tester avec un prompt qui correspond au pattern regex1
-            var result1 = await multiConnector.CompleteAsync("Hello beautiful World", new AIRequestSettings(), CancellationToken.None);
+            var result1 = await multiConnector.CompleteAsync("Hello beautiful World", new PromptExecutionSettings(), CancellationToken.None);
             Assert.Contains("connector1", result1);
 
             // Tester avec un prompt qui correspond au pattern regex2
-            var result2 = await multiConnector.CompleteAsync("Test complex Pattern with additional text", new AIRequestSettings(), CancellationToken.None);
+            var result2 = await multiConnector.CompleteAsync("Test complex Pattern with additional text", new PromptExecutionSettings(), CancellationToken.None);
             Assert.Contains("connector2", result2);
 
             // Tester avec un prompt qui correspond au préfixe simple
-            var result3 = await multiConnector.CompleteAsync("Simple prefix with more text", new AIRequestSettings(), CancellationToken.None);
+            var result3 = await multiConnector.CompleteAsync("Simple prefix with more text", new PromptExecutionSettings(), CancellationToken.None);
             Assert.Contains("connector3", result3);
 
             // Tester avec un prompt qui ne correspond à aucun pattern (devrait utiliser le connecteur par défaut)
-            var result4 = await multiConnector.CompleteAsync("No match for any pattern", new AIRequestSettings(), CancellationToken.None);
+            var result4 = await multiConnector.CompleteAsync("No match for any pattern", new PromptExecutionSettings(), CancellationToken.None);
             Assert.Contains("connector1", result4);
         }
 
         /// <summary>
-        /// Mock simple d'un connecteur de complétion de texte pour les tests
+        /// Mock simple d'un connecteur de génération de texte pour les tests
         /// </summary>
-        private class MockTextCompletion : ITextCompletion
+        private sealed class MockTextCompletion : ITextGenerationService
         {
             private readonly string _name;
 
@@ -150,38 +151,20 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
                 _name = name;
             }
 
-            public Task<IReadOnlyList<ITextResult>> GetCompletionsAsync(string text, AIRequestSettings? requestSettings, CancellationToken cancellationToken = default)
+            public IReadOnlyDictionary<string, object?> Attributes { get; } = new Dictionary<string, object?>();
+
+            public Task<IReadOnlyList<TextContent>> GetTextContentsAsync(string prompt, PromptExecutionSettings? executionSettings = null, Kernel? kernel = null, CancellationToken cancellationToken = default)
             {
-                var result = new MockTextResult(_name);
-                return Task.FromResult<IReadOnlyList<ITextResult>>(new[] { result });
+                return Task.FromResult<IReadOnlyList<TextContent>>(new[] { new TextContent($"Result from {_name}") });
             }
 
-            public IAsyncEnumerable<ITextStreamingResult> GetStreamingCompletionsAsync(string text, AIRequestSettings? requestSettings, CancellationToken cancellationToken = default)
+            public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(string prompt, PromptExecutionSettings? executionSettings = null, Kernel? kernel = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
             {
-                throw new NotImplementedException();
+                foreach (var content in await GetTextContentsAsync(prompt, executionSettings, kernel, cancellationToken).ConfigureAwait(false))
+                {
+                    yield return new StreamingTextContent(content.Text);
+                }
             }
-        }
-
-        // Classe simplifiée pour les tests
-        private class MockTextResult : ITextResult
-        {
-            private readonly string _text;
-
-            public MockTextResult(string text)
-            {
-                _text = text;
-            }
-
-            public Task<string> GetCompletionAsync(CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult($"Result from {_text}");
-            }
-
-            // Implémentation de la propriété requise par l'interface IResultBase
-            // Comme nous ne pouvons pas implémenter correctement ModelResult sans connaître son type,
-            // nous allons simplement lancer une exception si cette propriété est accédée
-            // Ce n'est pas idéal, mais pour les tests, cela devrait suffire car nous n'accédons pas à cette propriété
-            public object ModelResult => throw new NotImplementedException("ModelResult is not implemented in this mock");
         }
     }
 }
