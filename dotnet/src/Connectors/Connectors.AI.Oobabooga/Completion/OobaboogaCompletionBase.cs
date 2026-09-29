@@ -158,7 +158,21 @@ public abstract class OobaboogaCompletionBase<TCompletionInput, TOobaboogaParame
     /// This method contains the logic to extract a single streaming text chunk (delta for chat, direct for text) from a websocket streaming response.
     /// Returns null when the message is not a text-stream event (e.g. stream_end).
     /// </summary>
-    protected abstract string? ExtractStreamText(CompletionStreamingResponseBase response);
+    /// <param name="response">The streaming response message.</param>
+    /// <param name="state">State of the stream the message belongs to, shared by the successive calls for that stream only.</param>
+    protected abstract string? ExtractStreamText(CompletionStreamingResponseBase response, StreamTextState state);
+
+    /// <summary>
+    /// Per-stream state for <see cref="ExtractStreamText"/>. It lives with a single streaming response and never on the
+    /// service instance, which serves concurrent streams.
+    /// </summary>
+    protected sealed class StreamTextState
+    {
+        /// <summary>
+        /// Full text already emitted for the stream.
+        /// </summary>
+        public string SentText { get; set; } = string.Empty;
+    }
 
     /// <summary>
     /// This method contains the logic to build the Oobabooga request object. It is used by both Text and Chat completion, the latter extending the former with additional parameters.
@@ -170,68 +184,82 @@ public abstract class OobaboogaCompletionBase<TCompletionInput, TOobaboogaParame
     /// </summary>
     protected async Task ProcessWebSocketMessagesAsync(ClientWebSocket clientWebSocket, ChannelWriter<string> writer, CancellationToken cancellationToken)
     {
-        var buffer = new byte[this.OobaboogaSettings.WebSocketBufferSize];
-        var finishedProcessing = false;
-        while (!finishedProcessing && !cancellationToken.IsCancellationRequested)
+        try
         {
-            MemoryStream messageStream = new();
-            WebSocketReceiveResult result;
-            do
+            var buffer = new byte[this.OobaboogaSettings.WebSocketBufferSize];
+            var streamTextState = new StreamTextState();
+            var finishedProcessing = false;
+            while (!finishedProcessing && !cancellationToken.IsCancellationRequested)
             {
-                var segment = new ArraySegment<byte>(buffer);
-                result = await clientWebSocket.ReceiveAsync(segment, cancellationToken).ConfigureAwait(false);
-                await messageStream.WriteAsync(buffer, 0, result.Count, cancellationToken).ConfigureAwait(false);
-            } while (!result.EndOfMessage);
-
-            messageStream.Seek(0, SeekOrigin.Begin);
-
-            if (result.MessageType == WebSocketMessageType.Text)
-            {
-                string messageText;
-                using (var reader = new StreamReader(messageStream, Encoding.UTF8))
+                MemoryStream messageStream = new();
+                WebSocketReceiveResult result;
+                do
                 {
-                    messageText = await reader.ReadToEndAsync().ConfigureAwait(false);
+                    var segment = new ArraySegment<byte>(buffer);
+                    result = await clientWebSocket.ReceiveAsync(segment, cancellationToken).ConfigureAwait(false);
+                    await messageStream.WriteAsync(buffer, 0, result.Count, cancellationToken).ConfigureAwait(false);
+                } while (!result.EndOfMessage);
+
+                messageStream.Seek(0, SeekOrigin.Begin);
+
+                if (result.MessageType == WebSocketMessageType.Text)
+                {
+                    string messageText;
+                    using (var reader = new StreamReader(messageStream, Encoding.UTF8))
+                    {
+                        messageText = await reader.ReadToEndAsync().ConfigureAwait(false);
+                    }
+
+                    var responseObject = this.GetResponseObject(messageText);
+
+                    if (responseObject is null)
+                    {
+                        throw new KernelException($"Unexpected response from Oobabooga API: {messageText}");
+                    }
+
+                    switch (responseObject.Event)
+                    {
+                        case CompletionStreamingResponseBase.ResponseObjectTextStreamEvent:
+                            var chunk = this.ExtractStreamText(responseObject, streamTextState);
+                            if (chunk is not null)
+                            {
+                                await writer.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
+                            }
+                            break;
+                        case CompletionStreamingResponseBase.ResponseObjectStreamEndEvent:
+                            writer.TryComplete();
+                            if (!this.OobaboogaSettings.UseWebSocketsPooling)
+                            {
+                                await clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Acknowledge stream-end oobabooga message", CancellationToken.None).ConfigureAwait(false);
+                            }
+
+                            finishedProcessing = true;
+                            break;
+                    }
+                }
+                else if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    await clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Acknowledge Close frame", CancellationToken.None).ConfigureAwait(false);
+                    writer.TryComplete();
+                    finishedProcessing = true;
                 }
 
-                var responseObject = this.GetResponseObject(messageText);
-
-                if (responseObject is null)
+                if (clientWebSocket.State != WebSocketState.Open)
                 {
-                    throw new KernelException($"Unexpected response from Oobabooga API: {messageText}");
-                }
-
-                switch (responseObject.Event)
-                {
-                    case CompletionStreamingResponseBase.ResponseObjectTextStreamEvent:
-                        var chunk = this.ExtractStreamText(responseObject);
-                        if (chunk is not null)
-                        {
-                            await writer.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
-                        }
-                        break;
-                    case CompletionStreamingResponseBase.ResponseObjectStreamEndEvent:
-                        writer.TryComplete();
-                        if (!this.OobaboogaSettings.UseWebSocketsPooling)
-                        {
-                            await clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Acknowledge stream-end oobabooga message", CancellationToken.None).ConfigureAwait(false);
-                        }
-
-                        finishedProcessing = true;
-                        break;
+                    writer.TryComplete();
+                    finishedProcessing = true;
                 }
             }
-            else if (result.MessageType == WebSocketMessageType.Close)
-            {
-                await clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Acknowledge Close frame", CancellationToken.None).ConfigureAwait(false);
-                writer.TryComplete();
-                finishedProcessing = true;
-            }
-
-            if (clientWebSocket.State != WebSocketState.Open)
-            {
-                writer.TryComplete();
-                finishedProcessing = true;
-            }
+        }
+        catch (Exception exception)
+        {
+            // Complete the channel with the fault so that the consumer enumerating the results
+            // observes it. Without this, a websocket error leaves the reader waiting forever.
+            writer.TryComplete(exception);
+        }
+        finally
+        {
+            writer.TryComplete();
         }
     }
 }

@@ -59,7 +59,7 @@ public sealed class OobaboogaTextCompletion : OobaboogaCompletionBase<string, Oo
     }
 
     /// <inheritdoc/>
-    protected override string? ExtractStreamText(CompletionStreamingResponseBase response)
+    protected override string? ExtractStreamText(CompletionStreamingResponseBase response, StreamTextState state)
     {
         return ((TextCompletionStreamingResponse)response).Text;
     }
