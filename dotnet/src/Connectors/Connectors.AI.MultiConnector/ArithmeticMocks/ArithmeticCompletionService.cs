@@ -86,9 +86,9 @@ public class ArithmeticCompletionService : ITextGenerationService
     public IReadOnlyDictionary<string, object?> Attributes { get; } = new Dictionary<string, object?>();
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(string text, PromptExecutionSettings? requestSettings, Kernel? kernel, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(string prompt, PromptExecutionSettings? executionSettings, Kernel? kernel, CancellationToken cancellationToken)
     {
-        var job = new CompletionJob(text, requestSettings);
+        var job = new CompletionJob(prompt, executionSettings);
         ArithmeticStreamingResultBase streamingResult = await this.ComputeResultAsync(job, cancellationToken).ConfigureAwait(false);
         var resultText = await streamingResult.GetResultAsync(cancellationToken).ConfigureAwait(false);
         return new List<TextContent>
@@ -98,9 +98,9 @@ public class ArithmeticCompletionService : ITextGenerationService
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(string text, PromptExecutionSettings? requestSettings, Kernel? kernel, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(string prompt, PromptExecutionSettings? executionSettings, Kernel? kernel, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var job = new CompletionJob(text, requestSettings);
+        var job = new CompletionJob(prompt, executionSettings);
         ArithmeticStreamingResultBase streamingResult = await this.ComputeResultAsync(job, cancellationToken).ConfigureAwait(false);
         await foreach (var word in streamingResult.GetStreamingAsync(cancellationToken).ConfigureAwait(false))
         {

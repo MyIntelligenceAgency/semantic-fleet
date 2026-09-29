@@ -159,7 +159,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             var optimizedResult = MeasurePerformance(optimizedMatcher, allJobs, settings);
 
             // Assert - Pas d'assertions strictes, juste des logs
-            _output.WriteLine($"Performance comparison with regex patterns:");
+            _output.WriteLine("Performance comparison with regex patterns:");
             _output.WriteLine($"Hybrid: Total={hybridResult.TotalTime.TotalMilliseconds:F2}ms, Avg={hybridResult.AverageTime.TotalMilliseconds:F4}ms");
             _output.WriteLine($"Optimized: Total={optimizedResult.TotalTime.TotalMilliseconds:F2}ms, Avg={optimizedResult.AverageTime.TotalMilliseconds:F4}ms");
 

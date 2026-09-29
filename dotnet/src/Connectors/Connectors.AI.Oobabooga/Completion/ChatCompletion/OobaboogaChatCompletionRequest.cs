@@ -29,10 +29,10 @@ public sealed class OobaboogaChatCompletionRequest : OobaboogaChatCompletionRequ
     /// </summary>
     public static OobaboogaChatCompletionRequest Create(ChatHistory chat, OobaboogaCompletionSettings<OobaboogaChatCompletionRequestSettings> settings, PromptExecutionSettings executionSettings)
     {
-        var chatMessages = chat.Take(chat.Count - 1).Select(message => message.Content).ToList();
+        var chatMessages = chat.Take(chat.Count - 1).Select(message => message.Content ?? string.Empty).ToList();
         var toReturn = new OobaboogaChatCompletionRequest()
         {
-            UserInput = chat.Last().Content,
+            UserInput = chat.Last().Content ?? string.Empty,
             History = new OobaboogaChatHistory()
             {
                 Internal = chatMessages.Count > 1 ? new() { chatMessages } : new(),

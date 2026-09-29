@@ -163,7 +163,7 @@ public sealed class OobaboogaCompletionTests : IDisposable
         this.AssertAcceptableChatResponse(chatMessage);
     }
 
-    private static void AssertAcceptableResponse(string localResponse)
+    private static void AssertAcceptableResponse(string? localResponse)
     {
         // Assert
         Assert.NotNull(localResponse);

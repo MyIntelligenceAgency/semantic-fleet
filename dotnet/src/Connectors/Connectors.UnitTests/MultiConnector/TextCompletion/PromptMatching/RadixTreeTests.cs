@@ -346,7 +346,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
         }
 
         // Définition d'un comparateur d'égalité pour les caractères insensible à la casse
-        private class CharEqualityComparer : IEqualityComparer<char>
+        private sealed class CharEqualityComparer : IEqualityComparer<char>
         {
             public bool Equals(char x, char y) => char.ToLowerInvariant(x) == char.ToLowerInvariant(y);
             public int GetHashCode(char obj) => char.ToLowerInvariant(obj).GetHashCode();

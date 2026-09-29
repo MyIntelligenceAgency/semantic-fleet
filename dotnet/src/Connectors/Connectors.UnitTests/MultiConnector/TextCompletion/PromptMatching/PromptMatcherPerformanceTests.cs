@@ -261,7 +261,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             var hybridResult = MeasurePerformance(hybridMatcher, allJobs, settings);
 
             // Assert - Pas d'assertions strictes, juste des logs
-            _output.WriteLine($"Performance comparison with regex patterns:");
+            _output.WriteLine("Performance comparison with regex patterns:");
             _output.WriteLine($"Sequential: Total={sequentialResult.TotalTime.TotalMilliseconds:F2}ms, Avg={sequentialResult.AverageTime.TotalMilliseconds:F4}ms");
             _output.WriteLine($"RadixTree: Total={radixTreeResult.TotalTime.TotalMilliseconds:F2}ms, Avg={radixTreeResult.AverageTime.TotalMilliseconds:F4}ms");
             _output.WriteLine($"Hybrid: Total={hybridResult.TotalTime.TotalMilliseconds:F2}ms, Avg={hybridResult.AverageTime.TotalMilliseconds:F4}ms");
@@ -315,7 +315,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
             var hybridResult = MeasurePerformance(hybridMatcher, jobs, settings);
 
             // Assert - Pas d'assertions strictes, juste des logs
-            _output.WriteLine($"Performance comparison for worst case scenario (common prefix):");
+            _output.WriteLine("Performance comparison for worst case scenario (common prefix):");
             _output.WriteLine($"Sequential: Total={sequentialResult.TotalTime.TotalMilliseconds:F2}ms, Avg={sequentialResult.AverageTime.TotalMilliseconds:F4}ms");
             _output.WriteLine($"RadixTree: Total={radixTreeResult.TotalTime.TotalMilliseconds:F2}ms, Avg={radixTreeResult.AverageTime.TotalMilliseconds:F4}ms");
             _output.WriteLine($"Hybrid: Total={hybridResult.TotalTime.TotalMilliseconds:F2}ms, Avg={hybridResult.AverageTime.TotalMilliseconds:F4}ms");

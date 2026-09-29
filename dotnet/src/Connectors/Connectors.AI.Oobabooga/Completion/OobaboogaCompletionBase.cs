@@ -182,6 +182,7 @@ public abstract class OobaboogaCompletionBase<TCompletionInput, TOobaboogaParame
     /// <summary>
     /// That method is responsible for processing the websocket messages that build a streaming response. It writes the extracted text chunks into the provided channel. It is crucial that it is run asynchronously to prevent a deadlock with results iteration.
     /// </summary>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Any fault must complete the channel, otherwise the consumer waits forever.")]
     protected async Task ProcessWebSocketMessagesAsync(ClientWebSocket clientWebSocket, ChannelWriter<string> writer, CancellationToken cancellationToken)
     {
         try

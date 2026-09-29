@@ -5,6 +5,9 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <AnalysisLevel>latest</AnalysisLevel>
+    <!-- The analyzer package is pinned in Directory.Packages.props; newer SDKs warn that they ship
+         newer analyzers, which /warnaserror turns into a build failure. Keep the pinned set. -->
+    <_SkipUpgradeNetAnalyzersNuGetWarning>true</_SkipUpgradeNetAnalyzersNuGetWarning>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <LangVersion>10</LangVersion>
     <Nullable>enable</Nullable>

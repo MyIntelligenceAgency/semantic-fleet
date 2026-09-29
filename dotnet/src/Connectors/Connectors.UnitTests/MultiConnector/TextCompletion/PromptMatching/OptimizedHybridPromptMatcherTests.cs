@@ -298,7 +298,6 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
                 Assert.Null(result);
             }
         }
-    
 
         [Fact]
         public void OverlappingPatterns_FirstRegisteredWins()

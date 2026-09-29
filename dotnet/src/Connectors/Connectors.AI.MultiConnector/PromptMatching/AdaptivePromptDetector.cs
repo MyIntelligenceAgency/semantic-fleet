@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -327,6 +328,7 @@ public class AdaptivePromptDetector : IPromptMatcher
     /// Analyse un nouveau pattern potentiel de manière asynchrone.
     /// </summary>
     /// <param name="state">Le pattern potentiel à analyser</param>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Best-effort background analysis: a failure must not surface on the timer thread.")]
     private void AnalyzeNewPattern(object? state)
     {
         if (state is not PotentialPattern potentialPattern)
@@ -475,6 +477,7 @@ public class AdaptivePromptDetector : IPromptMatcher
     /// Supprime les prompts correspondant à un pattern du cache.
     /// </summary>
     /// <param name="pattern">Le pattern à rechercher</param>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Best-effort cache cleanup: a failure leaves the cache unchanged.")]
     private void RemoveMatchingPromptsFromCache(string pattern)
     {
         this._cacheLock.EnterWriteLock();

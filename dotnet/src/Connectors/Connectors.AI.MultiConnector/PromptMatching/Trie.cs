@@ -11,7 +11,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptMatching;
 /// <typeparam name="K">Type de clé (typiquement string)</typeparam>
 /// <typeparam name="C">Type de caractère (typiquement char)</typeparam>
 /// <typeparam name="V">Type de valeur associée</typeparam>
-public class Trie<K, C, V> : ITrie<K, C, V> where K : IEnumerable<C>
+public class Trie<K, C, V> : ITrie<K, C, V> where K : IEnumerable<C> where C : notnull
 {
     /// <summary>
     /// Nœud interne de l'arbre à préfixe
