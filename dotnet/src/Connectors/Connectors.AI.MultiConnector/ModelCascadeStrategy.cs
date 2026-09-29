@@ -5,8 +5,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.AI.TextCompletion;
-using Microsoft.SemanticKernel.Diagnostics;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.TextGeneration;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
 {
@@ -74,25 +74,27 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
                 {
                     _logger?.LogInformation("Essai du modèle {Model} pour la catégorie {Category} et la complexité {Complexity}", model, category, complexity);
 
-                    // Obtenir l'instance de TextCompletion pour ce modèle
-                    ITextCompletion textCompletion = _router.GetTextCompletionForModel(model);
+                    // Obtenir le service de génération pour ce modèle
+                    ITextGenerationService textGeneration = _router.GetTextCompletionForModel(model);
 
                     // Exécuter la requête
-                    string response = await textCompletion.CompleteAsync(prompt, null, cancellationToken).ConfigureAwait(false);
+                    var content = await textGeneration.GetTextContentAsync(prompt, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    string response = content.Text ?? string.Empty;
 
                     _logger?.LogInformation("Modèle {Model} a réussi à traiter la requête", model);
 
                     return response;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
+                    // Une annulation arrête la cascade : essayer le modèle suivant la contournerait.
                     _logger?.LogWarning(ex, "Échec du modèle {Model} : {Message}", model, ex.Message);
                     lastException = ex;
                 }
             }
 
             // Si tous les modèles ont échoué, lancer une exception
-            throw new SKException("Tous les modèles ont échoué à traiter la requête", lastException);
+            throw new KernelException("Tous les modèles ont échoué à traiter la requête", lastException);
         }
 
         /// <summary>

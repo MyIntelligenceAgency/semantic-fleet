@@ -54,8 +54,4 @@
     </None>
   </ItemGroup>
 
-  <!-- Tests restored from cleanup-orphaned-files (05/2025) for the components above. Excluded until ported to SK 1.78. -->
-  <ItemGroup>
-    <Compile Remove="MultiConnector\TextCompletion\OptimizedMultiConnectorTests.cs" />
-  </ItemGroup>
 </Project>

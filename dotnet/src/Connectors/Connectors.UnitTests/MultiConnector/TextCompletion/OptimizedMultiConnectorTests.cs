@@ -5,8 +5,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.AI;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.TextGeneration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using Moq;
 using Xunit;
@@ -129,38 +129,14 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
         [Fact]
         public async Task ModelCascadeStrategy_ExecutesWithFallback_WhenPrimaryModelFails()
         {
-            // Arrange
-            var router = new OptimizedMultiConnectorRouter();
-
-            // Mock pour le logger
-            var loggerMock = new Mock<ILogger>();
-
-            // Mock pour les TextCompletion
-            var primaryTextCompletionMock = new Mock<ITextCompletion>();
-            primaryTextCompletionMock
-                .Setup(m => m.CompleteAsync(It.IsAny<string>(), It.IsAny<AIRequestSettings>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Erreur simulée du modèle primaire"));
-
-            var fallbackTextCompletionMock = new Mock<ITextCompletion>();
-            fallbackTextCompletionMock
-                .Setup(m => m.CompleteAsync(It.IsAny<string>(), It.IsAny<AIRequestSettings>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync("Réponse du modèle de fallback");
-
-            // Mock pour le routeur
-            var routerMock = new Mock<OptimizedMultiConnectorRouter>();
-            routerMock
-                .Setup(m => m.SelectOptimalModel(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<OptimizedMultiConnectorRouter.RoutingStrategy>()))
-                .Returns("primary-model");
-
-            routerMock
-                .Setup(m => m.GetTextCompletionForModel("primary-model"))
-                .Returns(primaryTextCompletionMock.Object);
-
-            routerMock
-                .Setup(m => m.GetTextCompletionForModel(It.IsAny<string>()))
-                .Returns(fallbackTextCompletionMock.Object);
-
-            var cascadeStrategy = new ModelCascadeStrategy(routerMock.Object, loggerMock.Object);
+            // Arrange : le modèle choisi par le routeur échoue, les autres répondent.
+            // La version de mai 2025 simulait le routeur avec Moq sur des méthodes non virtuelles,
+            // ce que Moq refuse : le routeur réel reçoit désormais une fabrique de services.
+            string primaryModel = new OptimizedMultiConnectorRouter().SelectOptimalModel("code", "medium", OptimizedMultiConnectorRouter.RoutingStrategy.Performance);
+            var primary = CreateFailingService(new InvalidOperationException("Erreur simulée du modèle primaire"));
+            var fallback = CreateAnsweringService("Réponse du modèle de fallback");
+            var router = new OptimizedMultiConnectorRouter(model => model == primaryModel ? primary.Object : fallback.Object);
+            var cascadeStrategy = new ModelCascadeStrategy(router, new Mock<ILogger>().Object);
 
             // Act
             string result = await cascadeStrategy.ExecuteWithFallbackAsync(
@@ -169,49 +145,22 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
                 "medium",
                 OptimizedMultiConnectorRouter.RoutingStrategy.Performance);
 
-            // Assert
+            // Assert : le modèle primaire est essayé une fois, la cascade s'arrête au premier succès.
             Assert.Equal("Réponse du modèle de fallback", result);
-
-            // Vérifier que le modèle primaire a été appelé
-            primaryTextCompletionMock.Verify(
-                m => m.CompleteAsync(It.IsAny<string>(), It.IsAny<AIRequestSettings>(), It.IsAny<CancellationToken>()),
-                Times.Once);
-
-            // Vérifier qu'au moins un modèle de fallback a été appelé
-            fallbackTextCompletionMock.Verify(
-                m => m.CompleteAsync(It.IsAny<string>(), It.IsAny<AIRequestSettings>(), It.IsAny<CancellationToken>()),
-                Times.AtLeastOnce);
+            primary.Verify(TextContentsCall(), Times.Once);
+            fallback.Verify(TextContentsCall(), Times.Once);
         }
 
         [Fact]
         public async Task ModelCascadeStrategy_ThrowsException_WhenAllModelsFail()
         {
             // Arrange
-            var router = new OptimizedMultiConnectorRouter();
-
-            // Mock pour le logger
-            var loggerMock = new Mock<ILogger>();
-
-            // Mock pour les TextCompletion qui échouent tous
-            var failingTextCompletionMock = new Mock<ITextCompletion>();
-            failingTextCompletionMock
-                .Setup(m => m.CompleteAsync(It.IsAny<string>(), It.IsAny<AIRequestSettings>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Erreur simulée"));
-
-            // Mock pour le routeur
-            var routerMock = new Mock<OptimizedMultiConnectorRouter>();
-            routerMock
-                .Setup(m => m.SelectOptimalModel(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<OptimizedMultiConnectorRouter.RoutingStrategy>()))
-                .Returns("primary-model");
-
-            routerMock
-                .Setup(m => m.GetTextCompletionForModel(It.IsAny<string>()))
-                .Returns(failingTextCompletionMock.Object);
-
-            var cascadeStrategy = new ModelCascadeStrategy(routerMock.Object, loggerMock.Object);
+            var failing = CreateFailingService(new InvalidOperationException("Erreur simulée"));
+            var router = new OptimizedMultiConnectorRouter(_ => failing.Object);
+            var cascadeStrategy = new ModelCascadeStrategy(router, new Mock<ILogger>().Object);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<Microsoft.SemanticKernel.Diagnostics.SKException>(
+            var exception = await Assert.ThrowsAsync<KernelException>(
                 () => cascadeStrategy.ExecuteWithFallbackAsync(
                     "Test prompt",
                     "code",
@@ -219,6 +168,54 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
                     OptimizedMultiConnectorRouter.RoutingStrategy.Performance));
 
             Assert.Contains("Tous les modèles ont échoué", exception.Message);
+            Assert.Equal("Erreur simulée", exception.InnerException?.Message);
+        }
+
+        [Fact]
+        public async Task ModelCascadeStrategy_StopsOnCancellation()
+        {
+            // Arrange : une annulation ne doit pas être traitée comme l'échec d'un modèle.
+            var cancelled = CreateFailingService(new OperationCanceledException());
+            var fallback = CreateAnsweringService("Ne doit pas être appelé");
+            var router = new OptimizedMultiConnectorRouter(model => model == "gpt-4o" ? cancelled.Object : fallback.Object);
+            var cascadeStrategy = new ModelCascadeStrategy(router);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<OperationCanceledException>(
+                () => cascadeStrategy.ExecuteWithFallbackAsync(
+                    "Test prompt",
+                    "code",
+                    "hard",
+                    OptimizedMultiConnectorRouter.RoutingStrategy.Performance));
+
+            fallback.Verify(TextContentsCall(), Times.Never);
+        }
+
+        [Fact]
+        public void OptimizedMultiConnectorRouter_WithoutFactory_CannotProvideServices()
+        {
+            var router = new OptimizedMultiConnectorRouter();
+
+            Assert.Throws<InvalidOperationException>(() => router.GetTextCompletionForModel("gpt-4o"));
+        }
+
+        private static System.Linq.Expressions.Expression<Func<ITextGenerationService, Task<IReadOnlyList<TextContent>>>> TextContentsCall()
+        {
+            return m => m.GetTextContentsAsync(It.IsAny<string>(), It.IsAny<PromptExecutionSettings>(), It.IsAny<Kernel>(), It.IsAny<CancellationToken>());
+        }
+
+        private static Mock<ITextGenerationService> CreateAnsweringService(string answer)
+        {
+            var service = new Mock<ITextGenerationService>();
+            service.Setup(TextContentsCall()).ReturnsAsync(new List<TextContent> { new(answer) });
+            return service;
+        }
+
+        private static Mock<ITextGenerationService> CreateFailingService(Exception exception)
+        {
+            var service = new Mock<ITextGenerationService>();
+            service.Setup(TextContentsCall()).ThrowsAsync(exception);
+            return service;
         }
     }
 }

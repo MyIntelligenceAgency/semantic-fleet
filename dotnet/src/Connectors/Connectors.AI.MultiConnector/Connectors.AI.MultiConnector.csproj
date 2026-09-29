@@ -27,9 +27,4 @@
   <ItemGroup>
     <ProjectReference Include="..\Connectors.AI.Oobabooga\Connectors.AI.Oobabooga.csproj" />
   </ItemGroup>
-  <!-- Restored from cleanup-orphaned-files (05/2025), written against the pre-1.0 SK API. Excluded from compilation until ported to SK 1.78. -->
-  <ItemGroup>
-    <Compile Remove="ModelCascadeStrategy.cs" />
-    <Compile Remove="OptimizedMultiConnectorRouter.cs" />
-  </ItemGroup>
 </Project>

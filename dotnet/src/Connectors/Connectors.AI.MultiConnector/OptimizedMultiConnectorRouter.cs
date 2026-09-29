@@ -2,7 +2,7 @@
 
 using System;
 using System.Collections.Generic;
-using Microsoft.SemanticKernel.AI.TextCompletion;
+using Microsoft.SemanticKernel.TextGeneration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
 namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
@@ -17,6 +17,7 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
         private readonly Dictionary<string, ModelCostData> _modelCostData;
         private readonly Dictionary<string, ModelTimeData> _modelTimeData;
         private readonly Dictionary<string, Dictionary<string, Dictionary<string, string>>> _routingStrategies;
+        private readonly Func<string, ITextGenerationService>? _textGenerationFactory;
 
         /// <summary>
         /// Stratégie de routage à utiliser
@@ -40,10 +41,21 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
         }
 
         /// <summary>
+        /// Initialise une nouvelle instance de la classe <see cref="OptimizedMultiConnectorRouter"/> sans fabrique de services :
+        /// <see cref="SelectOptimalModel"/> fonctionne, <see cref="GetTextCompletionForModel"/> lève une exception.
+        /// </summary>
+        public OptimizedMultiConnectorRouter() : this(null)
+        {
+        }
+
+        /// <summary>
         /// Initialise une nouvelle instance de la classe <see cref="OptimizedMultiConnectorRouter"/>.
         /// </summary>
-        public OptimizedMultiConnectorRouter()
+        /// <param name="textGenerationFactory">Fabrique qui fournit le service de génération d'un modèle à partir de son nom,
+        /// par exemple un <see cref="OpenRouterConnector"/>, qui sert tous les modèles nommés « fournisseur/modèle ».</param>
+        public OptimizedMultiConnectorRouter(Func<string, ITextGenerationService>? textGenerationFactory)
         {
+            _textGenerationFactory = textGenerationFactory;
             _modelPerformanceData = InitializeModelPerformanceData();
             _modelCostData = InitializeModelCostData();
             _modelTimeData = InitializeModelTimeData();
@@ -100,36 +112,21 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector
         }
 
         /// <summary>
-        /// Obtient l'instance de TextCompletion pour le modèle spécifié.
+        /// Obtient le service de génération de texte pour le modèle spécifié.
         /// </summary>
         /// <param name="modelName">Nom du modèle</param>
-        /// <returns>Instance de ITextCompletion</returns>
-        public ITextCompletion GetTextCompletionForModel(string modelName)
+        /// <returns>Service de génération fourni par la fabrique</returns>
+        public ITextGenerationService GetTextCompletionForModel(string modelName)
         {
-            // Implémentation à compléter en fonction de l'architecture du MultiConnector
-            switch (modelName)
+            // Le prototype de mai 2025 instanciait ici AnthropicTextCompletion, GoogleTextCompletion et
+            // OpenRouterTextCompletion, trois classes qui n'ont jamais existé dans le dépôt. Le choix du
+            // service revient à l'appelant, qui fournit la fabrique.
+            if (_textGenerationFactory == null)
             {
-                case "anthropic/claude-3.7-sonnet":
-                    return new AnthropicTextCompletion(modelName);
-                case "google/gemini-pro-1.5":
-                    return new GoogleTextCompletion(modelName);
-                case "gpt-3.5-turbo":
-                    return new OpenAITextCompletion(modelName);
-                case "gpt-4o":
-                    return new OpenAITextCompletion(modelName);
-                case "gpt-4o-mini":
-                    return new OpenAITextCompletion(modelName);
-                case "qwen/qwen3-14b":
-                    return new OpenRouterTextCompletion(modelName);
-                case "qwen/qwen3-32b":
-                    return new OpenRouterTextCompletion(modelName);
-                case "o3":
-                    return new OpenRouterTextCompletion(modelName);
-                case "o4-mini":
-                    return new OpenRouterTextCompletion(modelName);
-                default:
-                    return new OpenAITextCompletion("gpt-4o");
+                throw new InvalidOperationException("Aucune fabrique de services de génération n'a été fournie au routeur.");
             }
+
+            return _textGenerationFactory(modelName);
         }
 
         /// <summary>
