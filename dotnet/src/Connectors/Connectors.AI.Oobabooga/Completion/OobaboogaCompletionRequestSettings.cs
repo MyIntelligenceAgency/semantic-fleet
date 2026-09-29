@@ -283,7 +283,8 @@ public class OobaboogaCompletionRequestSettings : PromptExecutionSettings
             ModelId = executionSettings.ModelId
         };
 
-        foreach (KeyValuePair<string, object> extendedProperty in executionSettings.ExtensionData)
+        // SK 1.x: ExtensionData is null when the caller set no extra property.
+        foreach (KeyValuePair<string, object> extendedProperty in executionSettings.ExtensionData ?? new Dictionary<string, object>())
         {
             if (extendedProperty.Value != null)
             {
