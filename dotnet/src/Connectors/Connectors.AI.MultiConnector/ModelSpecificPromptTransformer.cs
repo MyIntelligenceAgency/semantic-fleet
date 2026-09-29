@@ -1,5 +1,6 @@
 ﻿// Copyright (c) MyIA. All rights reserved.
 
+using System;
 using System.Collections.Generic;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
 
@@ -54,7 +55,7 @@ public class ModelSpecificPromptTransformer
     /// <returns>Identifiant normalisé</returns>
     private string NormalizeModelId(string modelId)
     {
-        if (modelId.StartsWith("gpt-"))
+        if (modelId.StartsWith("gpt-", StringComparison.Ordinal))
         {
             return "gpt";
         }

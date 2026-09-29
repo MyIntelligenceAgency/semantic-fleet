@@ -68,6 +68,7 @@ public class OptimizedMultiConnectorRouter
     /// <param name="complexity">Complexité de la tâche (trivial, simple, medium, hard)</param>
     /// <param name="strategy">Stratégie de routage à utiliser</param>
     /// <returns>Le nom du modèle à utiliser</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lookup keys are lower-case identifiers.")]
     public string SelectOptimalModel(string category, string complexity, RoutingStrategy strategy = RoutingStrategy.Balanced)
     {
         // Modèle par défaut en cas de catégorie ou complexité non reconnue

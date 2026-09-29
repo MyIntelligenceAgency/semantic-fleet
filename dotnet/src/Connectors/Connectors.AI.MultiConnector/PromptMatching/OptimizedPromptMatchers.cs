@@ -345,6 +345,8 @@ public class OptimizedHybridPromptMatcher : IPromptMatcher
         }
     }
 
+    private static readonly char[] RegexSpecialChars = { '*', '+', '?', '|', '{', '}', '[', ']', '(', ')', '^', '$', '\\', '.' };
+
     /// <summary>
     /// Vérifie si une chaîne contient des caractères spéciaux de regex
     /// </summary>
@@ -352,6 +354,6 @@ public class OptimizedHybridPromptMatcher : IPromptMatcher
     /// <returns>True si la chaîne contient des caractères spéciaux de regex</returns>
     private static bool ContainsRegexSpecialChars(string input)
     {
-        return input.IndexOfAny(new[] { '*', '+', '?', '|', '{', '}', '[', ']', '(', ')', '^', '$', '\\', '.' }) >= 0;
+        return input.IndexOfAny(RegexSpecialChars) >= 0;
     }
 }

@@ -102,6 +102,7 @@ public class ModelCascadeStrategy
     /// </summary>
     /// <param name="category">Catégorie de la tâche</param>
     /// <returns>Liste des modèles de fallback</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lookup keys are lower-case identifiers.")]
     private List<string> GetFallbackModelsForCategory(string category)
     {
         if (this._fallbackModels.TryGetValue(category.ToLowerInvariant(), out var models))

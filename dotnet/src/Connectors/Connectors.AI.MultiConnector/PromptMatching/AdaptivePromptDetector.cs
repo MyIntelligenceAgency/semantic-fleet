@@ -284,6 +284,7 @@ public class AdaptivePromptDetector : IPromptMatcher
     /// <param name="s">Première chaîne</param>
     /// <param name="t">Deuxième chaîne</param>
     /// <returns>Distance de Levenshtein</returns>
+    [SuppressMessage("Performance", "CA1814:Prefer jagged arrays over multidimensional", Justification = "The Levenshtein matrix is rectangular.")]
     private int ComputeLevenshteinDistance(string s, string t)
     {
         int n = s.Length;
@@ -445,6 +446,8 @@ public class AdaptivePromptDetector : IPromptMatcher
         return prefix;
     }
 
+    private static readonly char[] WordSeparators = { ' ', '\t', '\n', '\r', '.', ',', ';', ':', '!', '?' };
+
     /// <summary>
     /// Trouve les mots communs dans une liste de chaînes.
     /// </summary>
@@ -458,7 +461,7 @@ public class AdaptivePromptDetector : IPromptMatcher
         }
 
         // Diviser la première chaîne en mots
-        var words = strings[0].Split(new[] { ' ', '\t', '\n', '\r', '.', ',', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
+        var words = strings[0].Split(WordSeparators, StringSplitOptions.RemoveEmptyEntries);
 
         // Filtrer les mots qui apparaissent dans toutes les chaînes
         var commonWords = new List<string>();
@@ -565,6 +568,8 @@ public class AdaptivePromptDetector : IPromptMatcher
         }
     }
 
+    private static readonly char[] RegexSpecialChars = { '*', '+', '?', '|', '{', '}', '[', ']', '(', ')', '^', '$', '\\', '.' };
+
     /// <summary>
     /// Vérifie si une chaîne contient des caractères spéciaux de regex
     /// </summary>
@@ -572,7 +577,7 @@ public class AdaptivePromptDetector : IPromptMatcher
     /// <returns>True si la chaîne contient des caractères spéciaux de regex</returns>
     private static bool ContainsRegexSpecialChars(string input)
     {
-        return input.IndexOfAny(new[] { '*', '+', '?', '|', '{', '}', '[', ']', '(', ')', '^', '$', '\\', '.' }) >= 0;
+        return input.IndexOfAny(RegexSpecialChars) >= 0;
     }
 
     /// <summary>
