@@ -28,6 +28,9 @@ jobs:
           - dotnet: '9.0'
             configuration: Release
             solutions: dotnet/Semantic-Fleet-dotnet.sln semantic-fleet.sln
+          - dotnet: '10.0'
+            configuration: Debug
+            solutions: dotnet/Semantic-Fleet-dotnet.sln semantic-fleet.sln
 
     runs-on: ubuntu-latest
     steps:
@@ -81,6 +84,9 @@ jobs:
             solutions: dotnet/Semantic-Fleet-dotnet.sln semantic-fleet.sln
           - dotnet-version: '9.0.x'
             configuration: Release
+            solutions: dotnet/Semantic-Fleet-dotnet.sln semantic-fleet.sln
+          - dotnet-version: '10.0.x'
+            configuration: Debug
             solutions: dotnet/Semantic-Fleet-dotnet.sln semantic-fleet.sln
     runs-on: windows-latest
     env:
