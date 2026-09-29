@@ -357,7 +357,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
         {
             // Arrange
             var radixTree = new RadixTree<string, char, int>(
-                key => new List<char>(key.ToLowerInvariant()),
+                key => new List<char>(key.ToUpperInvariant()),
                 new CharEqualityComparer());
 
             radixTree.Add("Test", 1);

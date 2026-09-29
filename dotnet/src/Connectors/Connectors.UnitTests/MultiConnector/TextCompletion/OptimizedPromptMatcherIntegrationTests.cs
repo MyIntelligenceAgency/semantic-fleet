@@ -124,19 +124,19 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
             // Act & Assert
             // Tester avec un prompt qui correspond au pattern regex1
             var result1 = await multiConnector.CompleteAsync("Hello beautiful World", new PromptExecutionSettings(), CancellationToken.None);
-            Assert.Contains("connector1", result1);
+            Assert.Contains("connector1", result1, StringComparison.Ordinal);
 
             // Tester avec un prompt qui correspond au pattern regex2
             var result2 = await multiConnector.CompleteAsync("Test complex Pattern with additional text", new PromptExecutionSettings(), CancellationToken.None);
-            Assert.Contains("connector2", result2);
+            Assert.Contains("connector2", result2, StringComparison.Ordinal);
 
             // Tester avec un prompt qui correspond au préfixe simple
             var result3 = await multiConnector.CompleteAsync("Simple prefix with more text", new PromptExecutionSettings(), CancellationToken.None);
-            Assert.Contains("connector3", result3);
+            Assert.Contains("connector3", result3, StringComparison.Ordinal);
 
             // Tester avec un prompt qui ne correspond à aucun pattern (devrait utiliser le connecteur par défaut)
             var result4 = await multiConnector.CompleteAsync("No match for any pattern", new PromptExecutionSettings(), CancellationToken.None);
-            Assert.Contains("connector1", result4);
+            Assert.Contains("connector1", result4, StringComparison.Ordinal);
         }
 
         /// <summary>

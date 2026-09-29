@@ -48,12 +48,14 @@ internal static class PlanJsonHelpers
     // Variable interpolation syntax: $INPUT, $RESULT__SUMMARY, ...
     private const char VariablePrefix = '$';
 
+#pragma warning disable CA1823 // Kept for the plan deserialisation path; not wired yet
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
     };
+#pragma warning restore CA1823
 
     /// <summary>
     /// Reads a plan JSON file and returns the parsed <see cref="Sk178Plan"/>.
@@ -196,7 +198,7 @@ internal static class PlanJsonHelpers
         // 2) user message with the input text (apply the user_input_template if provided)
         var userText = string.IsNullOrEmpty(plan.UserInputTemplate)
             ? inputValue
-            : plan.UserInputTemplate.Replace("{{$" + plan.InputVariable + "}}", inputValue);
+            : plan.UserInputTemplate.Replace("{{$" + plan.InputVariable + "}}", inputValue, StringComparison.Ordinal);
         history.AddUserMessage(userText);
 
         return history;

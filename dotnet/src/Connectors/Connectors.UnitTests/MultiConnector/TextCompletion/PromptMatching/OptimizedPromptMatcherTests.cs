@@ -36,7 +36,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
                 PromptType = new PromptType
                 {
                     Signature = signature,
-                    PromptName = promptStart.Replace(" ", "_"),
+                    PromptName = promptStart.Replace(" ", "_", StringComparison.Ordinal),
                     Instances = { promptStart + " additional text" }
                 }
             };
@@ -79,7 +79,9 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ";
             return new string(Enumerable.Repeat(chars, length)
+#pragma warning disable CA5394 // Test data generation, not a security context
                 .Select(s => s[random.Next(s.Length)]).ToArray());
+#pragma warning restore CA5394
         }
 
         // Méthode utilitaire pour mesurer les performances

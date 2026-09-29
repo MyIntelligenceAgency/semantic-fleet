@@ -35,7 +35,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion.Prom
                 PromptType = new PromptType
                 {
                     Signature = signature,
-                    PromptName = promptStart.Replace(" ", "_"),
+                    PromptName = promptStart.Replace(" ", "_", StringComparison.Ordinal),
                     Instances = { promptStart + " additional text" }
                 }
             };

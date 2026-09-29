@@ -41,7 +41,7 @@ public sealed class PlanJsonHelpersTests : IDisposable
         // The plan-level description is a free-form instruction string — verify it
         // begins with the canonical "You must evaluate..." prefix rather than the
         // invocation-level description (which is "Summarize given text...").
-        Assert.StartsWith("You must evaluate", plan.Description);
+        Assert.StartsWith("You must evaluate", plan.Description, StringComparison.Ordinal);
         Assert.Equal("INPUT", plan.InputVariable);
         Assert.Equal("{{$INPUT}}", plan.UserInputTemplate);
         Assert.Single(plan.Invocations);
@@ -107,7 +107,7 @@ public sealed class PlanJsonHelpersTests : IDisposable
         // surfaced separately through ResolvedInvocation and don't appear here).
         var system = history[0];
         Assert.Equal(AuthorRole.System, system.Role);
-        Assert.Contains("You must evaluate", system.Content);
+        Assert.Contains("You must evaluate", system.Content, StringComparison.Ordinal);
 
         // The user_input_template expands $INPUT — for Summarize.json the
         // template is "{{$INPUT}}" so the user message equals the raw input.

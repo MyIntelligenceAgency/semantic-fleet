@@ -110,20 +110,20 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
             string qwenPrompt = transformer.TransformPrompt(originalPrompt, "qwen/qwen3-32b", context);
 
             // Assert
-            Assert.Contains("Contexte: Développement d'une bibliothèque mathématique", gptPrompt);
-            Assert.Contains("Objectif: Implémenter une fonction de calcul de factorielle efficace", gptPrompt);
-            Assert.Contains("Format de sortie attendu:", gptPrompt);
+            Assert.Contains("Contexte: Développement d'une bibliothèque mathématique", gptPrompt, StringComparison.Ordinal);
+            Assert.Contains("Objectif: Implémenter une fonction de calcul de factorielle efficace", gptPrompt, StringComparison.Ordinal);
+            Assert.Contains("Format de sortie attendu:", gptPrompt, StringComparison.Ordinal);
 
-            Assert.Contains("<instructions>", claudePrompt);
-            Assert.Contains("</instructions>", claudePrompt);
-            Assert.Contains("<format>", claudePrompt);
-            Assert.Contains("<examples>", claudePrompt);
+            Assert.Contains("<instructions>", claudePrompt, StringComparison.Ordinal);
+            Assert.Contains("</instructions>", claudePrompt, StringComparison.Ordinal);
+            Assert.Contains("<format>", claudePrompt, StringComparison.Ordinal);
+            Assert.Contains("<examples>", claudePrompt, StringComparison.Ordinal);
 
-            Assert.Contains("Assurez-vous de fournir une réponse concise et directe", geminiPrompt);
+            Assert.Contains("Assurez-vous de fournir une réponse concise et directe", geminiPrompt, StringComparison.Ordinal);
 
-            Assert.Contains("Voici la tâche à accomplir:", qwenPrompt);
-            Assert.Contains("Voici quelques exemples pour vous guider:", qwenPrompt);
-            Assert.Contains("Veuillez suivre un raisonnement étape par étape", qwenPrompt);
+            Assert.Contains("Voici la tâche à accomplir:", qwenPrompt, StringComparison.Ordinal);
+            Assert.Contains("Voici quelques exemples pour vous guider:", qwenPrompt, StringComparison.Ordinal);
+            Assert.Contains("Veuillez suivre un raisonnement étape par étape", qwenPrompt, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -167,7 +167,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.TextCompletion
                     "medium",
                     OptimizedMultiConnectorRouter.RoutingStrategy.Performance));
 
-            Assert.Contains("Tous les modèles ont échoué", exception.Message);
+            Assert.Contains("Tous les modèles ont échoué", exception.Message, StringComparison.Ordinal);
             Assert.Equal("Erreur simulée", exception.InnerException?.Message);
         }
 
