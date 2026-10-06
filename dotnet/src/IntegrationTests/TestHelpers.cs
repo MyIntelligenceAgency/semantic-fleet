@@ -36,7 +36,7 @@ internal static class TestHelpers
             throw new InvalidOperationException("Unable to determine current assembly directory.");
         }
 
-        string skillParentDirectory = Path.GetFullPath(Path.Combine(currentAssemblyDirectory, "../../../../../../samples/skills"));
+        string skillParentDirectory = Path.GetFullPath(Path.Combine(currentAssemblyDirectory, "../../../../../../Samples/skills"));
 
         // SK 1.78: ImportSemanticFunctionsFromDirectory(parentDir, names) was replaced by
         // Kernel.ImportPluginFromPromptDirectory(pluginDir, pluginName) which loads a single

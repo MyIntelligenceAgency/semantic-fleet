@@ -49,21 +49,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { dotnet: "6.0-jammy", os: "ubuntu", configuration: Debug }
-          - { dotnet: "7.0-jammy", os: "ubuntu", configuration: Release }
+          # Test projects target net8.0: SDKs 6.0 and 7.0 cannot build them.
+          - { dotnet: "8.0", os: "ubuntu", configuration: Release }
           - {
-              dotnet: "8.0-preview-jammy",
+              dotnet: "9.0",
               os: "ubuntu",
-              configuration: Release,
-            }
-          - { dotnet: "6.0", os: "windows", configuration: Release }
-          - {
-              dotnet: "7.0",
-              os: "windows",
               configuration: Debug,
               integration-tests: true,
             }
-          - { dotnet: "8.0-preview", os: "windows", configuration: Release }
+          - { dotnet: "10.0", os: "ubuntu", configuration: Release }
 
     runs-on: ubuntu-latest
     container:

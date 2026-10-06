@@ -21,10 +21,6 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
 {
     private const string ChatHistoryMustContainAtLeastOneUserMessage = "Chat history must contain at least one User message with instructions.";
 
-    // Tracks the cumulative streamed message so that only the delta chunk is yielded.
-    // Reset on the first chunk (MessageNum == 0) of every stream, so the service is safe to reuse across calls.
-    private string _lastSentMessage = string.Empty;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="OobaboogaChatCompletion"/> class.
     /// </summary>
@@ -130,23 +126,18 @@ public sealed class OobaboogaChatCompletion : OobaboogaCompletionBase<ChatHistor
     }
 
     /// <inheritdoc/>
-    protected override string? ExtractStreamText(CompletionStreamingResponseBase response)
+    protected override string? ExtractStreamText(CompletionStreamingResponseBase response, StreamTextState state)
     {
         var chatResponse = (ChatCompletionStreamingResponse)response;
-        // Reset delta state at the start of every stream (service instances may be reused).
-        if (response.MessageNum == 0)
-        {
-            this._lastSentMessage = string.Empty;
-        }
-
         if (chatResponse.History.Visible.Count == 0)
         {
             return null;
         }
 
+        // Each message carries the cumulative reply; yield only what this stream has not emitted yet.
         var newMessage = chatResponse.History.Visible.Last().Last();
-        var newChunk = newMessage.Substring(this._lastSentMessage.Length);
-        this._lastSentMessage = newMessage;
+        var newChunk = newMessage.Substring(state.SentText.Length);
+        state.SentText = newMessage;
         return newChunk;
     }
 

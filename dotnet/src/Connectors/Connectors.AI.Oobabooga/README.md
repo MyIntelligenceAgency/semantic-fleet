@@ -1,180 +1,310 @@
-# Oobabooga Connector
+# Connecteur Oobabooga pour Semantic Kernel
 
-## Introduction
-The Oobabooga Connector is a powerful tool for interacting with the Oobabooga API. It provides a .NET interface for both blocking and streaming completion and chat APIs. This document will guide you through the various settings and usage patterns.
+Ce connecteur permet d'intégrer les modèles de langage hébergés via [Oobabooga Text Generation WebUI](https://github.com/oobabooga/text-generation-webui) dans vos applications Semantic Kernel.
+
+## Vue d'ensemble
+
+Le connecteur Oobabooga fournit une interface entre Semantic Kernel et les modèles de langage open-source hébergés localement via Oobabooga. Il prend en charge :
+
+- La complétion de texte (bloquante et streaming)
+- La complétion de chat (bloquante et streaming)
+- La configuration avancée des paramètres de génération
+- L'intégration transparente avec le MultiConnector
+
+Ce connecteur est particulièrement utile pour :
+- Exécuter des modèles localement sans dépendre d'API externes
+- Réduire les coûts en utilisant des modèles open-source
+- Expérimenter avec différents modèles et paramètres
+- Assurer la confidentialité des données en gardant tout en local
+
+## 🚨 Avertissement de compatibilité
+
+En raison de récents changements dans l'API Oobabooga (voir [commit 454fcf3 du 13/11/2023](https://github.com/oobabooga/text-generation-webui/commit/454fcf39a95691f5e375c48fbc6fe6aa96f0c738)), **toutes les versions d'Oobabooga au-delà de ce commit ne sont plus prises en charge** par ce connecteur.
+
+Le concepteur d'Oobabooga a remplacé l'API traditionnelle par une nouvelle API modelée sur celle d'OpenAI. Nous travaillons à mettre à jour le connecteur pour supporter cette nouvelle API.
 
 ## Installation
+
+### Via NuGet
+
 ```bash
-# Installation steps here
+dotnet add package MyIA.SemanticKernel.Connectors.AI.Oobabooga
 ```
 
-## Usage
-
-### Four Main Cases
-
-1. **Text Blocking**: For simple text-based completion, use the `OobaboogaTextCompletion` class with blocking API.
-2. **Text Streaming**: For text-based completion with real-time updates, use the `OobaboogaTextCompletion` class with streaming API.
-3. **Chat Blocking**: For chat-based completion, use the `OobaboogaChatCompletion` class with blocking API
-3. **Chat streaming**: For chat-based completion, with real-time streaming use the `OobaboogaChatCompletion` class with streaming API.
-
-### Kernel extensions
-
-You can use the `Kernel.Builder` class to configure your semantic kernel. Below are examples of how to add a text and chat completion service using the Oobabooga connector.
-
-#### Using Oobabooga for Text Completion
+### Dans .NET Interactive
 
 ```csharp
-var kernelWithTextCompletion = Kernel.Builder
-    .WithLoggerFactory(loggerFactory)
-    .WithOobaboogaTextCompletionService(
-        new OobaboogaTextCompletionSettings(/* your settings here */),
-        "OobaboogaTextServiceId",  // Optional: Local identifier for the AI service
-        true                       // Optional: Set as default service
-    )
-    .Build();
+#r "nuget: MyIA.SemanticKernel.Connectors.AI.Oobabooga"
 ```
 
-#### Using Oobabooga for Chat Completion
+## Configuration d'Oobabooga
+
+Avant d'utiliser le connecteur, vous devez installer et configurer Oobabooga Text Generation WebUI :
+
+1. Suivez les instructions d'installation sur le [dépôt GitHub d'Oobabooga](https://github.com/oobabooga/text-generation-webui)
+2. Téléchargez les modèles que vous souhaitez utiliser
+3. Lancez Oobabooga avec les API activées
+
+Pour plus de détails, consultez notre [guide d'installation d'Oobabooga](../../../../../docs/OOBABOOGA.md).
+
+## Utilisation
+
+### Complétion de texte
 
 ```csharp
-var kernelWithChatCompletion = Kernel.Builder
-    .WithLoggerFactory(loggerFactory)
-    .WithOobaboogaChatCompletionService(
-        new OobaboogaChatCompletionSettings(/* your settings here */),
-        "OobaboogaChatServiceId",  // Optional: Local identifier for the AI service
-        true                       // Optional: Set as default service
-    )
-    .Build();
-```
+// Créer les paramètres pour la complétion de texte
+var settings = new OobaboogaTextCompletionSettings(
+    endpoint: new Uri("http://localhost/"),
+    blockingPort: 5000,
+    streamingPort: 5005);
 
-### Low-level usage
+// Créer l'instance de complétion de texte
+var oobabooga = new OobaboogaTextCompletion(settings);
 
-Normally , you would use the kernel extensions above to add the Oobabooga connector to your semantic kernel. However, you can also use the connector directly. Here's how:
-
-#### Text Blocking
-For blocking text completion, you can use the `OobaboogaTextCompletion` class. Here's a quick example:
-
-```csharp
-var settings = new OobaboogaTextCompletionSettings(endpoint: new Uri("http://localhost/"), blockingPort: 1234);
-var textCompletion = new OobaboogaTextCompletion(settings);
-var result = await textCompletion.GetCompletionsAsync("Hello, world!", new CompleteRequestSettings());
-```
-
-#### Text Streaming
-For streaming text completion, you can use the `CompleteStreamAsync` method. Here's how:
-
-```csharp
-var settings = new OobaboogaTextCompletionSettings(endpoint: new Uri("http://localhost/"), streamingPort: 2345);
-var textCompletion = new OobaboogaTextCompletion(settings);
-var results = textCompletion.CompleteStreamAsync("Hello, world!", new CompleteRequestSettings());
-
-await foreach (var result in results)
+// Configurer les paramètres de la requête
+var requestSettings = new OobaboogaCompletionRequestSettings
 {
-    Console.WriteLine(result);
+    MaxTokens = 100,
+    Temperature = 0.7,
+    TopP = 0.9,
+    RepetitionPenalty = 1.1
+};
+
+// Obtenir une complétion de texte (mode bloquant)
+var completion = await oobabooga.CompleteAsync("Écrivez un poème sur l'intelligence artificielle", requestSettings);
+Console.WriteLine(completion.Text);
+
+// Obtenir une complétion de texte (mode streaming)
+await foreach (var chunk in oobabooga.GetStreamingCompletionAsync(
+    "Écrivez un poème sur l'intelligence artificielle", requestSettings))
+{
+    Console.Write(chunk);
 }
 ```
 
-#### Chat Blocking
-For blocking chat completion, you can use the `OobaboogaChatCompletion` class. Here's a quick example:
+### Complétion de chat
 
 ```csharp
-var settings = new OobaboogaChatCompletionSettings(endpoint: new Uri("http://localhost/"), blockingPort: 3456);
-var chatCompletion = new OobaboogaChatCompletion(settings);
-var result = await chatCompletion.GetCompletionsAsync(new List<Message> { new Message { Role = "user", Content = "Hello!" } }, new CompleteRequestSettings());
-```
+// Créer les paramètres pour la complétion de chat
+var settings = new OobaboogaChatCompletionSettings(
+    endpoint: new Uri("http://localhost/"),
+    blockingPort: 5000,
+    streamingPort: 5005);
 
-#### Chat Streaming
-For streaming chat completion, you can use the `GetStreamingChatCompletionsAsync` method. Here's how:
+// Créer l'instance de complétion de chat
+var oobabooga = new OobaboogaChatCompletion(settings);
 
-```csharp
-var settings = new OobaboogaChatCompletionSettings(endpoint: new Uri("http://localhost/"), streamingPort: 4567);
-var chatCompletion = new OobaboogaChatCompletion(settings);
-var results = chatCompletion.GetStreamingChatCompletionsAsync(new List<Message> { new Message { Role = "user", Content = "Hello!" } }, new CompleteRequestSettings());
+// Créer l'historique du chat
+var chatHistory = new ChatHistory();
+chatHistory.AddUserMessage("Bonjour, pouvez-vous m'aider à résoudre un problème de mathématiques ?");
+chatHistory.AddAssistantMessage("Bien sûr, je serais ravi de vous aider. Quel est le problème ?");
 
-await foreach (var result in results)
+// Configurer les paramètres de la requête
+var requestSettings = new OobaboogaChatRequestSettings
 {
-    Console.WriteLine(result.Content);
+    MaxTokens = 200,
+    Temperature = 0.5,
+    TopP = 0.95
+};
+
+// Obtenir une complétion de chat (mode bloquant)
+chatHistory.AddUserMessage("Calculez l'intégrale de x^2 dx");
+var completion = await oobabooga.GetChatCompletionsAsync(chatHistory, requestSettings);
+Console.WriteLine(completion.First().Content);
+
+// Obtenir une complétion de chat (mode streaming)
+chatHistory.AddUserMessage("Expliquez la dérivation de cette intégrale");
+await foreach (var chunk in oobabooga.GetStreamingChatCompletionsAsync(chatHistory, requestSettings))
+{
+    Console.Write(chunk.Content);
 }
 ```
 
+### Intégration avec Semantic Kernel
 
+```csharp
+// Créer un builder de kernel
+var builder = new KernelBuilder();
 
-## Additional Settings
+// Ajouter le service de complétion Oobabooga
+builder.WithOobaboogaTextCompletionService(
+    serviceId: "oobabooga",
+    endpoint: new Uri("http://localhost/"),
+    blockingPort: 5000,
+    streamingPort: 5005);
 
-### General Settings
+// Construire le kernel
+var kernel = builder.Build();
 
-These settings are common to both `OobaboogaTextCompletionSettings` and `OobaboogaChatCompletionSettings`:
+// Créer une fonction sémantique
+var prompt = "{{$input}}\n\nRésumez ce texte en une phrase.";
+var summarize = kernel.CreateSemanticFunction(prompt, maxTokens: 100);
 
-- **Endpoint**: The service API endpoint to which requests should be sent.
-- **BlockingPort**: The port used for handling blocking requests.
-- **StreamingPort**: The port used for handling streaming requests.
+// Exécuter la fonction
+var result = await summarize.InvokeAsync("L'intelligence artificielle (IA) est un domaine de l'informatique qui vise à créer des systèmes capables d'effectuer des tâches qui nécessiteraient normalement l'intelligence humaine. Ces tâches comprennent l'apprentissage, le raisonnement, la résolution de problèmes, la perception et la compréhension du langage naturel. L'IA peut être classée en deux catégories principales : l'IA faible, qui est conçue pour effectuer une tâche spécifique, et l'IA forte, qui possède les capacités cognitives d'un être humain.");
+Console.WriteLine(result);
+```
 
-### Advanced Settings
+### Intégration avec MultiConnector
 
-- **ConcurrentSemaphore**: Optional. You can set a hard limit on the max number of concurrent calls by providing a `SemaphoreSlim`. Calls in excess will wait for existing consumers to release the semaphore.
-  
-- **UseWebSocketsPooling**: Determines whether the connector should use WebSocket pooling to reuse WebSockets and prevent resource exhaustion in case of high load.
+```csharp
+// Créer les paramètres pour la complétion de texte Oobabooga
+var oobaboogaSettings = new OobaboogaTextCompletionSettings(
+    endpoint: new Uri("http://localhost/"),
+    blockingPort: 5000,
+    streamingPort: 5005);
 
-- **WebSocketsCleanUpCancellationToken**: Optional. If WebSocket pooling is enabled, you can provide a `CancellationToken` to properly dispose of the clean-up tasks when disposing of the connector.
+// Créer l'instance de complétion de texte Oobabooga
+var oobabooga = new OobaboogaTextCompletion(oobaboogaSettings);
+var namedOobabooga = new NamedTextCompletion("llama-7b", oobabooga);
 
-- **KeepAliveWebSocketsDuration**: Specifies the time (in milliseconds) to keep pooled WebSockets in the pool before flushing them.
+// Créer l'instance de complétion de texte OpenAI
+var openAiSettings = new OpenAITextCompletionSettings("your-api-key", "gpt-3.5-turbo");
+var openAi = new OpenAITextCompletion(openAiSettings);
+var namedOpenAi = new NamedTextCompletion("gpt-3.5-turbo", openAi);
 
-- **WebSocketFactory**: The factory used to create WebSockets for making streaming API requests. This is especially useful if you want to customize the WebSocket options.
+// Créer les paramètres du MultiConnector
+var multiConnectorSettings = new MultiTextCompletionSettings();
 
-- **HttpClient**: Optional. The HTTP client used for making blocking API requests. If not specified, a default client will be used.
+// Créer le MultiConnector
+var multiConnector = new MultiTextCompletion(
+    multiConnectorSettings,
+    namedOpenAi,
+    new[] { namedOobabooga });
 
-- **LoggerFactory**: Optional. Application logger for debugging and monitoring.
+// Utiliser le MultiConnector
+var result = await multiConnector.CompleteAsync(
+    "Expliquez le concept d'intelligence artificielle",
+    new CompleteRequestSettings { MaxTokens = 100 });
+Console.WriteLine(result.Text);
+```
 
-- **WebSocketBufferSize**: Controls the size of the buffer used to receive WebSocket packets.
+## Paramètres avancés
 
-### Custom Completion Parameters
+### OobaboogaCompletionRequestSettings
 
-The `OobaboogaCompletionSettings<TParameters>` class serves as the base class for both `OobaboogaTextCompletionSettings` and  `OobaboogaChatCompletionSettings`. 
+Le connecteur Oobabooga prend en charge de nombreux paramètres pour contrôler la génération de texte :
 
-In order to customize completion, the 2 following properties are available:
+```csharp
+var requestSettings = new OobaboogaCompletionRequestSettings
+{
+    // Paramètres de base
+    MaxTokens = 200,           // Nombre maximum de tokens à générer
+    Temperature = 0.7,         // Contrôle la créativité (0.0 = déterministe, 1.0 = créatif)
+    TopP = 0.9,                // Probabilité cumulative pour le sampling
+    
+    // Paramètres avancés
+    TopK = 40,                 // Limite le sampling aux K tokens les plus probables
+    RepetitionPenalty = 1.1,   // Pénalité pour la répétition de tokens
+    PresencePenalty = 0.0,     // Pénalité pour la présence de tokens spécifiques
+    FrequencyPenalty = 0.0,    // Pénalité basée sur la fréquence des tokens
+    
+    // Paramètres spécifiques à Oobabooga
+    TypicalP = 0.95,           // Sampling typique
+    TfsZ = 1.0,                // Tail-free sampling
+    TopA = 0.0,                // Top-A sampling
+    Mirostat = 0,              // Mode Mirostat (0 = désactivé)
+    MirostatTau = 5.0,         // Paramètre Tau pour Mirostat
+    MirostatEta = 0.1,         // Paramètre Eta pour Mirostat
+    
+    // Contrôle du comportement
+    DoSample = true,           // Activer le sampling (vs greedy decoding)
+    EarlyStopping = false,     // Arrêt anticipé de la génération
+    UseCache = true,           // Utiliser le cache pour les requêtes répétées
+    
+    // Séquences d'arrêt
+    StopSequences = new List<string> { "###", "User:" }
+};
+```
 
-- **OverrideRequestSettings**: Determines whether or not to use the overlapping Semantic Kernel request settings for the completion request.
+### Format de chat
 
-- **OobaboogaParameters**: Gets or sets the parameters controlling the specific completion request parameters, which differ between standard text completion and chat completion: TParameters type corresponds here to OobaboogaCompletionParameters and OobaboogaChatCompletionParameters classes respectively.
+Le connecteur Oobabooga prend en charge différents formats de chat pour s'adapter aux différents modèles :
 
-OobaboogaCompletionParameters and OobaboogaChatCompletionParameters classes offer a rich set of parameters for text and chat completion. Here's a deep dive into how these parameters work and interact.
+```csharp
+var settings = new OobaboogaChatCompletionSettings(
+    endpoint: new Uri("http://localhost/"),
+    blockingPort: 5000,
+    streamingPort: 5005)
+{
+    // Format de chat pour Llama 2
+    ChatFormat = @"<s>[INST] {{prompt}} [/INST]",
+    MessageFormat = @"[INST] {{prompt}} [/INST]",
+    ResponseFormat = @"{{response}}",
+    
+    // Autres formats disponibles :
+    // ChatFormat = @"### Instruction:\n{{prompt}}\n\n### Response:",  // Alpaca
+    // ChatFormat = @"USER: {{prompt}}\nASSISTANT:",                  // Vicuna
+    // ChatFormat = @"<human>: {{prompt}}\n<bot>:",                   // OpenAssistant
+};
+```
 
-#### Overlapping Fields with SK
+## Modèles recommandés
 
-Those parameters supplied by semantic kernel with completion calls are either passed on or overridden.
+Le connecteur Oobabooga fonctionne avec de nombreux modèles, mais voici quelques recommandations :
 
-- **MaxNewTokens**: Similar to SK's `MaxTokens`, controls the maximum number of tokens to generate.
-- **Temperature**: Modulates the randomness of the next token probabilities.
-- **TopP**: Similar to SK's `TopP`, controls the cumulative probability for token selection.
+### Petits modèles (< 7B)
+- TinyLlama (1.1B)
+- Phi-2 (2.7B)
+- StableLM-2-1.6B (1.6B)
+- Gemma-2B
 
-#### Unique Oobabooga Parameters for Text and Chat Completion
+### Modèles moyens (7B-13B)
+- Llama-2-7B-Chat
+- Mistral-7B-Instruct
+- Vicuna-13B
+- Neural-Chat-7B
 
-- **Preset**: Named presets for generation parameters. Check out the [default Oobabooga presets](https://github.com/oobabooga/text-generation-webui/tree/main/presets).
-- **DoSample**: Decides whether to use sampling or greedy decoding.
-- **TypicalP**: Measures the similarity of conditional probabilities between target and random tokens.
-- **EpsilonCutoff**: Sets a probability floor for token sampling.
-- **Tfs**: Controls Tail Free Sampling.
-- **TopA**: Implements Top A Sampling based on token importance.
-- ... (and many more, each with its specific role and default value).
+### Grands modèles (> 13B)
+- Llama-2-13B-Chat
+- Wizard-Vicuna-30B
+- Falcon-40B-Instruct
 
+## Résolution des problèmes
 
-#### Unique Oobabooga Parameters for Chat Completion only
+### Problèmes de connexion
 
-- **Mode**: The mode of chat completion. Valid options: 'chat', 'chat-instruct', 'instruct'.
-- **Character**: The character name for the chat completion.
-- **InstructionTemplate**: The instruction template for instruct mode chat completion.
-- **YourName**: The name to use for the user in the chat completion.
-- **Regenerate**: Determines whether to regenerate the chat completion.
-- **Continue**: Determines whether to continue the chat completion.
-- **StopAtNewline**: Determines whether to stop at newline in the chat completion.
-- **ChatGenerationAttempts**: The number of chat generation attempts.
-- **ChatInstructCommand**: The chat-instruct command for the chat completion when corresponding mode is used.
-- **ContextInstruct**: The instruction context for the chat-instruct / instruct completion.
+Si vous rencontrez des problèmes de connexion à Oobabooga :
 
-## Additional References
+1. Vérifiez que Oobabooga est en cours d'exécution avec les API activées
+2. Assurez-vous que les ports spécifiés correspondent à ceux configurés dans Oobabooga
+3. Vérifiez que l'endpoint est accessible (généralement `http://localhost/`)
 
-For more in-depth understanding and testing, you can refer to the following:
+### Erreurs de génération
 
-- **Unit Tests**: Check out the actual test file [here](../../Connectors.UnitTests/Oobabooga/Completion/OobaboogaCompletionTests.cs).
-- **Integration Tests**: Dive into the integration tests [here](../../IntegrationTests/Connectors/Oobabooga/OobaboogaCompletionTests.cs).
-- **Future Notebooks**: Keep an eye out for Jupyter Notebooks that will provide interactive examples and use-cases. These will be added to the [notebooks directory](../../notebooks/) in the future.
+Si vous rencontrez des erreurs lors de la génération de texte :
+
+1. Vérifiez que le modèle est correctement chargé dans Oobabooga
+2. Réduisez la valeur de `MaxTokens` si vous obtenez des erreurs de mémoire
+3. Ajustez les paramètres de génération (température, top_p, etc.) pour améliorer la qualité
+
+### Problèmes de performance
+
+Si vous rencontrez des problèmes de performance :
+
+1. Utilisez un modèle plus petit ou une quantification plus agressive
+2. Réduisez la valeur de `MaxTokens` pour générer des réponses plus courtes
+3. Activez `UseCache` pour réutiliser les résultats des requêtes répétées
+
+## Bonnes pratiques
+
+1. **Adaptez les prompts au modèle** : Les modèles plus petits nécessitent des prompts plus directs et plus simples.
+
+2. **Ajustez les paramètres de génération** : Chaque modèle a ses propres paramètres optimaux. Expérimentez pour trouver les meilleurs.
+
+3. **Utilisez le streaming pour les réponses longues** : Le mode streaming permet d'afficher les résultats progressivement, améliorant l'expérience utilisateur.
+
+4. **Combinez avec MultiConnector** : Utilisez le MultiConnector pour basculer automatiquement entre différents modèles en fonction de la complexité de la tâche.
+
+5. **Préparez des formats de chat adaptés** : Chaque famille de modèles (Llama, Vicuna, etc.) a son propre format de chat optimal.
+
+## Ressources additionnelles
+
+- [Guide d'installation d'Oobabooga](../../../../../docs/OOBABOOGA.md)
+- [Documentation du MultiConnector](../Connectors.AI.MultiConnector/README.md)
+- [Guide d'intégration des petits modèles](../../../../../docs/SMALL_MODELS_INTEGRATION.md)
+- [Notebooks d'exemples](../../../../notebooks/README.md)
+
+## Licence
+
+Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.

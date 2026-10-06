@@ -38,7 +38,11 @@ internal static class HttpClientExtensions
 
             try
             {
+#if NET5_0_OR_GREATER
+                responseContent = await response!.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+#else
                 responseContent = await response!.Content.ReadAsStringAsync().ConfigureAwait(false);
+#endif
             }
             catch { } // We want to suppress any exceptions that occur while reading the content, ensuring that an HttpOperationException is thrown instead.
 

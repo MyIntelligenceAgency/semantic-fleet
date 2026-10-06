@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
@@ -43,12 +44,16 @@ namespace SemanticKernel.IntegrationTests.Connectors.MultiConnector;
 /// </summary>
 public sealed class MultiConnectorTests : IDisposable
 {
+#pragma warning disable CA1823 // Goal of the pre-1.0 planner scenario, kept for when it is rebuilt
     private const string StartGoal =
         "The goal of this plan is to evaluate the capabilities of a smaller LLM model. Start by writing a text of about 100 words on a given topic, as the input parameter of the plan. Then use distinct functions from the available skills on the input text and/or the previous functions results, choosing parameters in such a way that you know you will succeed at running each function but a smaller model might not. Try to propose steps of distinct difficulties so that models of distinct capabilities might succeed on some functions and fail on others. In a second phase, you will be asked to evaluate the function answers from smaller models. Please beware of correct Xml tags, attributes, and parameter names when defined and when reused.";
+#pragma warning restore CA1823
+
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
 
     // SK 1.78: resolved plan JSON lives under samples/Plans/SK178/.
-    private const string PlansDirectory = "../../../../../../samples/Plans/SK178/";
-    private const string TextsDirectory = "../../../../../../samples/Texts/";
+    private const string PlansDirectory = "../../../../../../Samples/Plans/SK178/";
+    private const string TextsDirectory = "../../../../../../Samples/Texts/";
 
     private readonly IConfigurationRoot _configuration;
     private readonly List<ClientWebSocket> _webSockets = new();
@@ -154,7 +159,7 @@ public sealed class MultiConnectorTests : IDisposable
     [Theory(Skip = "SequentialPlanner was removed in SK 1.78; use the file-loaded plan path instead.")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "medium", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
-    public async Task ChatGptOffloadsToOobaboogaUsingPlannerAsync(bool succeedsOffloading, string completionName, int nbPromptTests, string difficulty, string inputFile, string validationFile, params string[] skillNames)
+    public Task ChatGptOffloadsToOobaboogaUsingPlannerAsync(bool succeedsOffloading, string completionName, int nbPromptTests, string difficulty, string inputFile, string validationFile, params string[] skillNames)
     {
         // SK 1.78: there is no SequentialPlanner. Keep the signature stable for the test matrix
         // but short-circuit with an explanatory failure so that, if this test were ever unskipped
@@ -211,7 +216,7 @@ public sealed class MultiConnectorTests : IDisposable
                     var function = ResolveFunction(kernel, invocation);
                     if (function is null)
                     {
-                        buffer.AppendLine($"[SK178] Skipped step '{invocation.FullyQualifiedName}' — function not registered on the kernel.");
+                        buffer.AppendLine(CultureInfo.InvariantCulture, $"[SK178] Skipped step '{invocation.FullyQualifiedName}' — function not registered on the kernel.");
                         continue;
                     }
 
@@ -224,7 +229,7 @@ public sealed class MultiConnectorTests : IDisposable
                     var stepResult = await kernel.InvokeAsync(function, stepArgs, ct).ConfigureAwait(false);
                     var stepValue = stepResult.GetValue<object>()?.ToString() ?? string.Empty;
 
-                    buffer.AppendLine($"[SK178] {invocation.FullyQualifiedName} -> {stepValue}");
+                    buffer.AppendLine(CultureInfo.InvariantCulture, $"[SK178] {invocation.FullyQualifiedName} -> {stepValue}");
 
                     if (!string.IsNullOrEmpty(invocation.OutputVariable))
                     {
@@ -342,7 +347,7 @@ public sealed class MultiConnectorTests : IDisposable
             // Adding a simple transform for template-less models, which require a line break at the end of the prompt
             GlobalPromptTransform = new PromptTransform()
             {
-                TransformFunction = (s, context) => s.EndsWith("\n", StringComparison.OrdinalIgnoreCase) ? s : s + "\n",
+                TransformFunction = (s, context) => s.EndsWith('\n') ? s : s + "\n",
             },
             // Analysis settings are an important part of the main settings, dealing with how to collect samples, conduct tests, evaluate them and update the connector settings
             AnalysisSettings = new MultiCompletionAnalysisSettings()
@@ -424,7 +429,7 @@ public sealed class MultiConnectorTests : IDisposable
         // former multi-line shape (the optimization results are read off LogDebug by humans).
         var serializedSettings = JsonSerializer.Serialize(
             optimizationResults.SuggestedSettings,
-            new JsonSerializerOptions { WriteIndented = true });
+            IndentedJsonOptions);
         this._testOutputHelper.LogDebug("Optimized with suggested settings: {0}\n", serializedSettings);
 
         //Re execute plan with suggested settings - SK 1.78: a fresh plan KernelFunction is rebuilt from the same source JSON.
