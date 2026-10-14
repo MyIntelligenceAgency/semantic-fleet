@@ -133,9 +133,9 @@ public class OpenAICompatibleConnectorConfigurationTests
         Assert.NotNull(completion.TokenCountFunc);
         Assert.True(completion.TokenCountFunc("a prompt long enough to span several tokens") > 1);
         Assert.Same(promptTransform, completion.PromptTransform);
-        Assert.NotNull(completion.TemperatureTransform);
-        Assert.Equal(0.01, completion.TemperatureTransform(0));
-        Assert.Equal(0.7, completion.TemperatureTransform(0.7));
+        // No temperature transform on this transport: the OpenAI API accepts temperature 0
+        // (deterministic decoding); the 0 -> 0.01 remap was an Oobabooga workaround (review #100).
+        Assert.Null(completion.TemperatureTransform);
         Assert.IsAssignableFrom<ITextGenerationService>(completion.TextCompletion);
     }
 }
