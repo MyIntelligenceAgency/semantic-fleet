@@ -18,7 +18,7 @@ jobs:
         working-directory: python
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     
     - run: echo "/root/.local/bin" >> $GITHUB_PATH
     
