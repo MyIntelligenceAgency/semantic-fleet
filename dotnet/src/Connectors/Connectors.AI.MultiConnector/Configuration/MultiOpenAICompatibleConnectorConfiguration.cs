@@ -58,7 +58,6 @@ public class MultiOpenAICompatibleConnectorConfiguration
                 CostPerRequest = connector.CostPerRequest,
                 CostPer1000Token = connector.CostPer1000Token,
                 TokenCountFunc = tokenCountFunc,
-                TemperatureTransform = d => d == 0 ? 0.01 : d,
                 PromptTransform = connector.PromptTransform
             };
 
