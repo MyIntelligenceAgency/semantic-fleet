@@ -10,8 +10,8 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
 
 /// <summary>
 /// Represents the main configuration for a MultiConnector whose secondary connectors are OpenAI-compatible
-/// providers. Mirrors <see cref="MultiOobaboogaConnectorConfiguration"/> so settings files, prompt analysis
-/// and cost accounting keep the same shape across transports.
+/// providers. Settings files, prompt analysis and cost accounting keep the same shape as the legacy
+/// Oobabooga configuration the fleet ran before the transport was retired.
 /// </summary>
 public class MultiOpenAICompatibleConnectorConfiguration
 {
@@ -51,7 +51,7 @@ public class MultiOpenAICompatibleConnectorConfiguration
 
             ITextGenerationService completion = connector.CreateCompletion(loggerFactory);
 
-            Func<string, int> tokenCountFunc = MultiOobaboogaConnectorConfiguration.TokenCountFunctionMap[connector.TokenCountFunction];
+            Func<string, int> tokenCountFunc = TokenCountFunctions.Map[connector.TokenCountFunction];
 
             var namedCompletion = new NamedTextCompletion(connector.Name, completion)
             {
