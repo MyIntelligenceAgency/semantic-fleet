@@ -25,7 +25,4 @@
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="System.Threading.Channels" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Connectors.AI.Oobabooga\Connectors.AI.Oobabooga.csproj" />
-  </ItemGroup>
 </Project>

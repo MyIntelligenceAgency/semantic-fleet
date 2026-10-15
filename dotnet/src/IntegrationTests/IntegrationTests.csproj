@@ -46,7 +46,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Connectors\Connectors.AI.MultiConnector\Connectors.AI.MultiConnector.csproj" />
-    <ProjectReference Include="..\Connectors\Connectors.AI.Oobabooga\Connectors.AI.Oobabooga.csproj" />
   </ItemGroup>
 
   <ItemGroup>

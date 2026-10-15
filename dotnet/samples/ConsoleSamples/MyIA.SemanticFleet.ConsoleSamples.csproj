@@ -13,8 +13,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
-    <PackageReference Include="MyIA.SemanticKernel.Connectors.AI.MultiConnector" />
-    <PackageReference Include="MyIA.SemanticKernel.Connectors.AI.Oobabooga" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Connectors\Connectors.AI.MultiConnector\Connectors.AI.MultiConnector.csproj" />
   </ItemGroup>
 
 </Project>

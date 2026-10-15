@@ -3,9 +3,8 @@
 // ReSharper disable once InconsistentNaming
 
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI.TextCompletion;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.TextGeneration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
@@ -14,14 +13,14 @@ namespace MyIA.SemanticFleet.ConsoleSamples;
 
 // ReSharper disable once InconsistentNaming
 /// <summary>
-/// This class provides an example of how to use the OobaboogaTextCompletion class.
+/// This class provides an example of how to use the MultiConnector with OpenAI-compatible secondary connectors.
 /// </summary>
 #pragma warning disable CA1707
 public static class Example02_MultiConnectorHelloWorld
 #pragma warning restore CA1707
 {
     /// <summary>
-    /// This method runs the Oobabooga HelloWorld program asynchronously.
+    /// This method runs the MultiConnector HelloWorld program asynchronously.
     /// </summary>
     /// <returns>
     /// A Task representing the asynchronous operation.
@@ -52,27 +51,18 @@ public static class Example02_MultiConnectorHelloWorld
         // Creating a cancellation token source to be able to cancel the request
         using CancellationTokenSource cleanupToken = new();
 
-        //Creating the primary connector. We use the OpenAI connector here, either text or chat completion depending on the configuration
-        ITextCompletion openAiConnector;
-
-        string testOrChatModelId;
-        if (TestConfiguration.OpenAI.ChatModelId != null)
-        {
-            testOrChatModelId = TestConfiguration.OpenAI.ChatModelId;
-            openAiConnector = new OpenAIChatCompletion(testOrChatModelId, TestConfiguration.OpenAI.ApiKey);
-        }
-        else
-        {
-            testOrChatModelId = TestConfiguration.OpenAI.ModelId;
-            openAiConnector = new OpenAITextCompletion(testOrChatModelId, TestConfiguration.OpenAI.ApiKey);
-        }
+        //Creating the primary connector. SK 1.78: OpenAIChatCompletionService implements both
+        //IChatCompletionService and ITextGenerationService, so it slots directly into the
+        //MultiConnector pipeline whatever the configured model flavour.
+        string testOrChatModelId = TestConfiguration.OpenAI.ChatModelId ?? TestConfiguration.OpenAI.ModelId;
+        ITextGenerationService openAiConnector = new OpenAIChatCompletionService(testOrChatModelId, TestConfiguration.OpenAI.ApiKey);
 
         // Creating the corresponding named completion
         var openAiNamedCompletion = new NamedTextCompletion(testOrChatModelId, openAiConnector)
         {
             MaxTokens = TestConfiguration.OpenAI.MaxTokens,
             CostPer1000Token = TestConfiguration.OpenAI.CostPer1000Token,
-            TokenCountFunc = MultiOobaboogaConnectorConfiguration.TokenCountFunctionMap[TestConfiguration.OpenAI.TokenCountFunction],
+            TokenCountFunc = TokenCountFunctions.Map[TestConfiguration.OpenAI.TokenCountFunction],
             //We did not observe any limit on Open AI concurrent calls
             MaxDegreeOfParallelism = 5,
         };
@@ -80,27 +70,26 @@ public static class Example02_MultiConnectorHelloWorld
         Console.WriteLine($"Name of Primary Completion: {openAiNamedCompletion.Name}");
 
         // Creating the secondary connectors. We use a dedicated helper, but you can create them manually if you want.
-        var multiOobaboogaConnectorConfiguration = new MultiOobaboogaConnectorConfiguration
+        // Any OpenAI-compatible provider works: leave EndPoint null for the official OpenAI endpoint,
+        // or point it at a router / local server exposing the OpenAI chat-completions API.
+        var multiConnectorConfiguration = new MultiOpenAICompatibleConnectorConfiguration();
+        multiConnectorConfiguration.OpenAICompatibleCompletions.Add(new OpenAICompatibleConnectorConfiguration()
         {
-            OobaboogaEndPoint = TestConfiguration.Oobabooga.EndPoint!
-        };
-        multiOobaboogaConnectorConfiguration.OobaboogaCompletions.Add(new OobaboogaConnectorConfiguration()
-        {
-            Name = "Oobabooga1",
-            BlockingPort = TestConfiguration.Oobabooga.BlockingPort,
-            StreamingPort = TestConfiguration.Oobabooga.StreamingPort,
+            Name = "OpenAICompatible1",
+            ModelId = TestConfiguration.OpenAI.ModelId,
+            ApiKey = TestConfiguration.OpenAI.ApiKey,
             UseChatCompletion = true,
-            CostPer1000Token = TestConfiguration.Oobabooga.CostPer1000Token,
+            CostPer1000Token = 0.0005m,
         });
-        multiOobaboogaConnectorConfiguration.IncludedConnectors.Add("Oobabooga1");
-        var oobaboogaCompletions = multiOobaboogaConnectorConfiguration.CreateNamedCompletions();
+        multiConnectorConfiguration.IncludedConnectors.Add("OpenAICompatible1");
+        var secondaryCompletions = multiConnectorConfiguration.CreateNamedCompletions();
 
-        for (int i = 0; i < oobaboogaCompletions.Count; i++)
+        for (int i = 0; i < secondaryCompletions.Count; i++)
         {
-            Console.WriteLine($"Name of Secondary Completion #{i}: {oobaboogaCompletions[i].Name}");
+            Console.WriteLine($"Name of Secondary Completion #{i}: {secondaryCompletions[i].Name}");
         }
 
-        var builder = Microsoft.SemanticKernel.Kernel.Builder;
+        var builder = Kernel.CreateBuilder();
 
         builder.WithMultiConnectorCompletionService(
             serviceId: null,
@@ -108,7 +97,7 @@ public static class Example02_MultiConnectorHelloWorld
             mainTextCompletion: openAiNamedCompletion,
             setAsDefault: true,
             analysisTaskCancellationToken: cleanupToken.Token,
-            otherCompletions: oobaboogaCompletions.ToArray());
+            otherCompletions: secondaryCompletions.ToArray());
 
         var kernel = builder.Build();
 
@@ -124,7 +113,9 @@ Lastly, came mobile phones and computers. People could send messages fast. With 
 
         var prompt = $"Summarize the following text in one sentence:\n{text}\n\nSummary:";
 
-        var simpleSemanticFunction = kernel.CreateSemanticFunction(prompt, requestSettings: new MultiCompletionRequestSettings() { MaxTokensMulti = 100 });
+        // SK 1.78: CreateSemanticFunction was replaced by CreateFunctionFromPrompt; the
+        // MultiCompletionRequestSettings keeps driving the cost-offload pipeline.
+        var simpleSemanticFunction = kernel.CreateFunctionFromPrompt(prompt, new MultiCompletionRequestSettings() { MaxTokensMulti = 100 });
 
         // We enable prompt sampling and analysis so that the multiconnector tests our prompt on our secondary connectors after it is run on the primary connector
         settings.EnablePromptSampling = true;
@@ -145,7 +136,7 @@ Lastly, came mobile phones and computers. People could send messages fast. With 
         };
 
         // Run the semantic function with our primary connector
-        var result = await kernel.RunAsync(simpleSemanticFunction, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
+        var result = await kernel.InvokeAsync(simpleSemanticFunction, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
         Console.WriteLine($"Result from primary connector: {result}");
 
         Console.WriteLine($"Cost from running primary connector's completion: {creditor.OngoingCost}");
@@ -171,7 +162,7 @@ Lastly, came mobile phones and computers. People could send messages fast. With 
         creditor.Reset();
 
         // Run the semantic function with our primary connector
-        var secondaryResult = await kernel.RunAsync(simpleSemanticFunction, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
+        var secondaryResult = await kernel.InvokeAsync(simpleSemanticFunction, cancellationToken: cleanupToken.Token).ConfigureAwait(false);
 
         Console.WriteLine($"Result from optimized connector: {secondaryResult}");
 

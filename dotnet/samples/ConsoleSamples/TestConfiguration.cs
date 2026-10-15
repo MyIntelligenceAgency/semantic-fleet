@@ -20,8 +20,6 @@ internal sealed class TestConfiguration
         s_instance = new TestConfiguration(configRoot);
     }
 
-    public static OobaboogaConnectorConfiguration Oobabooga => LoadSection<OobaboogaConnectorConfiguration>();
-
     public static OpenAIConfiguration OpenAI => LoadSection<OpenAIConfiguration>();
 
     private static T LoadSection<T>([CallerMemberName] string? caller = null)

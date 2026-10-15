@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -20,7 +19,6 @@ using MyIA.SemanticKernel.Connectors.AI.MultiConnector;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Analysis;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
 using MyIA.SemanticKernel.Connectors.AI.MultiConnector.PromptSettings;
-using MyIA.SemanticKernel.Connectors.AI.Oobabooga.Completion.TextCompletion;
 using SemanticKernel.UnitTests;
 using Xunit;
 using Xunit.Abstractions;
@@ -29,7 +27,8 @@ using Xunit.Sdk;
 namespace SemanticKernel.IntegrationTests.Connectors.MultiConnector;
 
 /// <summary>
-/// Integration tests for <see cref=" OobaboogaTextCompletion"/>.
+/// Integration tests for the MultiConnector cost-offload pipeline (<see cref="MultiTextCompletion"/>)
+/// over OpenAI-compatible secondary connectors.
 ///
 /// SK 1.78 migration: the legacy <c>Plan</c> planning model (<c>Plan.FromJson</c>,
 /// <c>plan.State</c>, <c>plan.Steps</c>, <c>SequentialPlanner.CreatePlanAsync</c>) was
@@ -51,8 +50,6 @@ public sealed class MultiConnectorTests : IDisposable
     private const string TextsDirectory = "../../../../../../samples/Texts/";
 
     private readonly IConfigurationRoot _configuration;
-    private readonly List<ClientWebSocket> _webSockets = new();
-    private readonly Func<ClientWebSocket> _webSocketFactory;
     private readonly RedirectOutput _testOutputHelper;
     private readonly string _planDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, PlansDirectory);
     private readonly string _textDirectory = System.IO.Path.Combine(Environment.CurrentDirectory, TextsDirectory);
@@ -69,13 +66,6 @@ public sealed class MultiConnectorTests : IDisposable
             .AddEnvironmentVariables()
             .AddUserSecrets<MultiConnectorTests>()
             .Build();
-
-        this._webSocketFactory = () =>
-        {
-            var toReturn = new ClientWebSocket();
-            this._webSockets.Add(toReturn);
-            return toReturn;
-        };
     }
 
     /// <summary>
@@ -84,9 +74,9 @@ public sealed class MultiConnectorTests : IDisposable
     [Theory(Skip = "This test is for manual verification.")]
     [InlineData(true, 1, "Summarize.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
-    public async Task ChatGptOffloadsToMultipleOobaboogaUsingFileAsync(bool succeedsOffloading, int nbPromptTests, string planFileName, string inputTextFileName, string validationTextFileName, params string[] skillNames)
+    public async Task ChatGptOffloadsToMultipleSecondaryConnectorsUsingFileAsync(bool succeedsOffloading, int nbPromptTests, string planFileName, string inputTextFileName, string validationTextFileName, params string[] skillNames)
     {
-        await this.ChatGptOffloadsToSingleOobaboogaUsingFileAsync(succeedsOffloading, "", nbPromptTests, planFileName, inputTextFileName, validationTextFileName, skillNames).ConfigureAwait(false);
+        await this.ChatGptOffloadsToSingleSecondaryConnectorUsingFileAsync(succeedsOffloading, "", nbPromptTests, planFileName, inputTextFileName, validationTextFileName, skillNames).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -108,7 +98,7 @@ public sealed class MultiConnectorTests : IDisposable
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_simple.txt", "Danse_simple.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_medium.txt", "Danse_medium.txt", "SummarizeSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "Summarize_Topics_ElementAt.json", "Comm_hard.txt", "Danse_hard.txt", "SummarizeSkill", "MiscSkill")]
-    public async Task ChatGptOffloadsToSingleOobaboogaUsingFileAsync(bool succeedsOffloading, string completion, int nbTests, string planFile, string inputFile, string validationFile, params string[] skills)
+    public async Task ChatGptOffloadsToSingleSecondaryConnectorUsingFileAsync(bool succeedsOffloading, string completion, int nbTests, string planFile, string inputFile, string validationFile, params string[] skills)
     {
         // Resolve the SK 1.78 plan file path under samples/Plans/SK178/.
         var planPath = System.IO.Path.Combine(this._planDirectory, planFile);
@@ -141,7 +131,7 @@ public sealed class MultiConnectorTests : IDisposable
             modelNames = new List<string> { completion };
         }
 
-        await this.ChatGptOffloadsToOobaboogaAsync(succeedsOffloading, planFactory, modelNames, nbTests, skills).ConfigureAwait(false);
+        await this.ChatGptOffloadsToSecondaryConnectorsAsync(succeedsOffloading, planFactory, modelNames, nbTests, skills).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -154,7 +144,7 @@ public sealed class MultiConnectorTests : IDisposable
     [Theory(Skip = "SequentialPlanner was removed in SK 1.78; use the file-loaded plan path instead.")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "trivial", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
     [InlineData(true, "TheBloke_LLaMA2-13B-Tiefighter-GGUF", 1, "medium", "Comm_simple.txt", "Danse_simple.txt", "WriterSkill", "MiscSkill")]
-    public async Task ChatGptOffloadsToOobaboogaUsingPlannerAsync(bool succeedsOffloading, string completionName, int nbPromptTests, string difficulty, string inputFile, string validationFile, params string[] skillNames)
+    public async Task ChatGptOffloadsToSecondaryConnectorsUsingPlannerAsync(bool succeedsOffloading, string completionName, int nbPromptTests, string difficulty, string inputFile, string validationFile, params string[] skillNames)
     {
         // SK 1.78: there is no SequentialPlanner. Keep the signature stable for the test matrix
         // but short-circuit with an explanatory failure so that, if this test were ever unskipped
@@ -261,7 +251,7 @@ public sealed class MultiConnectorTests : IDisposable
         return null;
     }
 
-    private async Task ChatGptOffloadsToOobaboogaAsync(bool succeedsOffloading, Func<Kernel, CancellationToken, bool, Task<KernelFunction>> planFactory, List<string>? modelNames, int nbPromptTests, params string[] skillNames)
+    private async Task ChatGptOffloadsToSecondaryConnectorsAsync(bool succeedsOffloading, Func<Kernel, CancellationToken, bool, Task<KernelFunction>> planFactory, List<string>? modelNames, int nbPromptTests, params string[] skillNames)
     {
         // Arrange
 
@@ -269,7 +259,7 @@ public sealed class MultiConnectorTests : IDisposable
 
         var sw = Stopwatch.StartNew();
 
-        var multiConnectorConfiguration = this._configuration.GetSection("MultiConnector").Get<MultiOobaboogaConnectorConfiguration>();
+        var multiConnectorConfiguration = this._configuration.GetSection("MultiConnector").Get<MultiOpenAICompatibleConnectorConfiguration>();
         Assert.NotNull(multiConnectorConfiguration);
 
         var creditor = new CallRequestCostCreditor();
@@ -318,7 +308,7 @@ public sealed class MultiConnectorTests : IDisposable
         }
     }
 
-    private MultiTextCompletionSettings SetupMultiTextCompletionSettings(MultiOobaboogaConnectorConfiguration multiOobaboogaConnectorConfiguration, CallRequestCostCreditor creditor, int nbPromptTests)
+    private MultiTextCompletionSettings SetupMultiTextCompletionSettings(MultiOpenAICompatibleConnectorConfiguration multiConnectorConfiguration, CallRequestCostCreditor creditor, int nbPromptTests)
     {
         // The most common settings for a MultiTextCompletion are illustrated below, most of them have default values and are optional
         var settings = new MultiTextCompletionSettings()
@@ -389,7 +379,7 @@ public sealed class MultiConnectorTests : IDisposable
 
         // We add or override the global parameters from the settings file
 
-        foreach (var userGlobalParams in multiOobaboogaConnectorConfiguration.GlobalParameters)
+        foreach (var userGlobalParams in multiConnectorConfiguration.GlobalParameters)
         {
             settings.GlobalParameters[userGlobalParams.Key] = userGlobalParams.Value;
         }
@@ -465,7 +455,7 @@ public sealed class MultiConnectorTests : IDisposable
     }
 
     /// <summary>
-    /// Configures a kernel with MultiTextCompletion comprising a primary OpenAI connector with parameters defined in main settings for OpenAI integration tests, and Oobabooga secondary connectors with parameters defined in the MultiConnector part of the settings file. Returns null if no matching secondary connector is found in configuration.
+    /// Configures a kernel with MultiTextCompletion comprising a primary OpenAI connector with parameters defined in main settings for OpenAI integration tests, and OpenAI-compatible secondary connectors with parameters defined in the MultiConnector part of the settings file. Returns null if no matching secondary connector is found in configuration.
     ///
     /// SK 1.78 migration: <c>ITextCompletion</c> / <c>OpenAITextCompletion</c> / <c>OpenAIChatCompletion</c> were
     /// REMOVED. The canonical SK 1.78 surface is <see cref="ITextGenerationService"/> /
@@ -473,7 +463,7 @@ public sealed class MultiConnectorTests : IDisposable
     /// direct replacement. <c>kernel.CreateNewContext()</c> is also gone — <see cref="Kernel"/> is now
     /// immutable and the cost-offload call signature takes <see cref="KernelArguments"/> directly.
     /// </summary>
-    private Kernel? InitializeKernel(MultiTextCompletionSettings multiTextCompletionSettings, List<string>? modelNames, MultiOobaboogaConnectorConfiguration multiOobaboogaConnectorConfiguration, CancellationToken? cancellationToken = null)
+    private Kernel? InitializeKernel(MultiTextCompletionSettings multiTextCompletionSettings, List<string>? modelNames, MultiOpenAICompatibleConnectorConfiguration multiConnectorConfiguration, CancellationToken? cancellationToken = null)
     {
         cancellationToken ??= CancellationToken.None;
 
@@ -502,14 +492,14 @@ public sealed class MultiConnectorTests : IDisposable
         var openAiNamedCompletion = new NamedTextCompletion(testOrChatModelId, openAiConnector)
         {
             CostPer1000Token = 0.0015m,
-            TokenCountFunc = MultiOobaboogaConnectorConfiguration.TokenCountFunctionMap[TokenCountFunction.Gpt3Tokenizer],
+            TokenCountFunc = TokenCountFunctions.Map[TokenCountFunction.Gpt3Tokenizer],
             //We did not observe any limit on Open AI concurrent calls
             MaxDegreeOfParallelism = 5,
         };
 
-        List<NamedTextCompletion> oobaboogaCompletions = multiOobaboogaConnectorConfiguration.CreateNamedCompletions(modelNames);
+        List<NamedTextCompletion> secondaryCompletions = multiConnectorConfiguration.CreateNamedCompletions(modelNames);
 
-        if (oobaboogaCompletions.Count == 0)
+        if (secondaryCompletions.Count == 0)
         {
             this._testOutputHelper.LogWarning("No Secondary connectors matching test configuration found, aborting test");
             return null;
@@ -523,7 +513,7 @@ public sealed class MultiConnectorTests : IDisposable
             mainTextCompletion: openAiNamedCompletion,
             setAsDefault: true,
             analysisTaskCancellationToken: cancellationToken,
-            otherCompletions: oobaboogaCompletions.ToArray());
+            otherCompletions: secondaryCompletions.ToArray());
 
         var kernel = builder.Build();
 
@@ -532,18 +522,8 @@ public sealed class MultiConnectorTests : IDisposable
 
     public void Dispose()
     {
-        try
-        {
-            foreach (ClientWebSocket clientWebSocket in this._webSockets)
-            {
-                clientWebSocket.Dispose();
-            }
-        }
-        finally
-        {
-            this._cleanupToken.Cancel();
-            this._cleanupToken.Dispose();
-            this._testOutputHelper.Dispose();
-        }
+        this._cleanupToken.Cancel();
+        this._cleanupToken.Dispose();
+        this._testOutputHelper.Dispose();
     }
 }

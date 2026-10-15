@@ -15,7 +15,7 @@ namespace SemanticKernel.Connectors.UnitTests.MultiConnector.LoadTests;
 /// Minimal local OpenAI-compatible SSE test server for the load bench: answers every POST with a
 /// <c>text/event-stream</c> chat-completions stream of <see cref="ChunksPerResponse"/> content chunks
 /// (delta content = chunk index) followed by <c>data: [DONE]</c>.
-/// This is the SSE counterpart of the WebSocket <c>WebSocketTestServer</c> that carries the legacy
+/// This is the SSE counterpart of the retired WebSocket test server that carried the legacy
 /// Oobabooga 50k-chunk bench: like it, it measures the router + channel + socket pipeline on a
 /// localhost server, never token generation.
 /// </summary>
