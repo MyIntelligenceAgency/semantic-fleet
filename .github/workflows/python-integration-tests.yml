@@ -168,6 +168,8 @@ jobs:
       max-parallel: 1
       fail-fast: false
     needs: [python-merge-gate, python-integration-tests]
+    env:
+      HAS_TEAMS: ${{ secrets.MSTEAMS_WEBHOOK != '' }}
     steps:
       - name: Get Date
         shell: bash
@@ -208,7 +210,7 @@ jobs:
 
       - name: Microsoft Teams Notification
         uses: skitionek/notify-microsoft-teams@master
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && env.HAS_TEAMS == 'true'
         with:
           webhook_url: ${{ secrets.MSTEAMS_WEBHOOK }}
           dry_run: ${{ env.run_type != 'Daily' && env.run_type != 'Manual'}}
@@ -218,7 +220,7 @@ jobs:
 
       - name: Microsoft Teams Notification (Dry Run)
         uses: skitionek/notify-microsoft-teams@master
-        if: github.ref != 'refs/heads/main'
+        if: github.ref != 'refs/heads/main' && env.HAS_TEAMS == 'true'
         with:
           webhook_url: NONE
           dry_run: ${{ env.run_type != 'Daily' && env.run_type != 'Manual'}}
