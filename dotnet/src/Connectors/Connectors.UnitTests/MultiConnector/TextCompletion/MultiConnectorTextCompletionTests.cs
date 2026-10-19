@@ -103,15 +103,15 @@ public sealed class MultiConnectorTextCompletionTests : MultiConnectorTestsBase
     /// In this theory, we test that the multi-connector analysis is able to optimize the cost per request and duration of a multi-connector completion, with a primary connector capable of handling all 4 arithmetic operation, and secondary connectors only capable of performing 1 each. Depending on their respective performances in parameters and the respective weights of duration and cost in the analysis settings, the multi-connector analysis should be able to determine the best connector to account for the given preferences.
     /// </summary>
     [Theory]
-    [InlineData(20, 0.02, 2, 0.01, 1, 1, 0.01, 10)]
-    [InlineData(20, 0.02, 2, 0.1, 1, 1, 0.02, 1)]
-    [InlineData(20, 0.02, 2, 0.1, 1, 0, 0.1, 10)]
+    [InlineData(20, 0.02, 2, 0.01, 1, 1, 0.01, "Secondary")]
+    [InlineData(20, 0.02, 2, 0.1, 1, 1, 0.02, "Primary")]
+    [InlineData(20, 0.02, 2, 0.1, 1, 0, 0.1, "Secondary")]
     public async Task MultiConnectorAnalysisShouldDecreaseCostsAsync(int primaryDuration = 2, decimal primaryCost = 0.02m, int secondaryDuration = 1,
         decimal secondaryCost = 0.01m,
         double durationWeight = 1,
         double costWeight = 1,
         decimal expectedCost = 0.01m,
-        double expectedPerfGain = 2)
+        string expectedConnector = "Secondary")
     {
         //Arrange
 
@@ -182,8 +182,6 @@ public sealed class MultiConnectorTextCompletionTests : MultiConnectorTestsBase
 
         var firstPassEffectiveCost = creditor.OngoingCost;
         decimal firstPassExpectedCost = primaryResults.Sum(tuple => tuple.expectedCost);
-        //We remove the first prompt in time measurement because it is longer on first pass due to warmup
-        var firstPassDurationAfterWarmup = TimeSpan.FromTicks(primaryResults.Skip(1).Sum(tuple => tuple.duration.Ticks));
 
         // We disable prompt sampling to ensure no other tests are generated
         settings.EnablePromptSampling = false;
@@ -201,10 +199,6 @@ public sealed class MultiConnectorTextCompletionTests : MultiConnectorTestsBase
         decimal secondPassExpectedCost = secondaryResults.Sum(tuple => tuple.expectedCost);
         var secondPassEffectiveCost = creditor.OngoingCost;
 
-        //We also remove the first prompt in time measurement on second pass to align comparison
-
-        var secondPassDurationAfterWarmup = TimeSpan.FromTicks(secondaryResults.Skip(1).Sum(tuple => tuple.duration.Ticks));
-
         // Assert
 
         for (int index = 0; index < completionJobs.Length; index++)
@@ -220,7 +214,18 @@ public sealed class MultiConnectorTextCompletionTests : MultiConnectorTestsBase
 
         Assert.Equal(secondPassExpectedCost, secondPassEffectiveCost);
 
-        //We measure time ratio very approximately because it may depend on the machine load
-        Assert.InRange(secondPassDurationAfterWarmup, firstPassDurationAfterWarmup / (expectedPerfGain * 3), firstPassDurationAfterWarmup / (expectedPerfGain / 3));
+        // The chosen connector per prompt is derived deterministically from the analysis's
+        // suggested settings through the production routing, never from wall-clock (which
+        // depends on machine load and flaked on Windows CI). Only the identity of the
+        // connector selected by the weighted comparer is asserted; the arithmetic and cost
+        // assertions above are kept unchanged.
+        for (int index = 0; index < completionJobs.Length; index++)
+        {
+            var promptSettings = optimizationResults.SuggestedSettings.GetPromptSettings(completionJobs[index], out _);
+            var chosen = promptSettings.SelectAppropriateTextCompletion(completionJobs[index], completions, optimizationResults.SuggestedSettings.ConnectorComparer);
+            var operation = ArithmeticEngine.ParsePrompt(completionJobs[index].Prompt).operation;
+            var expectedName = expectedConnector == "Primary" ? "Primary" : $"Secondary - {operation}";
+            Assert.Equal(expectedName, chosen.namedTextCompletion.Name);
+        }
     }
 }
