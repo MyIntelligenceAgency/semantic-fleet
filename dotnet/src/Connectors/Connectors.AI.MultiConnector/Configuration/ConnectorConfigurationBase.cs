@@ -8,12 +8,12 @@ namespace MyIA.SemanticKernel.Connectors.AI.MultiConnector.Configuration;
 public class ConnectorConfigurationBase
 {
     /// <summary>
-    /// Name for your Oobabooga connector. Useful in case you have multiple connectors.
+    /// Name for your connector. Useful in case you have multiple connectors.
     /// </summary>
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// Oobabooga has both a text completion and a chat completion api. This setting determines which one to use.
+    /// OpenAI-compatible endpoints expose both a text completion and a chat completion API. This setting determines which one to use.
     /// </summary>
     public bool UseChatCompletion { get; set; }
 

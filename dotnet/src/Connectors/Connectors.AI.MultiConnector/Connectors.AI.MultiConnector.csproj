@@ -19,12 +19,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
     <PackageReference Include="Microsoft.SemanticKernel" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" />
     <PackageReference Include="SharpToken" />
     <PackageReference Include="System.Linq.Dynamic.Core" />
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="System.Threading.Channels" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Connectors.AI.Oobabooga\Connectors.AI.Oobabooga.csproj" />
   </ItemGroup>
 </Project>
