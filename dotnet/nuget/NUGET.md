@@ -2,6 +2,11 @@
 
 **Semantic Fleet** extends the capabilities of Semantic Kernel (SK) by offering a fleet of specialized connectors. With Semantic Fleet, you can easily integrate various AI services into your SK-powered applications, all managed by a superior Large Language Model (LLM) as your fleet captain.
 
+## Version 0.35.0
+
+- Targets **Semantic Kernel 1.78** (`ITextGenerationService`, `IChatCompletionService`, `Kernel.CreateBuilder()`); version 0.34.3 targeted a Semantic Kernel beta.
+- The Oobabooga connector speaks the text-generation-webui API that existed **before 13 November 2023**. For a recent text-generation-webui, or any OpenAI-compatible server, use Semantic Kernel's OpenAI connector; the Multiconnector accepts any `ITextGenerationService` as a secondary connector.
+
 ## Initial Features
 
 ### 🌟 Oobabooga Connector

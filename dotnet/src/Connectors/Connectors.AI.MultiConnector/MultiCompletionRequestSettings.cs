@@ -25,8 +25,13 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
     /// </summary>
     public MultiCompletionRequestSettings()
     {
-        this.ExtensionData ??= new Dictionary<string, object?>();
+        this.ExtensionData ??= new Dictionary<string, object>();
     }
+
+    /// <summary>
+    /// Non-null view of <see cref="PromptExecutionSettings.ExtensionData"/>, which is nullable in SK 1.x.
+    /// </summary>
+    private IDictionary<string, object> Extensions => this.ExtensionData ??= new Dictionary<string, object>();
 
     /// <summary>
     /// Modulates the next token probabilities. A value of 0 implies deterministic output (only the most likely token is used). Higher values increase randomness.
@@ -36,7 +41,7 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
     {
         get
         {
-            if (this.ExtensionData.TryGetValue("TEMPERATURE", out object? value))
+            if (this.Extensions.TryGetValue("TEMPERATURE", out object? value))
             {
                 if (value is JsonElement jsonElement)
                 {
@@ -48,7 +53,7 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
 
             return null;
         }
-        set => this.ExtensionData["TEMPERATURE"] = value!;
+        set => this.Extensions["TEMPERATURE"] = value!;
     }
 
     /// <summary>
@@ -59,7 +64,7 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
     {
         get
         {
-            if (this.ExtensionData.TryGetValue("MAX_TOKENS", out object? value))
+            if (this.Extensions.TryGetValue("MAX_TOKENS", out object? value))
             {
                 if (value is JsonElement jsonElement)
                 {
@@ -71,7 +76,7 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
 
             return null;
         }
-        set => this.ExtensionData["MAX_TOKENS"] = value!;
+        set => this.Extensions["MAX_TOKENS"] = value!;
     }
 
     /// <summary>
@@ -91,7 +96,7 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
         var newSettings = new MultiCompletionRequestSettings();
         if (defaultMaxTokens != null)
         {
-            newSettings.ExtensionData["MAX_TOKENS"] = defaultMaxTokens;
+            newSettings.Extensions["MAX_TOKENS"] = defaultMaxTokens;
         }
 
         if (requestSettings != null)
@@ -104,15 +109,15 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
 
             if (deserialized != null)
             {
-                foreach (var pair in deserialized.ExtensionData ?? new Dictionary<string, object?>())
+                foreach (var pair in deserialized.ExtensionData ?? new Dictionary<string, object>())
                 {
                     var upperKey = pair.Key.ToUpperInvariant();
                     var pairValue = pair.Value;
-                    newSettings.ExtensionData[upperKey] = pairValue;
+                    newSettings.Extensions[upperKey] = pairValue;
                     switch (upperKey)
                     {
                         case "MAXNEWTOKENS":
-                            newSettings.ExtensionData["MAX_TOKENS"] = pairValue;
+                            newSettings.Extensions["MAX_TOKENS"] = pairValue;
                             break;
                         default:
                             break;
@@ -132,9 +137,9 @@ public class MultiCompletionRequestSettings : PromptExecutionSettings
         var toReturn = new MultiCompletionRequestSettings();
         toReturn.ModelId = requestSettings.ModelId;
         toReturn.ServiceId = requestSettings.ServiceId;
-        foreach (var pair in requestSettings.ExtensionData ?? new Dictionary<string, object?>())
+        foreach (var pair in requestSettings.ExtensionData ?? new Dictionary<string, object>())
         {
-            toReturn.ExtensionData[pair.Key] = pair.Value;
+            toReturn.Extensions[pair.Key] = pair.Value;
         }
 
         return toReturn;

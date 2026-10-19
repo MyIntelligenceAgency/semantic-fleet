@@ -1,0 +1,17 @@
+# Dépendances de base
+python-dotenv>=1.0.0
+requests>=2.31.0
+tqdm>=4.66.1
+
+# Analyse de données et visualisation
+pandas>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Pour les tests asynchrones
+asyncio>=3.4.3
+
+# Pour les tests avec le MultiConnector
+Microsoft.SemanticKernel>=1.0.0
+MyIA.SemanticKernel.Connectors.AI.MultiConnector>=1.0.0

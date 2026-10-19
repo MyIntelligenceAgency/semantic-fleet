@@ -102,124 +102,145 @@ public sealed class MultiConnectorTextCompletionTests : MultiConnectorTestsBase
     /// In this theory, we test that the multi-connector analysis is able to optimize the cost per request and duration of a multi-connector completion, with a primary connector capable of handling all 4 arithmetic operation, and secondary connectors only capable of performing 1 each. Depending on their respective performances in parameters and the respective weights of duration and cost in the analysis settings, the multi-connector analysis should be able to determine the best connector to account for the given preferences.
     /// </summary>
     [Theory]
-    [InlineData(20, 0.02, 2, 0.01, 1, 1, 0.01, 10)]
-    [InlineData(20, 0.02, 2, 0.1, 1, 1, 0.02, 1)]
-    [InlineData(20, 0.02, 2, 0.1, 1, 0, 0.1, 10)]
+    [InlineData(20, 0.02, 2, 0.01, 1, 1, 0.01, "Secondary")]
+    [InlineData(20, 0.02, 2, 0.1, 1, 1, 0.02, "Primary")]
+    [InlineData(20, 0.02, 2, 0.1, 1, 0, 0.1, "Secondary")]
     public async Task MultiConnectorAnalysisShouldDecreaseCostsAsync(int primaryDuration = 2, decimal primaryCost = 0.02m, int secondaryDuration = 1,
         decimal secondaryCost = 0.01m,
         double durationWeight = 1,
         double costWeight = 1,
         decimal expectedCost = 0.01m,
-        double expectedPerfGain = 2)
+        string expectedConnector = "Secondary")
     {
         //Arrange
 
         //We configure settings to enable analysis, and let the connector discover the best settings, updating on the fly and deleting analysis file 
-        var settings = new MultiTextCompletionSettings()
+        var analysisDirectory = Path.Combine(Path.GetTempPath(), "sf-analysis-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(analysisDirectory);
+        try
         {
-            AnalysisSettings = new MultiCompletionAnalysisSettings()
+            var settings = new MultiTextCompletionSettings()
             {
-                EnableAnalysis = true,
-                NbPromptTests = 1,
-                AnalysisAwaitsManualTrigger = true,
-                AnalysisDelay = TimeSpan.Zero,
-                TestsPeriod = TimeSpan.Zero,
-                EvaluationPeriod = TimeSpan.Zero,
-                SuggestionPeriod = TimeSpan.Zero,
-                UpdateSuggestedSettings = true,
-                //Uncomment the following lines for additional debugging information
-                DeleteAnalysisFile = false,
-                SaveSuggestedSettings = true
-            },
-            PromptTruncationLength = 11,
-            ConnectorComparer = MultiTextCompletionSettings.GetWeightedConnectorComparer(durationWeight, costWeight),
-            // Uncomment to enable additional logging of MultiTextCompletion calls, results and/or test sample collection
-            LogCallResult = true,
-            LogTestCollection = true,
-        };
+                AnalysisSettings = new MultiCompletionAnalysisSettings()
+                {
+                    // Files of this run only: the defaults are relative paths shared by every
+                    // MultiTextCompletion in the process, and prompt sampling writes samples there even
+                    // when analysis is disabled, so a concurrent test could feed this analysis.
+                    AnalysisFilePath = Path.Combine(analysisDirectory, "MultiTextCompletion-analysis.json"),
+                    MultiCompletionSettingsFilePath = Path.Combine(analysisDirectory, "MultiTextCompletionSettings.json"),
+                    EnableAnalysis = true,
+                    NbPromptTests = 1,
+                    AnalysisAwaitsManualTrigger = true,
+                    AnalysisDelay = TimeSpan.Zero,
+                    TestsPeriod = TimeSpan.Zero,
+                    EvaluationPeriod = TimeSpan.Zero,
+                    SuggestionPeriod = TimeSpan.Zero,
+                    UpdateSuggestedSettings = true,
+                    //Uncomment the following lines for additional debugging information
+                    DeleteAnalysisFile = false,
+                    SaveSuggestedSettings = true
+                },
+                PromptTruncationLength = 11,
+                ConnectorComparer = MultiTextCompletionSettings.GetWeightedConnectorComparer(durationWeight, costWeight),
+                // Uncomment to enable additional logging of MultiTextCompletion calls, results and/or test sample collection
+                LogCallResult = true,
+                LogTestCollection = true,
+            };
 
-        // Cleanup in case the previous test failed to delete the analysis file
-        if (File.Exists(settings.AnalysisSettings.AnalysisFilePath))
-        {
-            File.Delete(settings.AnalysisSettings.AnalysisFilePath);
+            // The analysis directory is new: no file from a previous run can be present.
 
-            this.TestOutputHelper.LogTrace("Deleted preexisting analysis file: {0}", settings.AnalysisSettings.AnalysisFilePath);
+            // We configure a primary completion with default performances and cost, secondary completion have a gain of 2 in performances and in cost, but they can only handle a single operation each
+
+            var creditor = new CallRequestCostCreditor();
+
+            var completions = this.CreateCompletions(settings, TimeSpan.FromMilliseconds(primaryDuration), primaryCost, TimeSpan.FromMilliseconds(secondaryDuration), secondaryCost, creditor);
+
+            var completionJobs = this.CreateSampleJobs(Enum.GetValues(typeof(ArithmeticOperation)).Cast<ArithmeticOperation>().ToArray(), 8, 2);
+
+            var multiConnector = new MultiTextCompletion(settings, completions[0], this.CleanupToken.Token, loggerFactory: this.TestOutputHelper, otherCompletions: completions.Skip(1).ToArray());
+
+            // Create a task completion source to signal the completion of the optimization
+            var optimizationCompletedTaskSource = new TaskCompletionSource<SuggestionCompletedEventArgs>();
+
+            // Subscribe to the OptimizationCompleted event
+            settings.AnalysisSettings.SuggestionCompleted += (sender, args) =>
+            {
+                // Signal the completion of the optimization
+                optimizationCompletedTaskSource.SetResult(args);
+            };
+
+            // Subscribe to the OptimizationCompleted event
+            settings.AnalysisSettings.AnalysisTaskCrashed += (sender, args) =>
+            {
+                // Signal the completion of the optimization
+                optimizationCompletedTaskSource.SetException(args.CrashEvent.Exception);
+            };
+
+            //Act
+
+            settings.EnablePromptSampling = true;
+
+            var primaryResults = await RunPromptsAsync(completionJobs, multiConnector, completions[0].GetCost).ConfigureAwait(false);
+
+            var firstPassEffectiveCost = creditor.OngoingCost;
+            decimal firstPassExpectedCost = primaryResults.Sum(tuple => tuple.expectedCost);
+
+            // We disable prompt sampling to ensure no other tests are generated
+            settings.EnablePromptSampling = false;
+
+            // release optimization task
+            settings.AnalysisSettings.AnalysisAwaitsManualTrigger = false;
+            settings.AnalysisSettings.ReleaseAnalysisTasks();
+            // Get the optimization results
+            // A bounded wait turns a stalled analysis into a failure instead of a test run that never ends.
+            var optimizationResults = await optimizationCompletedTaskSource.Task.WaitAsync(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+
+            creditor.Reset();
+
+            // Redo the same requests with the new settings
+            var secondaryResults = await RunPromptsAsync(completionJobs, multiConnector, (s, s1) => expectedCost).ConfigureAwait(false);
+            decimal secondPassExpectedCost = secondaryResults.Sum(tuple => tuple.expectedCost);
+            var secondPassEffectiveCost = creditor.OngoingCost;
+
+            // Assert
+
+            for (int index = 0; index < completionJobs.Length; index++)
+            {
+                string? prompt = completionJobs[index].Prompt;
+                var parsed = ArithmeticEngine.ParsePrompt(prompt);
+                var realResult = ArithmeticEngine.Compute(parsed.operation, parsed.operand1, parsed.operand2).ToString(CultureInfo.InvariantCulture);
+                Assert.Equal(realResult, primaryResults[index].result);
+                Assert.Equal(realResult, secondaryResults[index].result);
+            }
+
+            Assert.Equal(firstPassExpectedCost, firstPassEffectiveCost);
+
+            Assert.Equal(secondPassExpectedCost, secondPassEffectiveCost);
+
+            // The chosen connector per prompt is derived deterministically from the analysis's
+            // suggested settings through the production routing, never from wall-clock (which
+            // depends on machine load and flaked on Windows CI). Only the identity of the
+            // connector selected by the weighted comparer is asserted; the arithmetic and cost
+            // assertions above are kept unchanged.
+            for (int index = 0; index < completionJobs.Length; index++)
+            {
+                var promptSettings = optimizationResults.SuggestedSettings.GetPromptSettings(completionJobs[index], out _);
+                var chosen = promptSettings.SelectAppropriateTextCompletion(completionJobs[index], completions, optimizationResults.SuggestedSettings.ConnectorComparer);
+                var operation = ArithmeticEngine.ParsePrompt(completionJobs[index].Prompt).operation;
+                var expectedName = expectedConnector == "Primary" ? "Primary" : $"Secondary - {operation}";
+                Assert.Equal(expectedName, chosen.namedTextCompletion.Name);
+            }
         }
-
-        // We configure a primary completion with default performances and cost, secondary completion have a gain of 2 in performances and in cost, but they can only handle a single operation each
-
-        var creditor = new CallRequestCostCreditor();
-
-        var completions = this.CreateCompletions(settings, TimeSpan.FromMilliseconds(primaryDuration), primaryCost, TimeSpan.FromMilliseconds(secondaryDuration), secondaryCost, creditor);
-
-        var completionJobs = this.CreateSampleJobs(Enum.GetValues(typeof(ArithmeticOperation)).Cast<ArithmeticOperation>().ToArray(), 8, 2);
-
-        var multiConnector = new MultiTextCompletion(settings, completions[0], this.CleanupToken.Token, loggerFactory: this.TestOutputHelper, otherCompletions: completions.Skip(1).ToArray());
-
-        // Create a task completion source to signal the completion of the optimization
-        var optimizationCompletedTaskSource = new TaskCompletionSource<SuggestionCompletedEventArgs>();
-
-        // Subscribe to the OptimizationCompleted event
-        settings.AnalysisSettings.SuggestionCompleted += (sender, args) =>
+        finally
         {
-            // Signal the completion of the optimization
-            optimizationCompletedTaskSource.SetResult(args);
-        };
-
-        // Subscribe to the OptimizationCompleted event
-        settings.AnalysisSettings.AnalysisTaskCrashed += (sender, args) =>
-        {
-            // Signal the completion of the optimization
-            optimizationCompletedTaskSource.SetException(args.CrashEvent.Exception);
-        };
-
-        //Act
-
-        settings.EnablePromptSampling = true;
-
-        var primaryResults = await RunPromptsAsync(completionJobs, multiConnector, completions[0].GetCost).ConfigureAwait(false);
-
-        var firstPassEffectiveCost = creditor.OngoingCost;
-        decimal firstPassExpectedCost = primaryResults.Sum(tuple => tuple.expectedCost);
-        //We remove the first prompt in time measurement because it is longer on first pass due to warmup
-        var firstPassDurationAfterWarmup = TimeSpan.FromTicks(primaryResults.Skip(1).Sum(tuple => tuple.duration.Ticks));
-
-        // We disable prompt sampling to ensure no other tests are generated
-        settings.EnablePromptSampling = false;
-
-        // release optimization task
-        settings.AnalysisSettings.AnalysisAwaitsManualTrigger = false;
-        settings.AnalysisSettings.ReleaseAnalysisTasks();
-        // Get the optimization results
-        var optimizationResults = await optimizationCompletedTaskSource.Task.ConfigureAwait(false);
-
-        creditor.Reset();
-
-        // Redo the same requests with the new settings
-        var secondaryResults = await RunPromptsAsync(completionJobs, multiConnector, (s, s1) => expectedCost).ConfigureAwait(false);
-        decimal secondPassExpectedCost = secondaryResults.Sum(tuple => tuple.expectedCost);
-        var secondPassEffectiveCost = creditor.OngoingCost;
-
-        //We also remove the first prompt in time measurement on second pass to align comparison
-
-        var secondPassDurationAfterWarmup = TimeSpan.FromTicks(secondaryResults.Skip(1).Sum(tuple => tuple.duration.Ticks));
-
-        // Assert
-
-        for (int index = 0; index < completionJobs.Length; index++)
-        {
-            string? prompt = completionJobs[index].Prompt;
-            var parsed = ArithmeticEngine.ParsePrompt(prompt);
-            var realResult = ArithmeticEngine.Compute(parsed.operation, parsed.operand1, parsed.operand2).ToString(CultureInfo.InvariantCulture);
-            Assert.Equal(realResult, primaryResults[index].result);
-            Assert.Equal(realResult, secondaryResults[index].result);
+            // Best effort: the background analysis task may still hold one of its files briefly.
+            try
+            {
+                Directory.Delete(analysisDirectory, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
         }
-
-        Assert.Equal(firstPassExpectedCost, firstPassEffectiveCost);
-
-        Assert.Equal(secondPassExpectedCost, secondPassEffectiveCost);
-
-        //We measure time ratio very approximately because it may depend on the machine load
-        Assert.InRange(secondPassDurationAfterWarmup, firstPassDurationAfterWarmup / (expectedPerfGain * 3), firstPassDurationAfterWarmup / (expectedPerfGain / 3));
     }
 }

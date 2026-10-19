@@ -188,7 +188,7 @@ public class PromptTransform
                     }
 
                     ParsingConfig config = new();
-                    config.CustomTypeProvider = new CustomDynamicTypeProvider(context, config.CustomTypeProvider);
+                    config.CustomTypeProvider = new CustomDynamicTypeProvider(context, config.CustomTypeProvider ?? new DefaultDynamicLinqCustomTypeProvider(config));
 
                     var e = System.Linq.Dynamic.Core.DynamicExpressionParser.ParseLambda(config, parameters.ToArray(), null, matchToken);
                     tokenDelegate = e.Compile();
