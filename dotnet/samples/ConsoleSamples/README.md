@@ -54,10 +54,6 @@ dotnet user-secrets set "OpenAI:ChatModelId" "..."
 dotnet user-secrets set "OpenAI:EmbeddingModelId" "..."
 dotnet user-secrets set "OpenAI:ApiKey" "..."
 
-dotnet user-secrets set "Oobabooga:EndPoint" "..."
-dotnet user-secrets set "Oobabooga:BlockingPort" "..."
-dotnet user-secrets set "Oobabooga:StreamingPort" "..."
-
 
 ```
 
@@ -68,11 +64,6 @@ OpenAI__ModelId
 OpenAI__ChatModelId
 OpenAI__EmbeddingModelId
 OpenAI__ApiKey
-
-# Oobabooga
-Oobabooga__EndPoint
-Oobabooga__BlockingPort
-Oobabooga__StreamingPort
 
 
 ```

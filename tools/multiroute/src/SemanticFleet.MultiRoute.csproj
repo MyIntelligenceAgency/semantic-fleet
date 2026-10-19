@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Console wrapper around Connectors.AI.MultiConnector for notebook
+      consumption (Axis 6 of the #1210 epic). The organ cannot load inside
+      .NET Interactive: its dependency closure (SK 1.78 + OpenAI SDK +
+      Logging.Abstractions) is NuGet-resolved, and the ALC isolation of a
+      locally-#r'd assembly cannot see it (FileNotFoundException on
+      Logging.Abstractions 10.0.0.0, measured twice with exact pins).
+      A console app resolves the whole closure in one ALC — this tool is
+      the organ's invocable surface: `Process.Start` from the notebook.
+    -->
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- CA1031 (do not catch general Exception): this is a CLI front-end whose
+         contract is to REPORT provider failures (any of HttpRequestException,
+         ClientResultException, IOException, ...) on stderr with exit 1, not to
+         crash the notebook's Process.Start capture. -->
+    <NoWarn>$(NoWarn);CA1031</NoWarn>
+    <RootNamespace>SemanticFleet.MultiRoute</RootNamespace>
+    <AssemblyName>SemanticFleet.MultiRoute</AssemblyName>
+    <Description>
+      Console front-end for Connectors.AI.MultiConnector: routes a prompt (by its
+      signature prefix) across three real providers (OpenAI direct + two via the
+      OpenRouter OpenAI-compatible endpoint) and prints the route taken, latency
+      and response as JSON. Keys come exclusively from the environment.
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\dotnet\src\Connectors\Connectors.AI.MultiConnector\Connectors.AI.MultiConnector.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.78.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.78.0" />
+  </ItemGroup>
+
+</Project>
