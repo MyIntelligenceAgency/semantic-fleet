@@ -1,5 +1,7 @@
 # Baseline .NET 9 — bancs BenchmarkDotNet SemanticFleet
 
+> **Avertissement de comparabilité (2026-10-29).** Les chiffres ci-dessous ont été mesurés sous l'ancien pin `WithInvocationCount(1)` de `InProcessShortConfig` (une itération = une invocation, 3,7-90 us par itération — sous le minimum de 100 ms documenté par BDN). La campagne N-scaling sur jsboige/CoursIA#18695 a établi que ce pin sur-estime le coût par opération d'un facteur ~8-19 (harnais ShortRun dominant) et produit une dispersion intra-version de 16-40 % qui rend les deltas inter-versions INCONCLUSIFS. La config a été corrigée (invocation count auto + `IterationTime(100 ms)`, `UnrollFactor(1)` conservé) et le banc porte désormais des variantes « per-op instrument » (`OperationsPerInvoke` sur arguments tournants consommés), dont le coût/op est stable de N=1 à N=10 000. **Ne pas comparer ces chiffres aux sorties du banc corrigé sans re-générer la baseline** (re-génération à faire au protocole de reproduction ci-dessous).
+
 Baseline de référence pour la mesure des gains runtime .NET 10/11 (issue CoursIA #18770, fille de l'EPIC #18695). Banc : `benchmarks/SemanticFleet.Benchmarks` (BenchmarkDotNet 0.14.0), exerçant l'**API publique** du connecteur MultiConnector sur les hot paths identifiés par le digest .NET 11.
 
 ## Environnement de mesure
