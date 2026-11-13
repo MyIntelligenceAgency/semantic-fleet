@@ -45,12 +45,6 @@
     <None Update="OpenAI\TestData\image_generation_test_response.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Oobabooga\TestData\completion_test_streaming_response.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Oobabooga\TestData\completion_test_response.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

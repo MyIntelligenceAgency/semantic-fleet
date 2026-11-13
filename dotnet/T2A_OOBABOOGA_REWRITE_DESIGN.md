@@ -1,5 +1,7 @@
 # T2a — Oobabooga Connector Rewrite Design (file-level)
 
+> Document historique : le transport WebSocket Oobabooga a été retiré par la PR #103 ; ce projet de réécriture est donc caduc.
+
 **Source grain :** Issue [#6853](https://github.com/jsboige/CoursIA/issues/6853) (Axe 2 SK upgrade), plan tranche-2 du `BREAKING_CHANGES_INVENTORY.md`.
 **Branche :** `upgrade-sk` dans ce submodule.
 **Date :** 2026-07-18 (po-2026 c.476).
