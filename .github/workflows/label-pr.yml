@@ -18,4 +18,7 @@ jobs:
     steps:
       - uses: actions/labeler@v4
         with:
-          repo-token: "${{ secrets.GH_ACTIONS_PR_WRITE }}"
+          # GH_ACTIONS_PR_WRITE n est pas defini sur ce depot : le labeler recevait un
+          # token vide et mourait (Parameter token or opts.auth is required) sur chaque
+          # PR -- y compris #112/#113. github.token porte deja pull-requests: write.
+          repo-token: "${{ github.token }}"
