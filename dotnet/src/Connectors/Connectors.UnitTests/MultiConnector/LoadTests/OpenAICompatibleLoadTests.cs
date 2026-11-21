@@ -150,6 +150,75 @@ public sealed class OpenAICompatibleLoadTests : IDisposable
         Assert.DoesNotContain(results, r => r.Text.Length == 0);
     }
 
+    /// <summary>
+    /// Reference run through the claudish router (t6b): the connector set is built by
+    /// <see cref="ClaudishConnectorConfiguration.Create"/> — one connector per routed alias, all sharing the proxy
+    /// endpoint — so the prompt-signature routing and online vetting of the MultiConnector run across providers
+    /// reached through the proxy. Opt-in only (env <c>SEMANTICFLEET_LOAD_BENCH_CLAUDISH=1</c>, never in CI):
+    /// the proxy endpoint and key come from <c>CLAUDISH_BASE_URL</c> (default <c>http://localhost:3915/v1</c>, the
+    /// fleet sidecar) and <c>CLAUDISH_API_KEY</c>, the aliases from <c>SEMANTICFLEET_LOAD_BENCH_CLAUDISH_ALIASES</c>
+    /// (comma-separated, first entry = primary connector). Sample = 2 calls x 300 tokens;
+    /// <c>SEMANTICFLEET_LOAD_BENCH_FULL=1</c> runs the 50k load (same window rule as the endpoint reference run:
+    /// announce on the dashboard, no full run 07:00-19:00Z).
+    /// </summary>
+    [Fact]
+    public async Task ReferenceBenchThroughClaudishRouterRunsOnlyWhenOptedIn()
+    {
+        if (Environment.GetEnvironmentVariable("SEMANTICFLEET_LOAD_BENCH_CLAUDISH") != "1")
+        {
+            this._output.WriteLine("[claudish-bench] skipped: opt-in only (set SEMANTICFLEET_LOAD_BENCH_CLAUDISH=1, CLAUDISH_BASE_URL, CLAUDISH_API_KEY, SEMANTICFLEET_LOAD_BENCH_CLAUDISH_ALIASES). Default = sample (2 calls x 300 tokens); SEMANTICFLEET_LOAD_BENCH_FULL=1 runs the 50k load.");
+            return;
+        }
+
+        var endpoint = Environment.GetEnvironmentVariable("CLAUDISH_BASE_URL") ?? "http://localhost:3915/v1";
+        var aliasesCsv = Environment.GetEnvironmentVariable("SEMANTICFLEET_LOAD_BENCH_CLAUDISH_ALIASES")
+            ?? throw new InvalidOperationException(
+                "SEMANTICFLEET_LOAD_BENCH_CLAUDISH_ALIASES is required: comma-separated claudish aliases, the first entry is the primary connector the router defaults to.");
+        bool fullLoad = Environment.GetEnvironmentVariable("SEMANTICFLEET_LOAD_BENCH_FULL") == "1";
+
+        int calls = fullLoad ? FullLoadCalls : 2;
+        int maxTokens = fullLoad ? FullLoadMaxTokensPerCall : ReferenceSampleMaxTokens;
+        var runTimeout = fullLoad ? TimeSpan.FromMinutes(30) : TimeSpan.FromMinutes(5);
+
+        var routes = aliasesCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(alias => new ClaudishModelRoute { Alias = alias, MaxTokens = maxTokens })
+            .ToList();
+
+        // The proxy owns the provider credentials; the key it expects comes from CLAUDISH_API_KEY
+        // (the factory's own fallback), never from a committed file.
+        var configuration = ClaudishConnectorConfiguration.Create(endpoint, apiKey: null, routes);
+        var completions = configuration.CreateNamedCompletions();
+        Assert.Equal(routes.Count, completions.Count);
+
+        var settings = new MultiTextCompletionSettings
+        {
+            EnablePromptSampling = false,
+            LogCallResult = false,
+        };
+
+        // The first route is the primary connector; the router vets the others online.
+        var router = new MultiTextCompletion(settings, completions[0], this._cleanupToken.Token, null, completions.Skip(1).ToArray());
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(this._cleanupToken.Token);
+        timeoutCts.CancelAfter(runTimeout);
+
+        var runStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+        this._output.WriteLine($"[claudish-bench] run {runStamp} endpoint={endpoint} mode={(fullLoad ? "full-50k" : "sample")} aliases={string.Join("|", routes.Select(r => r.Alias))} calls={calls} maxTokens/call={maxTokens} concurrency<={ReferenceMaxConcurrency}");
+
+        var stopwatch = Stopwatch.StartNew();
+        var results = await this.RunConcurrentCallsAsync(router, calls, maxConcurrency: ReferenceMaxConcurrency, maxTokens: maxTokens, timeoutCts.Token).ConfigureAwait(false);
+        stopwatch.Stop();
+
+        var totalChunks = results.Sum(r => (long)r.Received);
+        var elapsedMs = stopwatch.ElapsedMilliseconds;
+        var chunksPerSecond = elapsedMs > 0 ? totalChunks * 1000 / elapsedMs : 0;
+        this._output.WriteLine($"[claudish-bench] run {runStamp}: {totalChunks} chunks in {elapsedMs} ms = {chunksPerSecond} chunks/s (concurrency <= {ReferenceMaxConcurrency})");
+
+        // Assert delivery only: the throughput of a live proxy belongs to the report, not to a ratchet.
+        Assert.All(results, r => Assert.True(r.Received > 0, "every claudish bench call must stream at least one chunk"));
+        Assert.DoesNotContain(results, r => r.Text.Length == 0);
+    }
+
     private MultiTextCompletion BuildRouter(string endpoint, string modelId, string? apiKey, out string connectorName)
     {
         connectorName = "sse-bench";
