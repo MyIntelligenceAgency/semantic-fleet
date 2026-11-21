@@ -53,6 +53,7 @@ This guide covers how to install Oobabooga, download models, and configure multi
 
 ## Using Oobabooga Models with Semantic-Kernel
 
-- For examples of how to use Oobabooga models with semantic-kernel, check out the [oobabooga notebooks](../dotnet/notebooks/README.md).
-- For concurrent multi-model access, see the [oobabooga chat notebook](../dotnet/notebooks/02-oobabooga-chat-capabilities.ipynb).
-- To learn about model routing capabilities, refer to the [MultiConnector Integration Test Guide](../dotnet/src/IntegrationTests/Connectors/MultiConnector/README.md).
+Le transport WebSocket Oobabooga historique a été retiré par la PR #103 : les anciens notebooks correspondants ne décrivent plus le connecteur courant. Pour un serveur Oobabooga exposant une API compatible OpenAI, utiliser `MultiOpenAICompatibleConnectorConfiguration` avec l'URL et le nom du modèle du serveur.
+
+- Exemple de configuration multi-modèle : [Example02_MultiConnectorHelloWorld.cs](../dotnet/samples/ConsoleSamples/Example02_MultiConnectorHelloWorld.cs).
+- Routage et configuration des tests : [guide d'intégration MultiConnector](../dotnet/src/IntegrationTests/Connectors/MultiConnector/README.md).
