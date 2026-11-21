@@ -182,7 +182,7 @@ public class PromptSignature
 
         foreach (KeyValuePair<string, object> keyValuePair in this.RequestSettings.ExtensionData ?? new Dictionary<string, object>())
         {
-            if (!promptSettings.ExtensionData.TryGetValue(keyValuePair.Key, out var targetValue) || keyValuePair.Value.ToString() != targetValue.ToString())
+            if (promptSettings.ExtensionData is null || !promptSettings.ExtensionData.TryGetValue(keyValuePair.Key, out var targetValue) || keyValuePair.Value.ToString() != targetValue.ToString())
             {
                 return false;
             }

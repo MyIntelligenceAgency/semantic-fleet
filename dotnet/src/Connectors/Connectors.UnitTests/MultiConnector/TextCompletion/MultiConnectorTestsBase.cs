@@ -94,7 +94,7 @@ public class MultiConnectorTestsBase : IDisposable
             stopWatch.Stop();
             var duration = stopWatch.Elapsed;
             var cost = completionCostFunction(job.Prompt, result ?? string.Empty);
-            toReturn.Add((result, duration, cost));
+            toReturn.Add((result ?? string.Empty, duration, cost));
         }
 
         return toReturn;

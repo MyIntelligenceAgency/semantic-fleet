@@ -34,7 +34,10 @@ public sealed class RedirectOutput : TextWriter, ILogger, ILoggerFactory
     public override void WriteLine(string? value)
     {
         this._output.WriteLine(value);
-        this._logs.AppendLine(value);
+        lock (this._logs)
+        {
+            this._logs.AppendLine(value);
+        }
     }
 
     /// <inheritdoc />
@@ -54,7 +57,10 @@ public sealed class RedirectOutput : TextWriter, ILogger, ILoggerFactory
     /// </summary>
     public string GetLogs()
     {
-        return this._logs.ToString();
+        lock (this._logs)
+        {
+            return this._logs.ToString();
+        }
     }
 
     /// <inheritdoc />
@@ -62,7 +68,11 @@ public sealed class RedirectOutput : TextWriter, ILogger, ILoggerFactory
     {
         var message = formatter(state, exception);
         this._output?.WriteLine(message);
-        this._logs.AppendLine(message);
+        // Loggers are shared by concurrent calls (e.g. streaming tests); StringBuilder is not thread-safe.
+        lock (this._logs)
+        {
+            this._logs.AppendLine(message);
+        }
     }
 
     /// <inheritdoc />

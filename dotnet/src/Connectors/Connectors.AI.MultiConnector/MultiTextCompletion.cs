@@ -63,10 +63,10 @@ public class MultiTextCompletion : ITextGenerationService
     public IReadOnlyDictionary<string, object?> Attributes { get; } = new Dictionary<string, object?>();
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(string text, PromptExecutionSettings? requestSettings, Kernel? kernel, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(string prompt, PromptExecutionSettings? executionSettings, Kernel? kernel, CancellationToken cancellationToken)
     {
         this._logger?.LogTrace("\n## Starting MultiTextCompletion.GetTextContentsAsync\n");
-        var completionJob = new CompletionJob(text, requestSettings);
+        var completionJob = new CompletionJob(prompt, executionSettings);
         var session = this._settings.GetMultiCompletionSession(completionJob, this.TextCompletions, this._logger);
         this._logger?.LogTrace("Calling chosen completion with adjusted prompt and settings");
 
@@ -89,10 +89,10 @@ public class MultiTextCompletion : ITextGenerationService
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(string text, PromptExecutionSettings? requestSettings, Kernel? kernel, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(string prompt, PromptExecutionSettings? executionSettings, Kernel? kernel, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         this._logger?.LogTrace("\n## Starting MultiTextCompletion.GetStreamingTextContentsAsync\n");
-        var completionJob = new CompletionJob(text, requestSettings);
+        var completionJob = new CompletionJob(prompt, executionSettings);
         var session = this._settings.GetMultiCompletionSession(completionJob, this.TextCompletions, this._logger);
         this._logger?.LogTrace("Calling chosen completion with adjusted prompt and settings");
         var result = session.NamedTextCompletion.TextCompletion.GetStreamingTextContentsAsync(session.CallJob.Prompt, session.CallJob.RequestSettings, kernel, cancellationToken);
